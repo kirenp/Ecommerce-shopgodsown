@@ -1,7 +1,12 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { usePreview } from "@/lib/preview";
 
 export default function MissionSection() {
+  const { getPreviewPath } = usePreview();
+
   return (
     <section className="py-24 px-6 md:px-12 bg-black overflow-hidden border-t border-white/5">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-16">
@@ -14,7 +19,7 @@ export default function MissionSection() {
             Pair text with an image to focus on your chosen product, collection, or blog post. Our goal is to bring the most exclusive and culturally relevant streetwear to your doorstep.
           </p>
           <Link
-            href="/about"
+            href={getPreviewPath("/about")}
             className="inline-block bg-transparent text-white border border-white/20 px-10 py-4 text-xs font-bold tracking-[0.2em] uppercase hover:bg-white hover:text-black hover:border-white transition-all duration-300"
           >
             Learn More

@@ -5,6 +5,7 @@ import { Search, User, ShoppingBag, X } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useCart } from "@/lib/cartContext";
+import { usePreview } from "@/lib/preview";
 
 export default function Navbar() {
   const [searchOpen, setSearchOpen] = useState(false);
@@ -14,6 +15,7 @@ export default function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
   const { itemCount } = useCart();
+  const { isPreview, getPreviewPath } = usePreview();
 
   useEffect(() => {
     if (searchOpen) inputRef.current?.focus();
@@ -22,7 +24,7 @@ export default function Navbar() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      router.push(`/catalog?search=${encodeURIComponent(searchQuery.trim())}`);
+      router.push(`${getPreviewPath("/catalog")}?search=${encodeURIComponent(searchQuery.trim())}`);
       setSearchOpen(false);
       setSearchQuery("");
     }
@@ -73,11 +75,11 @@ export default function Navbar() {
           {/* Left Links (desktop) */}
           <div className="hidden md:flex items-center space-x-8">
             {navLinks.map((item) => {
-              const isActive = pathname === item.href;
+              const isActive = pathname === item.href || pathname === getPreviewPath(item.href);
               return (
                 <Link
                   key={item.label}
-                  href={item.href}
+                  href={getPreviewPath(item.href)}
                   className={`text-[11px] font-medium tracking-[0.2em] uppercase transition-colors ${isActive ? "text-luxury-kasavu" : "text-black/60 hover:text-luxury-kasavu"
                     }`}
                 >
@@ -100,8 +102,8 @@ export default function Navbar() {
 
           {/* Logo */}
           <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center">
-            <Link href="/" className="font-brand text-base sm:text-lg md:text-xl lg:text-2xl font-light text-black tracking-[0.1em] sm:tracking-[0.2em] uppercase whitespace-nowrap">
-              GodsOwn Culture
+            <Link href={getPreviewPath("/")} className="font-geishta text-base sm:text-lg md:text-xl lg:text-2xl font-light text-black tracking-[0.1em] sm:tracking-[0.2em] uppercase whitespace-nowrap">
+              GODS OWN
             </Link>
           </div>
 
@@ -117,7 +119,7 @@ export default function Navbar() {
             <button className="hover:text-luxury-kasavu transition-colors hidden md:block" aria-label="Account">
               <User size={17} />
             </button>
-            <Link href="/cart" className="hover:text-luxury-kasavu transition-colors relative" aria-label="Cart">
+            <Link href={getPreviewPath("/cart")} className="hover:text-luxury-kasavu transition-colors relative" aria-label="Cart">
               <ShoppingBag size={17} />
               {itemCount > 0 && (
                 <span className="absolute -top-2 -right-2 bg-black text-white text-[8px] font-bold w-4 h-4 flex items-center justify-center rounded-full leading-none">
@@ -132,11 +134,11 @@ export default function Navbar() {
         {menuOpen && (
           <div className="md:hidden bg-[#f7f5f2] border-b border-black/5 px-6 py-6 flex flex-col gap-5">
             {navLinks.map((item) => {
-              const isActive = pathname === item.href;
+              const isActive = pathname === item.href || pathname === getPreviewPath(item.href);
               return (
                 <Link
                   key={item.label}
-                  href={item.href}
+                  href={getPreviewPath(item.href)}
                   onClick={() => setMenuOpen(false)}
                   className={`text-sm font-medium tracking-[0.2em] uppercase transition-colors ${isActive ? "text-luxury-kasavu" : "text-black/60 hover:text-luxury-kasavu"
                     }`}

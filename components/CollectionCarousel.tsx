@@ -4,6 +4,7 @@ import { useRef, useEffect } from 'react';
 import Link from 'next/link';
 import NextImage from 'next/image';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { usePreview } from '@/lib/preview';
 
 interface CollectionCarouselProps {
   collections: any[];
@@ -11,6 +12,7 @@ interface CollectionCarouselProps {
 
 export default function CollectionCarousel({ collections }: CollectionCarouselProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const { getPreviewPath } = usePreview();
 
   const scroll = (direction: 'left' | 'right') => {
     if (scrollContainerRef.current) {
@@ -51,7 +53,7 @@ export default function CollectionCarousel({ collections }: CollectionCarouselPr
         {collections.map((collection: any) => (
           <Link
             key={collection.id}
-            href={`/collections/${collection.handle}`}
+            href={getPreviewPath(`/collections/${collection.handle}`)}
             className="group relative flex-shrink-0 w-[280px] sm:w-[350px] md:w-[400px] aspect-[4/5] rounded-[2rem] shadow-xl overflow-hidden isolate"
           >
             <NextImage

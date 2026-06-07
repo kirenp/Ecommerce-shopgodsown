@@ -1,8 +1,13 @@
+"use client";
+
 import NextImage from "next/image";
 import Link from "next/link";
 import { Instagram, Twitter, Facebook } from "lucide-react";
+import { usePreview } from "@/lib/preview";
 
 export default function Footer() {
+  const { getPreviewPath } = usePreview();
+
   return (
     <footer className="bg-white border-t border-black/10 pt-20 pb-10 px-6 md:px-12 relative overflow-hidden">
       <div className="max-w-7xl mx-auto relative z-10">
@@ -10,8 +15,8 @@ export default function Footer() {
         <div className="border-b border-black/10 pb-16 mb-16 relative">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 h-full">
             <div className="relative z-20">
-              <h2 className="font-brand text-6xl md:text-9xl font-light text-black tracking-tight leading-none">
-                Gods Own Culture
+              <h2 className="font-geishta text-6xl md:text-9xl font-light text-black tracking-tight leading-none">
+                GODS OWN
               </h2>
               <p className="mt-6 text-black/40 text-xs md:text-base max-w-lg tracking-[0.2em] leading-loose font-medium">
                 The new standard of streetwear. <br />
@@ -42,7 +47,7 @@ export default function Footer() {
             <ul className="space-y-4">
               {["Catalog", "Collections", "New Drops"].map((item) => (
                 <li key={item}>
-                  <Link href={item === "Catalog" ? "/catalog" : item === "Collections" ? "/#collections" : "/catalog"} className="text-black/40 hover:text-black text-xs uppercase tracking-widest transition-colors">
+                  <Link href={getPreviewPath(item === "Catalog" ? "/catalog" : item === "Collections" ? "/#collections" : "/catalog")} className="text-black/40 hover:text-black text-xs uppercase tracking-widest transition-colors">
                     {item}
                   </Link>
                 </li>
@@ -58,7 +63,7 @@ export default function Footer() {
                 { label: "Contact", href: "/contact" },
               ].map((item) => (
                 <li key={item.label}>
-                  <Link href={item.href} className="text-black/40 hover:text-black text-xs uppercase tracking-widest transition-colors">
+                  <Link href={getPreviewPath(item.href)} className="text-black/40 hover:text-black text-xs uppercase tracking-widest transition-colors">
                     {item.label}
                   </Link>
                 </li>
@@ -75,7 +80,7 @@ export default function Footer() {
                 { label: "Terms of Service", href: "/terms-of-service" },
               ].map((item) => (
                 <li key={item.label}>
-                  <Link href={item.href} className="text-black/40 hover:text-black text-xs uppercase tracking-widest transition-colors">
+                  <Link href={getPreviewPath(item.href)} className="text-black/40 hover:text-black text-xs uppercase tracking-widest transition-colors">
                     {item.label}
                   </Link>
                 </li>

@@ -20,7 +20,7 @@ export default function CategoryStrip() {
               <div className="w-10 h-10 rounded-full border border-luxury-gold/30 flex items-center justify-center text-luxury-gold bg-luxury-gold/5">
                 {item.icon}
               </div>
-              <span className="text-luxury-gold text-[10px] md:text-xs font-bold tracking-[0.4em] uppercase">
+              <span className={`text-luxury-gold text-[10px] md:text-xs font-bold tracking-[0.4em] uppercase ${item.text === "GODS OWN" ? "font-geishta" : ""}`}>
                 {item.text}
               </span>
             </div>
@@ -33,7 +33,7 @@ export default function CategoryStrip() {
               <div className="w-10 h-10 rounded-full border border-luxury-gold/30 flex items-center justify-center text-luxury-gold bg-luxury-gold/5">
                 {item.icon}
               </div>
-              <span className="text-luxury-gold text-[10px] md:text-xs font-bold tracking-[0.4em] uppercase">
+              <span className={`text-luxury-gold text-[10px] md:text-xs font-bold tracking-[0.4em] uppercase ${item.text === "GODS OWN" ? "font-geishta" : ""}`}>
                 {item.text}
               </span>
             </div>

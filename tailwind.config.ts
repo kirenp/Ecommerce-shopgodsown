@@ -33,6 +33,7 @@ const config: Config = {
       fontFamily: {
         luxury: ["var(--font-inter)", "sans-serif"],
         brand: ["var(--font-cormorant)", "serif"],
+        geishta: ["var(--font-geishta)", "sans-serif"],
       },
       animation: {
         marquee: "marquee 25s linear infinite",

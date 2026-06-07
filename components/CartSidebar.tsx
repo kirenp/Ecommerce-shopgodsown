@@ -6,11 +6,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { getRecommendedProducts } from "@/app/actions";
+import { usePreview } from "@/lib/preview";
 
 export default function CartSidebar() {
     const { isCartSidebarOpen, closeCartSidebar } = useUI();
     const { items, removeFromCart, updateQuantity, subtotal, itemCount, addToCart } = useCart();
     const [recommended, setRecommended] = useState<any[]>([]);
+    const { getPreviewPath } = usePreview();
 
     useEffect(() => {
         if (!isCartSidebarOpen) return;
@@ -110,7 +112,7 @@ export default function CartSidebar() {
                             <h3 className="text-xs font-bold text-black uppercase tracking-wider mb-4">You May Also Like</h3>
                             <div className="grid grid-cols-2 gap-4">
                                 {recommended.map((prod: any) => (
-                                    <Link href={`/products/${prod.handle}`} key={prod.id} onClick={closeCartSidebar} className="bg-white border border-gray-100 rounded-xl overflow-hidden relative shadow-sm group cursor-pointer hover:shadow-lg transition-all duration-300 flex flex-col">
+                                    <Link href={getPreviewPath(`/products/${prod.handle}`)} key={prod.id} onClick={closeCartSidebar} className="bg-white border border-gray-100 rounded-xl overflow-hidden relative shadow-sm group cursor-pointer hover:shadow-lg transition-all duration-300 flex flex-col">
                                         <div className="relative aspect-[4/5] overflow-hidden bg-gray-50 border-b border-gray-100">
                                             <Image src={prod.image} alt={prod.title} fill className="object-cover mix-blend-multiply group-hover:scale-105 transition-transform duration-500" />
                                             {/* Quick Add icon */}
@@ -153,7 +155,7 @@ export default function CartSidebar() {
                     {/* Continue Shopping Button (always visible within scroll area) */}
                     <div className="pt-2">
                         <Link
-                            href="/catalog"
+                            href={getPreviewPath("/catalog")}
                             onClick={closeCartSidebar}
                             className="block w-full py-4 border-2 border-dashed border-gray-300 text-gray-500 hover:border-black hover:text-black hover:bg-gray-50 text-center font-bold uppercase tracking-wider text-xs rounded-xl transition-all"
                         >
@@ -170,7 +172,7 @@ export default function CartSidebar() {
                             <span className="text-[9px] text-black/40 font-bold uppercase tracking-widest mt-1">Subtotal</span>
                         </div>
                         <Link
-                            href="/cart"
+                            href={getPreviewPath("/cart")}
                             onClick={closeCartSidebar}
                             className="flex-1 bg-[#00E676] hover:bg-[#00C853] text-black text-xs font-black uppercase tracking-widest py-4 text-center rounded-lg shadow-[0_4px_14px_0_rgba(0,230,118,0.39)] hover:shadow-[0_6px_20px_rgba(0,230,118,0.5)] hover:-translate-y-0.5 transition-all"
                         >

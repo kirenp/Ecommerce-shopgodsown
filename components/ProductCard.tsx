@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useState } from "react";
 import { useUI } from "@/lib/uiContext";
 import { getProductDetails } from "@/app/actions";
+import { usePreview } from "@/lib/preview";
 
 interface ProductCardProps {
   handle: string;
@@ -18,6 +19,7 @@ interface ProductCardProps {
 export default function ProductCard({ handle, image, title, price, currencyCode = "INR", isSale }: ProductCardProps) {
   const { openQuickView } = useUI();
   const [loading, setLoading] = useState(false);
+  const { getPreviewPath } = usePreview();
 
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault(); // Don't navigate to product page
@@ -38,7 +40,7 @@ export default function ProductCard({ handle, image, title, price, currencyCode 
   };
 
   return (
-    <Link href={`/products/${handle}`} className="group cursor-pointer block">
+    <Link href={getPreviewPath(`/products/${handle}`)} className="group cursor-pointer block">
       {/* Dark tinted card */}
       <div className="relative bg-black/85 border border-black/10 rounded-2xl overflow-hidden transition-all duration-500 hover:shadow-[0_8px_40px_rgba(0,0,0,0.25)] hover:-translate-y-1">
         {/* Image */}

@@ -141,7 +141,7 @@ export default function SuccessAnimation() {
         className="relative z-10 text-temple-ivory/60 text-sm text-center max-w-sm leading-relaxed font-luxury"
       >
         You are now part of the{' '}
-        <span className="text-[#D4AF37] font-semibold">GODS OWN CULTURE</span>{' '}
+        <span className="text-[#D4AF37] font-geishta">GODS OWN</span>{' '}
         early access community.
       </motion.p>
 

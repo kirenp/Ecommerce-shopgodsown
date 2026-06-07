@@ -18,26 +18,26 @@ export default function ContactForm() {
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-stretch gap-12 md:gap-0 min-h-[70vh]">
 
           {/* Left: Vertical Brand Name */}
-          <div className="md:w-1/3 flex items-center justify-start md:pr-16">
-            <div className="flex md:flex-col items-center justify-center gap-4 md:gap-0">
-              {/* Vertical brand text — reads top to bottom */}
-              <div className="hidden md:flex flex-col items-start justify-center h-full gap-0">
-                <span
-                  className="font-brand font-light text-white tracking-[0.08em] uppercase leading-none"
-                  style={{
-                    writingMode: "vertical-lr",
-                    transform: "rotate(180deg)",
-                    fontSize: "clamp(2.5rem, 4vw, 5rem)",
-                  }}
-                >
-                  GODS OWN CULTURE
-                </span>
+          <div className="md:w-1/3 flex flex-col items-center justify-center md:pr-16 md:py-6">
+            {/* Desktop & Tablet Vertical Brand Name — Inverted (bottom-to-top) */}
+            <div className="hidden md:flex flex-col items-center justify-center h-full">
+              <div className="flex flex-col items-center gap-1.5 lg:gap-2.5 text-white font-geishta text-5xl lg:text-7xl xl:text-8xl leading-none select-none uppercase tracking-normal rotate-180">
+                <span>N</span>
+                <span>W</span>
+                <span>O</span>
+                <span className="h-6 lg:h-10" /> {/* Balanced space between OWN and GODS */}
+                <span>S</span>
+                <span>D</span>
+                <span>O</span>
+                <span>G</span>
               </div>
-              {/* Mobile horizontal */}
-              <div className="md:hidden">
-                <h1 className="font-brand text-5xl font-light text-white tracking-tight uppercase">Gods Own Culture</h1>
-                <p className="text-white/30 text-xs tracking-[0.3em] uppercase mt-2">Get in touch</p>
-              </div>
+            </div>
+            {/* Mobile horizontal / balanced */}
+            <div className="md:hidden flex flex-col items-center justify-center mb-8">
+              <h1 className="font-geishta text-4xl text-white uppercase tracking-wider select-none">
+                GODS OWN
+              </h1>
+              <p className="text-white/30 text-[9px] tracking-[0.3em] uppercase mt-3">Get in touch</p>
             </div>
           </div>
 
@@ -119,7 +119,7 @@ export default function ContactForm() {
           <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
             <div>
               <p className="text-[10px] text-white tracking-[0.4em] uppercase mb-4 font-bold">Our Origin</p>
-              <h2 className="font-brand text-4xl md:text-5xl text-white uppercase tracking-tight">The Heart of Gods Own Culture</h2>
+              <h2 className="font-brand text-4xl md:text-5xl text-white uppercase tracking-tight">The Heart of <span className="font-geishta">GODS OWN</span></h2>
             </div>
             <p className="text-white text-[10px] tracking-[0.3em] uppercase font-light italic pb-2">
               Rooted in Kerala &bull; Reaching the World

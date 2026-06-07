@@ -60,17 +60,15 @@ export default function SignupForm({ onComplete }: SignupFormProps) {
 
   return (
     <div className="flex flex-col items-center w-full max-w-[900px] select-text">
-      {/* Brand Name / Logo */}
       <h1
         style={{
-          ...luxurySerifStyle,
           fontSize: '48px',
           fontWeight: 400,
           letterSpacing: '0.02em',
         }}
-        className="text-[#111111] text-center mb-4 leading-none"
+        className="text-[#111111] text-center mb-4 leading-none font-geishta"
       >
-        GodsOwn
+        GODS OWN
       </h1>
 
       {/* Decorative Divider */}
@@ -138,6 +136,21 @@ export default function SignupForm({ onComplete }: SignupFormProps) {
           {error}
         </p>
       )}
+
+      {/* Store Owner Login Link */}
+      <div className="mt-20 select-text">
+        <p className="font-luxury text-[11px] tracking-wide text-center text-[#111111]/60">
+          Are you the store owner?{' '}
+          <a
+            href="https://admin.shopify.com/store/godsown-9751"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-[#C8A85C] transition-colors font-medium font-luxury"
+          >
+            Log in here
+          </a>
+        </p>
+      </div>
     </div>
   );
 }

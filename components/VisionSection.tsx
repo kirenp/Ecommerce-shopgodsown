@@ -1,7 +1,12 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { usePreview } from "@/lib/preview";
 
 export default function VisionSection() {
+  const { getPreviewPath } = usePreview();
+
   return (
     <section className="py-24 px-6 md:px-12 bg-black overflow-hidden border-t border-white/5">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row-reverse items-center gap-16">
@@ -14,7 +19,7 @@ export default function VisionSection() {
             We envision a future where fashion is more than just clothing—it's a digital and physical identity. Where every piece tells the story of its wearer.
           </p>
           <Link
-            href="/about#vision"
+            href={getPreviewPath("/about#vision")}
             className="inline-block bg-transparent text-white border border-white/20 px-10 py-4 text-xs font-bold tracking-[0.2em] uppercase hover:bg-white hover:text-black hover:border-white transition-all duration-300"
           >
             Learn More

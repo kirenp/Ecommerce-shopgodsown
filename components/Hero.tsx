@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { usePreview } from "@/lib/preview";
 
 const HERO_IMAGES = [
   "/images/heronew.png",
@@ -11,6 +12,7 @@ const HERO_IMAGES = [
 
 export default function Hero() {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const { getPreviewPath } = usePreview();
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -43,7 +45,7 @@ export default function Hero() {
       {/* Content */}
       <div className="absolute inset-x-0 bottom-32 z-10 text-center px-4 w-full max-w-7xl mx-auto flex flex-col items-center justify-center gap-4 animate-fade-in">
         <Link
-          href="/catalog"
+          href={getPreviewPath("/catalog")}
           className="bg-luxury-gold text-black px-12 py-4 text-xs md:text-sm font-bold tracking-[0.2em] uppercase hover:bg-white transition-all duration-300 shadow-[0_0_20px_rgba(212,175,55,0.3)]"
         >
           SHOP NOW
