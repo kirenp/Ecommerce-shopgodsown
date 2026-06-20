@@ -54,10 +54,6 @@ export default function EarlyAccessExperience() {
       {/* Signup Section (Full Viewport) */}
       <div 
         className="relative w-full min-h-screen flex items-center justify-center overflow-hidden flex-shrink-0 z-10"
-        style={{
-          maskImage: 'linear-gradient(to bottom, black 0%, black calc(100% - 100px), transparent 100%)',
-          WebkitMaskImage: 'linear-gradient(to bottom, black 0%, black calc(100% - 100px), transparent 100%)'
-        }}
       >
         {/* Desktop Panning Background Image */}
         <div
@@ -77,6 +73,9 @@ export default function EarlyAccessExperience() {
 
         {/* Soft Wash luxury overlay */}
         <div className="absolute inset-0 bg-white/68 backdrop-blur-[1px] z-[1]" />
+
+        {/* Bottom Fade to Black */}
+        <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-black to-transparent pointer-events-none z-[2]" />
 
         {/* Centered Editorial Container */}
         <div className="relative w-full max-w-[900px] px-6 py-12 flex flex-col items-center justify-center min-h-screen text-center z-10 animate-luxury-fade">

@@ -60,52 +60,46 @@ export default function SignupForm({ onComplete }: SignupFormProps) {
 
   return (
     <div className="flex flex-col items-center w-full max-w-[900px] select-text">
-      <h1
-        style={{
-          fontSize: '48px',
-          fontWeight: 400,
-          letterSpacing: '0.02em',
-        }}
-        className="text-[#111111] text-center mb-4 leading-none font-geishta"
-      >
-        GODS OWN
+      {/* Brand Heading */}
+      <h1 className="font-geishta text-[#000000] text-5xl md:text-7xl mb-4 text-center tracking-wide font-medium">
+        GODS <span className="text-red-600">OWN</span>
       </h1>
 
       {/* Decorative Divider */}
-      <div className="flex items-center gap-4 w-full justify-center mb-6">
-        <div className="h-[1px] w-12 md:w-20 bg-[#C8A85C]/60" />
+      <div className="flex items-center gap-4 w-full justify-center mb-4">
+        <div className="h-[1px] w-12 md:w-16 bg-[#C8A85C]/60" />
         <span className="text-[#C8A85C] text-sm leading-none">✦</span>
-        <div className="h-[1px] w-12 md:w-20 bg-[#C8A85C]/60" />
+        <div className="h-[1px] w-12 md:w-16 bg-[#C8A85C]/60" />
       </div>
 
       {/* Main Headline */}
       <h2
         style={{
           ...luxurySerifStyle,
-          fontSize: 'clamp(64px, 8vw, 96px)',
+          fontSize: 'clamp(54px, 7vw, 76px)',
           fontWeight: 300,
-          letterSpacing: '-0.03em',
+          letterSpacing: '-0.02em',
         }}
-        className="text-[#111111] text-center leading-[1] mb-8 font-light"
+        className="text-[#111111] text-center leading-[1.1] mb-6 font-light"
       >
-        Opening soon
+        Early Access
       </h2>
 
-      {/* Subtitle */}
+      {/* Subtitle / Description */}
       <p
         style={{
-          fontSize: '18px',
-          lineHeight: '1.8',
+          fontSize: '16px',
+          lineHeight: '1.7',
         }}
-        className="text-[#111111]/75 text-center max-w-[600px] mb-12 font-light px-4"
+        className="text-[#111111]/80 text-center max-w-[520px] mb-10 font-light px-4"
       >
-        Be among the first to discover Kerala-inspired luxury and timeless craftsmanship.
+        Join the waitlist and be the first to receive launch announcements, exclusive product drops, and member-only updates.
       </p>
 
       {/* Email Form */}
       <form
         onSubmit={handleSubmit}
-        className="flex flex-col sm:flex-row gap-3 items-center justify-center w-full max-w-[540px] px-4 mt-8"
+        className="flex flex-col sm:flex-row gap-3 items-center justify-center w-full max-w-[500px] px-4"
       >
         <div className="w-full sm:flex-1 relative">
           <input
@@ -124,11 +118,23 @@ export default function SignupForm({ onComplete }: SignupFormProps) {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full sm:w-auto h-[54px] px-8 rounded-full bg-[#111111] text-[#C8A85C] font-semibold tracking-[0.15em] text-xs uppercase transition-all duration-300 ease-in-out hover:bg-[#C8A85C] hover:text-[#111111] hover:-translate-y-[2px] active:translate-y-0 disabled:opacity-50 shadow-md whitespace-nowrap animate-none"
+          className="w-full sm:w-auto h-[48px] px-6 rounded-[8px] bg-[#111111] text-[#C8A85C] font-semibold tracking-[0.15em] text-[11px] uppercase transition-all duration-300 ease-in-out hover:bg-[#C8A85C] hover:text-[#111111] hover:-translate-y-[2px] active:translate-y-0 disabled:opacity-50 shadow-md whitespace-nowrap animate-none"
         >
-          {isSubmitting ? 'SIGNING UP...' : 'SIGN UP'}
+          {isSubmitting ? 'NOTIFYING...' : 'NOTIFY ME'}
         </button>
       </form>
+
+      {/* Small Footer Text */}
+      <p
+        style={{
+          fontSize: '11px',
+          color: '#111111',
+          opacity: 0.5,
+        }}
+        className="mt-10 font-light text-center px-4"
+      >
+        No spam. Only exclusive updates and first access to new collections.
+      </p>
 
       {/* Error message */}
       {error && (
@@ -138,7 +144,7 @@ export default function SignupForm({ onComplete }: SignupFormProps) {
       )}
 
       {/* Store Owner Login Link */}
-      <div className="mt-20 select-text">
+      <div className="mt-14 select-text">
         <p className="font-luxury text-[11px] tracking-wide text-center text-[#111111]/60">
           Are you the store owner?{' '}
           <a

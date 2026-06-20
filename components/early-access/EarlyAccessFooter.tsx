@@ -58,13 +58,25 @@ const footerCSS = `
   .ea-footer {
     position: relative;
     width: 100%;
-    background: #080808;
+    background: #000000; /* Pure Black Background */
     overflow: hidden;
-    margin-top: -140px;
-    padding-top: 140px;
-    z-index: 0; /* Underneath the hero */
+    margin-top: 0; /* Remove negative margin */
+    padding-top: 50px; /* Reduced vertical padding */
+    padding-bottom: 0;
+    z-index: 10;
   }
 
+  /* ── Top black fade overlay to hide mountain background edge/sky ── */
+  .ea-footer__top-fade {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 120px;
+    background: linear-gradient(to bottom, #000000 0%, transparent 100%);
+    pointer-events: none;
+    z-index: 2;
+  }
 
   /* ── Mountain background layer ── */
   .ea-footer__bg {
@@ -75,10 +87,10 @@ const footerCSS = `
     height: 100%;
     background-image: url("/images/footer bg hill.png");
     background-size: cover;
-    background-position: center 30%; /* adjusted to push details down into view */
+    background-position: center bottom; /* Change position to bottom */
     background-repeat: no-repeat;
     opacity: 0.95;
-    filter: sepia(0.25) saturate(0.8) brightness(0.85) contrast(1.1); /* warm, high-visibility cinematic grading */
+    filter: sepia(0.25) saturate(0.8) brightness(0.85) contrast(1.1);
     pointer-events: none;
     z-index: 0;
   }
@@ -102,7 +114,7 @@ const footerCSS = `
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(to bottom, transparent 0%, rgba(8, 8, 8, 0.05) 30%, rgba(8, 8, 8, 0.35) 75%, #080808 100%);
+    background: linear-gradient(to bottom, transparent 0%, rgba(8, 8, 8, 0.05) 30%, rgba(8, 8, 8, 0.35) 75%, #000000 100%);
     pointer-events: none;
     z-index: 1;
   }
@@ -121,17 +133,73 @@ const footerCSS = `
     background-size: 3px 3px;
   }
 
-  /* ── Theyyam artwork (no blend mode, styled with filters) ── */
-  .ea-footer__theyyam {
+  /* ── Suspended Album Artwork (Anti-Gravity Showcase) ── */
+  .ea-footer__art-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 270px; /* Matched size */
+    height: 270px;
+    flex-shrink: 0;
+    perspective: 1000px;
+  }
+
+  .ea-footer__art-glow {
     position: absolute;
-    left: -120px;
-    bottom: -60px;
-    width: 500px;
-    height: auto;
-    opacity: 0.22;
-    filter: sepia(0.35) brightness(0.68) contrast(0.85);
+    bottom: 5px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 160px;
+    height: 8px;
+    background: radial-gradient(ellipse at center, rgba(184, 147, 90, 0.4) 0%, rgba(184, 147, 90, 0.05) 60%, transparent 100%);
+    filter: blur(6px);
+    border-radius: 50%;
     pointer-events: none;
+    z-index: 1;
+    animation: ea-float-glow 4s infinite ease-in-out;
+  }
+
+  .ea-footer__art-image {
+    width: 240px; /* Reduced width */
+    height: 240px;
+    object-fit: contain;
     z-index: 2;
+    pointer-events: auto;
+    animation: ea-float-art 4s infinite ease-in-out;
+    filter: drop-shadow(0 15px 35px rgba(0, 0, 0, 0.65));
+    transition: filter 0.3s ease, transform 0.3s ease;
+  }
+
+  .ea-footer__art-image:hover {
+    filter: drop-shadow(0 25px 45px rgba(184, 147, 90, 0.3)) brightness(1.05);
+  }
+
+  @keyframes ea-float-art {
+    0% {
+      transform: translateY(-8px) rotateX(1deg) rotateY(-1deg);
+    }
+    50% {
+      transform: translateY(-18px) rotateX(-1deg) rotateY(1deg);
+    }
+    100% {
+      transform: translateY(-8px) rotateX(1deg) rotateY(-1deg);
+    }
+  }
+
+  @keyframes ea-float-glow {
+    0% {
+      transform: translateX(-50%) scale(1.0);
+      opacity: 0.6;
+    }
+    50% {
+      transform: translateX(-50%) scale(0.8);
+      opacity: 0.3;
+    }
+    100% {
+      transform: translateX(-50%) scale(1.0);
+      opacity: 0.6;
+    }
   }
 
   /* ── Container ── */
@@ -139,100 +207,85 @@ const footerCSS = `
     position: relative;
     max-width: 1440px;
     margin: 0 auto;
-    padding: 130px 80px 0 80px; /* Reduced padding top to decrease footer height */
+    padding: 30px 80px 0 80px; /* Reduced top padding */
     z-index: 5;
   }
 
   /* ── Main content flex wrapper ── */
   .ea-footer__content {
     display: flex;
-    align-items: flex-start;
-    justify-content: flex-end;
-    gap: 0;
-    min-height: 220px;
-  }
-
-  /* ── Three nav columns ── */
-  .ea-footer__nav {
-    display: grid;
-    grid-template-columns: 180px 180px 180px;
+    align-items: center; /* Vertically center all sections */
+    justify-content: space-between;
     gap: 40px;
-    margin-right: 70px;
+    min-height: 270px; /* Reduced min-height */
   }
 
-  /* ── Column headings (Cinzel) ── */
-  .ea-footer__heading {
-    color: #B8935A;
-    font-family: 'Cinzel', serif;
-    font-size: 15px;
-    font-weight: 600;
-    letter-spacing: 0.2em;
+  /* ── Center Brand Block ── */
+  .ea-footer__center-brand {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    flex-shrink: 0;
+    width: 320px;
+    z-index: 5;
+  }
+
+  .ea-footer__brand-heading {
+    font-family: var(--font-geishta), sans-serif;
+    font-size: clamp(3.5rem, 8vw, 94px); /* SHOP is larger */
+    color: #FFFFFF;
     text-transform: uppercase;
-    margin: 0 0 18px 0;
+    letter-spacing: 0.05em;
+    margin: 0 0 10px 0;
+    line-height: 1.0;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.35), 0 0 20px rgba(255, 255, 255, 0.15);
+    font-weight: normal;
   }
 
-  /* ── Menu items (Inter) ── */
-  .ea-footer__menu {
-    list-style: none;
-    padding: 0;
-    margin: 0;
+  .ea-footer__brand-subtext {
+    font-family: var(--font-geishta), sans-serif;
+    font-size: clamp(1rem, 2vw, 26px); /* Arriving Soon is noticeably smaller */
+    color: #FFFFFF;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0 0 20px 0;
+    line-height: 1.0;
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.25), 0 0 16px rgba(255, 255, 255, 0.08);
+    font-weight: normal;
   }
 
-  .ea-footer__menu a {
-    color: rgba(255, 255, 255, 0.65);
-    font-family: 'Inter', sans-serif;
-    font-size: 14px;
-    font-weight: 400;
-    line-height: 2.3;
-    text-decoration: none;
-    display: block;
-    transition: color 0.2s ease;
-  }
-
-  .ea-footer__menu a:hover {
-    color: #B8935A;
-  }
-
-  .ea-footer__subtext {
-    color: rgba(255, 255, 255, 0.45);
-    font-family: 'Inter', sans-serif;
-    font-size: 14px;
-    font-weight: 400;
-    line-height: 2.3;
-    margin: 0;
-  }
-
-  /* ── Social icons ── */
-  .ea-footer__socials {
+  /* ── Social icons centered ── */
+  .ea-footer__brand-socials {
     display: flex;
     align-items: center;
-    justify-content: flex-start;
-    gap: 18px;
-    margin-top: 18px;
+    justify-content: center;
+    gap: 20px;
   }
 
-  .ea-footer__socials a {
+  .ea-footer__brand-socials a {
     color: #B8935A;
     display: flex;
     transition: color 0.2s ease, transform 0.2s ease;
   }
 
-  .ea-footer__socials a:hover {
+  .ea-footer__brand-socials a:hover {
     color: #D4B87A;
-    transform: translateY(-1px);
+    transform: translateY(-2px);
   }
 
-  .ea-footer__socials svg {
-    width: 19px;
-    height: 19px;
+  .ea-footer__brand-socials svg {
+    width: 20px;
+    height: 20px;
   }
 
   /* ── Heritage Scroll Panel ── */
   .ea-footer__heritage {
     position: relative;
-    width: 290px;
+    width: 255px; /* Proportional scaling width */
     flex-shrink: 0;
-    margin-top: -30px; /* pull scroll slightly up to overlap the border */
+    margin-top: 0;
   }
 
   .ea-footer__heritage-img {
@@ -245,22 +298,22 @@ const footerCSS = `
 
   .ea-footer__heritage-content {
     position: absolute;
-    top: 50px;
+    top: 40px;
     left: 0;
     right: 0;
-    bottom: 42px;
+    bottom: 35px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 0 42px;
+    padding: 0 35px;
     text-align: center;
     overflow: hidden;
   }
 
   .ea-footer__heritage-title {
     font-family: 'Cinzel', serif;
-    font-size: 13.5px;
+    font-size: 13px;
     font-weight: 700;
     letter-spacing: 0.2em;
     color: #2b1d14;
@@ -272,22 +325,22 @@ const footerCSS = `
   .ea-footer__heritage-divider {
     color: #b8935a;
     font-size: 8px;
-    margin-bottom: 6px;
+    margin-bottom: 5px;
   }
 
   .ea-footer__heritage-desc {
     font-family: 'Inter', sans-serif;
-    font-size: 10.5px;
-    line-height: 1.5;
+    font-size: 10px;
+    line-height: 1.4;
     color: #3d2a1a;
-    margin: 0 0 8px 0;
-    max-width: 175px;
+    margin: 0 0 6px 0;
+    max-width: 165px;
     font-weight: 500;
   }
 
   .ea-footer__heritage-launch {
     font-family: 'Cinzel', serif;
-    font-size: 11.5px;
+    font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.15em;
     color: #2b1d14;
@@ -295,20 +348,15 @@ const footerCSS = `
     text-transform: uppercase;
   }
 
-  /* ── Bottom Divider ── */
-  .ea-footer__divider {
-    display: none;
-  }
-
   /* ── Legal bar ── */
   .ea-footer__legal {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding-bottom: 30px;
+    padding-bottom: 24px;
     border-top: 1px solid rgba(184, 147, 90, 0.08);
-    padding-top: 30px;
-    margin-top: 35px;
+    padding-top: 24px;
+    margin-top: 24px;
   }
 
   .ea-footer__copyright {
@@ -366,82 +414,111 @@ const footerCSS = `
   /* Laptop/Desktop (≤1366px) */
   @media (max-width: 1366px) {
     .ea-footer__container {
-      padding: 95px 60px 0 60px;
+      padding: 25px 60px 0 60px;
     }
-    .ea-footer__theyyam {
-      width: 440px;
-      left: -100px;
-      bottom: -60px;
+    .ea-footer__content {
+      min-height: 240px;
+      gap: 30px;
     }
-    .ea-footer__nav {
-      grid-template-columns: 160px 160px 160px;
-      gap: 36px;
-      margin-right: 50px;
+    .ea-footer__art-container {
+      width: 240px;
+      height: 240px;
+    }
+    .ea-footer__art-image {
+      width: 215px;
+      height: 215px;
+    }
+    .ea-footer__art-glow {
+      width: 140px;
+      height: 7px;
+      bottom: 5px;
+    }
+    .ea-footer__center-brand {
+      width: 280px;
     }
     .ea-footer__heritage {
-      width: 270px;
+      width: 228px;
     }
   }
 
   /* Large Tablet/Laptop (≤1200px) */
   @media (max-width: 1200px) {
-    .ea-footer__theyyam {
-      width: 460px;
-      left: -120px;
-      bottom: -50px;
-      opacity: 0.14;
+    .ea-footer__container {
+      padding: 20px 40px 0 40px;
     }
-    .ea-footer__nav {
-      grid-template-columns: 150px 150px 150px;
-      gap: 24px;
-      margin-right: 40px;
+    .ea-footer__content {
+      min-height: 210px;
+      gap: 20px;
+    }
+    .ea-footer__art-container {
+      width: 210px;
+      height: 210px;
+    }
+    .ea-footer__art-image {
+      width: 190px;
+      height: 190px;
+    }
+    .ea-footer__art-glow {
+      width: 120px;
+      height: 6px;
+      bottom: 5px;
+    }
+    .ea-footer__center-brand {
+      width: 240px;
     }
     .ea-footer__heritage {
-      width: 250px;
+      width: 200px;
     }
     .ea-footer__heritage-content {
-      top: 40px;
-      bottom: 30px;
-      padding: 0 24px;
+      top: 30px;
+      bottom: 25px;
+      padding: 0 15px;
     }
   }
 
   /* Tablet (≤1024px) */
   @media (max-width: 1024px) {
     .ea-footer {
-      margin-top: -100px;
-      padding-top: 100px;
-    }
-    .ea-footer__theyyam {
-      width: 400px;
-      left: -90px;
-      bottom: -40px;
-      opacity: 0.12;
+      margin-top: 0;
+      padding-top: 0;
     }
     .ea-footer__container {
-      padding: 70px 40px 0 40px;
+      padding: 20px 30px 0 30px;
     }
     .ea-footer__content {
-      flex-direction: column;
+      flex-direction: row; /* Keep aligned row layout on Tablet */
+      justify-content: space-between;
       align-items: center;
-      gap: 40px;
+      gap: 20px;
+      min-height: auto;
     }
-    .ea-footer__nav {
-      grid-template-columns: 160px 160px 160px;
-      gap: 40px;
-      margin-right: 0;
-      width: 100%;
-      justify-content: center;
+    .ea-footer__art-container {
+      width: 210px;
+      height: 210px;
+    }
+    .ea-footer__art-image {
+      width: 190px;
+      height: 190px;
+    }
+    .ea-footer__art-glow {
+      width: 120px;
+      height: 6px;
+      bottom: 5px;
+    }
+    .ea-footer__center-brand {
+      width: 240px;
     }
     .ea-footer__heritage {
-      width: 260px;
+      width: 200px;
       margin-top: 0;
     }
     .ea-footer__legal {
       flex-wrap: wrap;
       gap: 16px;
       justify-content: center;
-      padding-bottom: 30px;
+      padding-bottom: 20px;
+      margin-top: 20px;
+      padding-top: 20px;
     }
     .ea-footer__copyright {
       width: 100%;
@@ -456,112 +533,97 @@ const footerCSS = `
     }
   }
 
-  /* Medium Tablet (≤768px) */
-  @media (max-width: 768px) {
-    .ea-footer__theyyam {
-      width: 350px;
-      opacity: 0.08;
-      left: -60px;
-      bottom: -30px;
-    }
-    .ea-footer__nav {
-      grid-template-columns: 140px 140px 140px;
-      gap: 20px;
-    }
-  }
-
-  /* Mobile (≤640px) */
-  @media (max-width: 640px) {
+  /* Mobile (<768px) */
+  @media (max-width: 767px) {
     .ea-footer {
-      margin-top: -80px;
-      padding-top: 80px;
-    }
-    /* Reposition Theyyam as a centered watermark on mobile */
-    .ea-footer__theyyam {
-      width: 320px;
-      left: 50%;
-      bottom: auto;
-      top: 50px;
-      transform: translateX(-50%);
-      opacity: 0.06;
+      margin-top: 0;
+      padding-top: 0;
     }
     .ea-footer__container {
-      padding: 55px 24px 0 24px;
+      padding: 15px 24px 0 24px;
     }
     .ea-footer__content {
-      gap: 36px;
+      flex-direction: column; /* Stack vertically on mobile */
+      align-items: center;
+      gap: 16px;
+      min-height: auto;
     }
-    .ea-footer__nav {
-      grid-template-columns: 1fr 1fr;
-      gap: 28px 20px;
-      max-width: 320px;
+    
+    /* ── Mobile Stacking Order ── */
+    .ea-footer__center-brand {
+      order: 1; /* Brand block first */
+      width: 100%;
     }
-    /* Let the Help column wrap or stack nicely on small screens */
-    .ea-footer__nav > div:last-child {
-      grid-column: span 2;
-      text-align: center;
-    }
-    .ea-footer__nav > div:last-child ul {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 12px;
-    }
-    .ea-footer__nav > div:last-child ul li {
-      margin: 0;
-    }
-    .ea-footer__nav > div:last-child h4 {
-      margin-bottom: 10px;
-    }
-    .ea-footer__socials {
-      justify-content: center;
+    .ea-footer__art-container {
+      order: 2; /* CD artwork second */
+      width: 180px;
+      height: 180px;
     }
     .ea-footer__heritage {
-      width: 240px;
+      display: none;
+    }
+
+    .ea-footer__art-image {
+      width: 160px;
+      height: 160px;
+    }
+    .ea-footer__art-glow {
+      width: 100px;
+      height: 5px;
+      bottom: 5px;
+    }
+    .ea-footer__brand-heading {
+      margin-bottom: 6px;
+    }
+    .ea-footer__brand-subtext {
+      margin-bottom: 12px;
     }
     .ea-footer__heritage-content {
-      top: 36px;
-      bottom: 26px;
-      padding: 0 20px;
+      top: 25px;
+      bottom: 20px;
+      padding: 0 12px;
     }
     .ea-footer__heritage-title {
-      font-size: 13px;
+      font-size: 11px;
     }
     .ea-footer__heritage-desc {
-      font-size: 11px;
-      max-width: 170px;
-      margin-bottom: 10px;
+      font-size: 9.5px;
+      max-width: 140px;
+      margin-bottom: 6px;
     }
     .ea-footer__heritage-launch {
-      font-size: 11px;
+      font-size: 9.5px;
     }
     .ea-footer__legal {
       flex-direction: column;
-      gap: 16px;
+      gap: 10px;
+      margin-top: 15px;
+      padding-top: 15px;
+      padding-bottom: 15px;
     }
   }
 
   /* Small Mobile (≤375px) */
   @media (max-width: 375px) {
-    .ea-footer__nav {
-      grid-template-columns: 1fr;
-      text-align: center;
-      gap: 24px;
+    .ea-footer__art-container {
+      width: 160px;
+      height: 160px;
     }
-    .ea-footer__nav > div:last-child {
-      grid-column: span 1;
+    .ea-footer__art-image {
+      width: 140px;
+      height: 140px;
     }
-    .ea-footer__nav > div:last-child ul {
-      flex-direction: column;
-      gap: 0;
+    .ea-footer__art-glow {
+      width: 80px;
+      height: 4px;
     }
     .ea-footer__heritage {
-      width: 220px;
+      width: 150px;
     }
     .ea-footer__heritage-content {
-      top: 32px;
-      bottom: 22px;
-      padding: 0 16px;
+      top: 20px;
+      bottom: 15px;
+      padding: 0 10px;
     }
   }
 `;
@@ -575,69 +637,49 @@ export default function EarlyAccessFooter() {
         {/* ── Mountain background layer ── */}
         <div className="ea-footer__bg" />
 
+        {/* ── Top black fade overlay ── */}
+        <div className="ea-footer__top-fade" />
+
         {/* ── Atmospheric depth overlays ── */}
         <div className="ea-footer__glow" />
         <div className="ea-footer__mist" />
         <div className="ea-footer__texture" />
 
-        {/* ── Theyyam artwork (no blend mode, styled with filters) ── */}
-        <img
-          src="/images/theyaam.png"
-          alt="Theyyam Artwork"
-          className="ea-footer__theyyam"
-        />
-
         {/* ── Container ── */}
         <div className="ea-footer__container">
           {/* ── Main Content ── */}
           <div className="ea-footer__content">
-            {/* ── Navigation Columns ── */}
-            <div className="ea-footer__nav">
-              {/* SHOP */}
-              <div>
-                <h4 className="ea-footer__heading">Shop</h4>
-                <p className="ea-footer__subtext">Arriving soon</p>
-                <div className="ea-footer__socials">
-                  <a
-                    href="https://instagram.com/godsownculture"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label="Instagram"
-                  >
-                    <Instagram />
-                  </a>
+            {/* ── Suspended Album Artwork (Anti-Gravity) ── */}
+            <div className="ea-footer__art-container">
+              <div className="ea-footer__art-glow" />
+              <img
+                src="/images/lighter-glass.png"
+                alt="Lighter Glass Artwork"
+                className="ea-footer__art-image"
+              />
+            </div>
 
-                  <a
-                    href="mailto:contact@shopgodsown.com"
-                    aria-label="Email"
-                  >
-                    <Mail />
-                  </a>
-                </div>
-              </div>
+            {/* ── Center Brand Block ── */}
+            <div className="ea-footer__center-brand">
+              <h3 className="ea-footer__brand-heading font-geishta">SHOP</h3>
+              <p className="ea-footer__brand-subtext font-geishta">Arriving Soon</p>
 
-              {/* ABOUT */}
-              <div>
-                <h4 className="ea-footer__heading">About</h4>
-                <ul className="ea-footer__menu">
-                  {['Our Story', 'Craftsmanship'].map((item) => (
-                    <li key={item}>
-                      <a href="#">{item}</a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              <div className="ea-footer__brand-socials">
+                <a
+                  href="https://www.instagram.com/godsownculture?igsh=ZTl1OW5wZ2lkZmFi"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Instagram"
+                >
+                  <Instagram />
+                </a>
 
-              {/* HELP */}
-              <div>
-                <h4 className="ea-footer__heading">Help</h4>
-                <ul className="ea-footer__menu">
-                  {['Contact Us'].map((item) => (
-                    <li key={item}>
-                      <a href="#">{item}</a>
-                    </li>
-                  ))}
-                </ul>
+                <a
+                  href="mailto:Godsownculture@gmail.com"
+                  aria-label="Email"
+                >
+                  <Mail />
+                </a>
               </div>
             </div>
 
@@ -665,7 +707,7 @@ export default function EarlyAccessFooter() {
           {/* ── Legal Bar ── */}
           <div className="ea-footer__legal">
             <p className="ea-footer__copyright">
-              © 2026 webdevtrack, ALL RIGHTS RESERVED
+              © 2026 <a href="https://www.instagram.com/webdevtrack?igsh=OHI1eHVxMzlldGN5" target="_blank" rel="noopener noreferrer" style={{ color: '#FFFFFF', textDecoration: 'none' }}>webdevtrack</a>, ALL RIGHTS RESERVED
             </p>
 
             <div className="ea-footer__links">
