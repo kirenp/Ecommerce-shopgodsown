@@ -32,7 +32,7 @@ jobs:
           URL="${URL%/}"
           
           echo "Pinging: $URL/api/ping"
-          RESPONSE=$(curl -s -w "%{http_code}" -o /dev/null "$URL/api/ping")
+          RESPONSE=$(curl -sL -w "%{http_code}" -o /dev/null "$URL/api/ping")
           
           echo "HTTP response status code: $RESPONSE"
           if [ "$RESPONSE" -eq 200 ]; then
