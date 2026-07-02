@@ -7,11 +7,25 @@ const EarlyAccessExperience = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="fixed inset-0 bg-[#120D08] flex items-center justify-center">
+      <div className="fixed inset-0 flex items-center justify-center" style={{ background: '#050505' }}>
         <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-2 border-temple-gold/30 border-t-temple-gold rounded-full animate-spin" />
-          <p className="text-temple-ivory/50 text-sm tracking-[0.3em] uppercase font-brand">
-            Preparing the experience...
+          <div
+            className="w-10 h-10 rounded-full animate-spin"
+            style={{
+              border: '1.5px solid rgba(255,255,255,0.08)',
+              borderTopColor: 'rgba(255,255,255,0.5)',
+            }}
+          />
+          <p
+            style={{
+              fontFamily: "'Inter', sans-serif",
+              color: 'rgba(255,255,255,0.3)',
+              fontSize: '10px',
+              letterSpacing: '0.3em',
+              textTransform: 'uppercase',
+            }}
+          >
+            Loading...
           </p>
         </div>
       </div>

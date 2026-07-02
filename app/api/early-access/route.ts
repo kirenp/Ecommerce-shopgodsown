@@ -3,6 +3,7 @@ import { createOrUpdateProfile, subscribeProfileToList } from '@/lib/klaviyo';
 
 interface SignupData {
   email: string;
+  phone?: string;
 }
 
 export async function POST(request: Request) {
@@ -11,7 +12,7 @@ export async function POST(request: Request) {
     const { action } = body;
 
     if (action === 'signup') {
-      const { email } = body as SignupData;
+      const { email, phone } = body as SignupData;
 
       if (!email) {
         return NextResponse.json(
@@ -44,7 +45,7 @@ export async function POST(request: Request) {
       // 1. Create or Update Klaviyo Profile
       let profileResult;
       try {
-        profileResult = await createOrUpdateProfile(email);
+        profileResult = await createOrUpdateProfile(email, phone);
       } catch (error: any) {
         console.error('[Klaviyo] Profile creation/lookup error:', error);
         return NextResponse.json(

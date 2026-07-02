@@ -51,7 +51,7 @@ body {
   transform: scale(1.05);
 }
 
-/* ══════ EARLY ACCESS STYLES ══════ */
+/* ══════ EARLY ACCESS STYLES — DARK LUXURY ══════ */
 
 .early-access-root {
   overflow-y: auto;
@@ -59,30 +59,51 @@ body {
   width: 100vw;
   min-height: 100vh;
   position: relative;
+  background: #050505;
 }
 
-/* Shimmer animation for buttons */
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-
-/* Float animation for fog strips */
-@keyframes float {
-  0%, 100% { transform: translateY(0px) translateX(0); }
-  50% { transform: translateY(-10px) translateX(5px); }
-}
-
-/* Selection styling for early access */
+/* Selection styling for early access — accent red */
 .early-access-root ::selection {
-  background: rgba(212, 175, 55, 0.3);
-  color: #F5F0E6;
+  background: rgba(193, 18, 31, 0.35);
+  color: #FFFFFF;
 }
 
-/* Focus styles for form inputs */
-.early-access-root input:focus {
-  border-color: rgba(212, 175, 55, 0.5) !important;
-  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+/* Placeholder styling */
+.ea-dark-input::placeholder {
+  color: rgba(255,255,255,0.45) !important;
+  font-family: 'Inter', sans-serif;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 11px;
+}
+
+/* Button hover */
+.ea-dark-btn:hover:not(:disabled) {
+  background: #C1121F !important;
+  border-color: #C1121F !important;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(193, 18, 31, 0.2);
+}
+
+.ea-dark-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* Link hover */
+.ea-dark-link:hover {
+  color: #C1121F !important;
+}
+
+/* Fade + slide up animation */
+@keyframes eaFadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Reduced motion */
@@ -124,4 +145,90 @@ body {
 
 .animate-luxury-fade {
   animation: luxuryFadeIn 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ── Running Light Border Button ── */
+.ea-running-light-btn {
+  position: relative;
+  overflow: hidden;
+  background: transparent;
+  padding: 2px; /* Thicker border for better visibility */
+  border-radius: 12px;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
+}
+
+.ea-running-light-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 0 20px rgba(193, 18, 31, 0.3);
+}
+
+.ea-running-light-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* Rotating running light sweep */
+.ea-running-light-btn::before {
+  content: '';
+  position: absolute;
+  top: -200%;
+  left: -200%;
+  width: 500%;
+  height: 500%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0%,
+    transparent 45%,
+    #C1121F 48%,
+    #FFFFFF 50%,
+    #C1121F 52%,
+    transparent 55%,
+    transparent 100%
+  );
+  animation: borderRotate 2s linear infinite;
+  z-index: 0;
+}
+
+@keyframes borderRotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Inner content area covering the center */
+.ea-running-light-btn-content {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  background: #0D0D0D; /* Sleek dark button fill */
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: #FFFFFF;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  transition: color 0.3s ease, background-color 0.3s ease;
+}
+
+/* On hover, text and arrow icon turn red */
+.ea-running-light-btn:hover:not(:disabled) .ea-running-light-btn-content {
+  color: #C1121F !important;
+  background: #050505; /* Slightly darker shift */
+}
+
+/* Make arrow slide on hover */
+.ea-running-light-btn:hover:not(:disabled) .arrow-icon {
+  transform: translateX(4px) !important;
 }

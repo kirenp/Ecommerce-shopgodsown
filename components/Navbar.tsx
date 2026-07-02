@@ -64,10 +64,15 @@ export default function Navbar() {
 
       <nav className="w-full flex flex-col fixed top-0 z-50 transition-all duration-300">
         {/* Announcement Bar */}
-        <div className="w-full bg-black py-2 border-b border-luxury-kasavu/20 text-center">
-          <p className="text-[10px] md:text-xs text-luxury-kasavu font-medium tracking-[0.25em] uppercase">
-            LIMITED RELEASES · EXCLUSIVE DROPS · ELEGANCE IS NOW LIVE
-          </p>
+        <div className="w-full bg-black py-2 border-b border-luxury-kasavu/20 overflow-hidden relative select-none">
+          <div className="flex w-max animate-marquee md:hover:[animation-play-state:paused]">
+            <div className="text-[10px] md:text-xs text-luxury-kasavu font-medium tracking-[0.25em] uppercase whitespace-nowrap">
+              {"JOIN THE GODS OWN CLUB · LIMITED RELEASES · EXCLUSIVE DROPS · NEW DROPS · GYM & STREET LEGAL · ".repeat(4)}
+            </div>
+            <div className="text-[10px] md:text-xs text-luxury-kasavu font-medium tracking-[0.25em] uppercase whitespace-nowrap">
+              {"JOIN THE GODS OWN CLUB · LIMITED RELEASES · EXCLUSIVE DROPS · NEW DROPS · GYM & STREET LEGAL · ".repeat(4)}
+            </div>
+          </div>
         </div>
 
         {/* Main Header */}
@@ -102,8 +107,8 @@ export default function Navbar() {
 
           {/* Logo */}
           <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center">
-            <Link href={getPreviewPath("/")} className="font-geishta text-base sm:text-lg md:text-xl lg:text-2xl font-light text-black tracking-[0.1em] sm:tracking-[0.2em] uppercase whitespace-nowrap">
-              GODS OWN
+            <Link href={getPreviewPath("/")} className="font-geishta text-lg sm:text-xl md:text-2xl lg:text-3xl font-light text-black tracking-[0.1em] sm:tracking-[0.2em] uppercase whitespace-nowrap">
+              GODS <span className="text-red-600">OWN</span>
             </Link>
           </div>
 

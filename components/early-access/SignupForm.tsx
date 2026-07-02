@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect } from 'react';
 
 interface SignupFormProps {
   onComplete: () => void;
@@ -8,8 +8,16 @@ interface SignupFormProps {
 
 export default function SignupForm({ onComplete }: SignupFormProps) {
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [mounted, setMounted] = useState(false);
+  const [focusedField, setFocusedField] = useState<'email' | 'phone' | null>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setMounted(true), 300);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -27,6 +35,12 @@ export default function SignupForm({ onComplete }: SignupFormProps) {
       return;
     }
 
+    // Validate phone number format (must be 10 digits if provided)
+    if (phone && phone.trim().length !== 10) {
+      setError('Phone number must be exactly 10 digits.');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -37,6 +51,7 @@ export default function SignupForm({ onComplete }: SignupFormProps) {
           action: 'signup',
           name: 'Early Access Request',
           email,
+          phone,
         }),
       });
 
@@ -54,109 +69,290 @@ export default function SignupForm({ onComplete }: SignupFormProps) {
     }
   };
 
-  const luxurySerifStyle = {
-    fontFamily: "'Cormorant Garamond', 'Bodoni Moda', 'Playfair Display', serif",
-  };
-
   return (
-    <div className="flex flex-col items-center w-full max-w-[900px] select-text">
-      {/* Brand Heading */}
-      <h1 className="font-geishta text-[#000000] text-5xl md:text-7xl mb-4 text-center tracking-wide font-medium">
-        GODS <span className="text-red-600">OWN</span>
-      </h1>
+    <div className="flex flex-col items-start w-full select-text">
 
-      {/* Decorative Divider */}
-      <div className="flex items-center gap-4 w-full justify-center mb-4">
-        <div className="h-[1px] w-12 md:w-16 bg-[#C8A85C]/60" />
-        <span className="text-[#C8A85C] text-sm leading-none">✦</span>
-        <div className="h-[1px] w-12 md:w-16 bg-[#C8A85C]/60" />
+      {/* ── EARLY ACCESS Headline ── */}
+      <div
+        style={{
+          opacity: mounted ? 1 : 0,
+          transform: mounted ? 'translateY(0)' : 'translateY(30px)',
+          transition: 'opacity 1s cubic-bezier(0.16, 1, 0.3, 1) 0.1s, transform 1s cubic-bezier(0.16, 1, 0.3, 1) 0.1s',
+        }}
+      >
+        <h1
+          style={{
+            fontFamily: "'Cormorant Garamond', 'Playfair Display', serif",
+            fontSize: 'clamp(64px, 10vw, 130px)',
+            fontWeight: 300,
+            letterSpacing: '-0.03em',
+            lineHeight: 0.92,
+            margin: 0,
+          }}
+        >
+          <span className="text-white block">EARLY</span>
+          <span style={{ color: '#C1121F' }} className="block">ACCESS</span>
+        </h1>
       </div>
 
-      {/* Main Headline */}
-      <h2
-        style={{
-          ...luxurySerifStyle,
-          fontSize: 'clamp(54px, 7vw, 76px)',
-          fontWeight: 300,
-          letterSpacing: '-0.02em',
-        }}
-        className="text-[#111111] text-center leading-[1.1] mb-6 font-light"
-      >
-        Early Access
-      </h2>
-
-      {/* Subtitle / Description */}
+      {/* ── Subtitle ── */}
       <p
         style={{
-          fontSize: '16px',
-          lineHeight: '1.7',
+          fontFamily: "'Inter', sans-serif",
+          fontSize: 'clamp(13px, 1.2vw, 15px)',
+          lineHeight: '1.8',
+          color: 'rgba(255,255,255,0.72)',
+          letterSpacing: '0.02em',
+          maxWidth: '500px',
+          marginTop: 'clamp(24px, 3vw, 40px)',
+          opacity: mounted ? 1 : 0,
+          transform: mounted ? 'translateY(0)' : 'translateY(20px)',
+          transition: 'opacity 1s cubic-bezier(0.16, 1, 0.3, 1) 0.4s, transform 1s cubic-bezier(0.16, 1, 0.3, 1) 0.4s',
         }}
-        className="text-[#111111]/80 text-center max-w-[520px] mb-10 font-light px-4"
       >
-        Join the waitlist and be the first to receive launch announcements, exclusive product drops, and member-only updates.
+        Join the waitlist and be the first to receive launch announcements, 
+        exclusive product drops, limited releases, and member-only updates.
       </p>
 
-      {/* Email Form */}
+      {/* ── Email & Phone Form ── */}
       <form
         onSubmit={handleSubmit}
-        className="flex flex-col sm:flex-row gap-3 items-center justify-center w-full max-w-[500px] px-4"
+        className="w-full"
+        style={{
+          maxWidth: '520px',
+          marginTop: 'clamp(28px, 3vw, 40px)',
+          opacity: mounted ? 1 : 0,
+          transform: mounted ? 'translateY(0)' : 'translateY(20px)',
+          transition: 'opacity 1s cubic-bezier(0.16, 1, 0.3, 1) 0.6s, transform 1s cubic-bezier(0.16, 1, 0.3, 1) 0.6s',
+        }}
       >
-        <div className="w-full sm:flex-1 relative">
-          <input
-            type="email"
-            required
-            value={email}
-            onChange={(e) => {
-              setEmail(e.target.value);
-              setError('');
-            }}
-            placeholder="Email address"
-            className="w-full h-[54px] rounded-full bg-white/65 border border-[#C8A85C]/25 px-6 text-[#111111] font-light text-base transition-all duration-300 placeholder:text-[#111111]/30 focus:outline-none focus:border-[#C8A85C] focus:ring-1 focus:ring-[#C8A85C]/20 shadow-sm"
-          />
+        {/* Inputs Row */}
+        <div className="flex flex-col sm:flex-row gap-3 items-stretch">
+          {/* Email Input */}
+          <div className="flex-1 relative">
+            {/* Mail Icon */}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{
+                position: 'absolute',
+                left: '16px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                width: '16px',
+                height: '16px',
+                color: 'rgba(255,255,255,0.35)',
+                pointerEvents: 'none',
+              }}
+            >
+              <rect width="20" height="16" x="2" y="4" rx="2" />
+              <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+            </svg>
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => {
+                const val = e.target.value;
+                // Block HTML tag symbols/code scripts
+                if (/[<>{}[\]()\\/]/.test(val)) {
+                  setError('Please enter a valid email address.');
+                  return;
+                }
+                if (val.length > 100) {
+                  return;
+                }
+                setEmail(val);
+                setError('');
+              }}
+              onFocus={() => setFocusedField('email')}
+              onBlur={() => setFocusedField(null)}
+              placeholder="Email Address"
+              className="ea-dark-input"
+              style={{
+                width: '100%',
+                height: '56px',
+                background: 'rgba(255,255,255,0.05)',
+                border: `1px solid ${focusedField === 'email' ? 'rgba(193,18,31,0.6)' : 'rgba(255,255,255,0.08)'}`,
+                borderRadius: '12px',
+                padding: '0 24px 0 44px',
+                color: '#FFFFFF',
+                fontFamily: "'Inter', sans-serif",
+                fontSize: '14px',
+                letterSpacing: '0.04em',
+                outline: 'none',
+                transition: 'border-color 0.3s ease, box-shadow 0.3s ease',
+                boxShadow: focusedField === 'email' ? '0 0 0 3px rgba(193,18,31,0.12)' : 'none',
+              }}
+            />
+          </div>
+
+          {/* Phone Input */}
+          <div className="flex-1 relative">
+            {/* Phone Icon */}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{
+                position: 'absolute',
+                left: '16px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                width: '16px',
+                height: '16px',
+                color: 'rgba(255,255,255,0.35)',
+                pointerEvents: 'none',
+              }}
+            >
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+            </svg>
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) => {
+                const val = e.target.value;
+                // Allow empty string so they can delete numbers
+                if (val === '') {
+                  setPhone('');
+                  setError('');
+                  return;
+                }
+                // Check if only digits are typed
+                if (/[^\d]/.test(val)) {
+                  setError('Please enter numbers only.');
+                  return;
+                }
+                // Cap the phone length at 10 digits
+                if (val.length > 10) {
+                  return;
+                }
+                setPhone(val);
+                setError('');
+              }}
+              onFocus={() => setFocusedField('phone')}
+              onBlur={() => setFocusedField(null)}
+              placeholder="Phone No."
+              className="ea-dark-input"
+              style={{
+                width: '100%',
+                height: '56px',
+                background: 'rgba(255,255,255,0.05)',
+                border: `1px solid ${focusedField === 'phone' ? 'rgba(193,18,31,0.6)' : 'rgba(255,255,255,0.08)'}`,
+                borderRadius: '12px',
+                padding: '0 24px 0 44px',
+                color: '#FFFFFF',
+                fontFamily: "'Inter', sans-serif",
+                fontSize: '14px',
+                letterSpacing: '0.04em',
+                outline: 'none',
+                transition: 'border-color 0.3s ease, box-shadow 0.3s ease',
+                boxShadow: focusedField === 'phone' ? '0 0 0 3px rgba(193,18,31,0.12)' : 'none',
+              }}
+            />
+          </div>
         </div>
 
+        {/* Notify Button — Full Width Below with Running Light Border */}
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full sm:w-auto h-[48px] px-6 rounded-[8px] bg-[#111111] text-[#C8A85C] font-semibold tracking-[0.15em] text-[11px] uppercase transition-all duration-300 ease-in-out hover:bg-[#C8A85C] hover:text-[#111111] hover:-translate-y-[2px] active:translate-y-0 disabled:opacity-50 shadow-md whitespace-nowrap animate-none"
+          className="ea-running-light-btn group w-full"
+          style={{
+            height: '56px',
+            marginTop: '12px',
+            cursor: isSubmitting ? 'wait' : 'pointer',
+            opacity: isSubmitting ? 0.6 : 1,
+          }}
         >
-          {isSubmitting ? 'NOTIFYING...' : 'NOTIFY ME'}
+          <span className="ea-running-light-btn-content">
+            {isSubmitting ? 'NOTIFYING...' : (
+              <>
+                NOTIFY ME
+                <span
+                  className="arrow-icon"
+                  style={{
+                    display: 'inline-block',
+                    transition: 'transform 0.3s ease',
+                    fontSize: '16px',
+                    fontWeight: 300,
+                  }}
+                >
+                  →
+                </span>
+              </>
+            )}
+          </span>
         </button>
+
+        {/* Error message */}
+        {error && (
+          <p
+            style={{
+              color: '#C1121F',
+              fontFamily: "'Inter', sans-serif",
+              fontSize: '12px',
+              marginTop: '12px',
+              letterSpacing: '0.02em',
+            }}
+          >
+            {error}
+          </p>
+        )}
       </form>
 
-      {/* Small Footer Text */}
-      <p
+      {/* ── Fine print with shield icon ── */}
+      <div
         style={{
-          fontSize: '11px',
-          color: '#111111',
-          opacity: 0.5,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          marginTop: '20px',
+          opacity: mounted ? 1 : 0,
+          transition: 'opacity 1s ease 0.9s',
         }}
-        className="mt-10 font-light text-center px-4"
       >
-        No spam. Only exclusive updates and first access to new collections.
-      </p>
-
-      {/* Error message */}
-      {error && (
-        <p className="text-red-600 text-sm mt-4 font-light text-center">
-          {error}
-        </p>
-      )}
-
-      {/* Store Owner Login Link */}
-      <div className="mt-14 select-text">
-        <p className="font-luxury text-[11px] tracking-wide text-center text-[#111111]/60">
-          Are you the store owner?{' '}
-          <a
-            href="https://admin.shopify.com/store/godsown-9751"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="underline hover:text-[#C8A85C] transition-colors font-medium font-luxury"
-          >
-            Log in here
-          </a>
+        {/* Shield Icon */}
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{
+            width: '14px',
+            height: '14px',
+            color: 'rgba(255,255,255,0.35)',
+            flexShrink: 0,
+          }}
+        >
+          <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
+          <path d="m9 12 2 2 4-4" />
+        </svg>
+        <p
+          style={{
+            fontFamily: "'Inter', sans-serif",
+            fontSize: '11px',
+            color: 'rgba(255,255,255,0.3)',
+            letterSpacing: '0.04em',
+            margin: 0,
+          }}
+        >
+          No spam. Only exclusive updates and first access to new collections.
         </p>
       </div>
     </div>
   );
 }
+

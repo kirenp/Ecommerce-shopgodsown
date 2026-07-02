@@ -19,9 +19,18 @@ export interface SubscriptionResult {
  * - Use Authorization header with KLAVIYO_API_KEY
  * - Use process.env.KLAVIYO_API_KEY
  */
-export async function createOrUpdateProfile(email: string): Promise<ProfileResult> {
+export async function createOrUpdateProfile(email: string, phone?: string): Promise<ProfileResult> {
   if (!KLAVIYO_API_KEY) {
     throw new Error('Missing Klaviyo configuration: KLAVIYO_API_KEY');
+  }
+
+  // Format phone number to E.164 format for Klaviyo
+  let formattedPhone: string | undefined = undefined;
+  if (phone) {
+    const cleaned = phone.replace(/[^\d+]/g, '');
+    if (cleaned) {
+      formattedPhone = cleaned.startsWith('+') ? cleaned : `+91${cleaned}`;
+    }
   }
 
   const url = 'https://a.klaviyo.com/api/profiles/';
@@ -32,12 +41,18 @@ export async function createOrUpdateProfile(email: string): Promise<ProfileResul
     'Revision': API_REVISION,
   };
 
+  const attributes: Record<string, string> = {
+    email: email,
+  };
+
+  if (formattedPhone) {
+    attributes.phone_number = formattedPhone;
+  }
+
   const body = {
     data: {
       type: 'profile',
-      attributes: {
-        email: email,
-      },
+      attributes,
     },
   };
 
