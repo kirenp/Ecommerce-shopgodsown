@@ -2,9 +2,9 @@ name: Keep Alive
 
 on:
   schedule:
-    # Run every 14 minutes to keep the Render free tier instance active
+    # Run every 8 minutes to keep the Render free tier instance active
     # (Render free tier services spin down after 15 minutes of inactivity)
-    - cron: '*/14 * * * *'
+    - cron: '*/8 * * * *'
   workflow_dispatch: # Allows manual run from the GitHub Actions tab
 
 jobs:
