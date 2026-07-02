@@ -1,0 +1,43 @@
+name: Keep Alive
+
+on:
+  schedule:
+    # Run every 14 minutes to keep the Render free tier instance active
+    # (Render free tier services spin down after 15 minutes of inactivity)
+    - cron: '*/14 * * * *'
+  workflow_dispatch: # Allows manual run from the GitHub Actions tab
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Render App
+        run: |
+          # Read the production URL from GitHub repository secrets.
+          # To set this: Go to GitHub Repo -> Settings -> Secrets and variables -> Actions -> New repository secret.
+          # Name: PRODUCTION_URL, Value: https://your-app-name.onrender.com
+          URL="${{ secrets.PRODUCTION_URL }}"
+          
+          if [ -z "$URL" ]; then
+            echo "=========================================================="
+            echo "WARNING: PRODUCTION_URL secret is not set!"
+            echo "To keep your site active, go to your GitHub repository:"
+            echo "Settings -> Secrets and variables -> Actions -> New repository secret"
+            echo "Add a secret named 'PRODUCTION_URL' with your Render app URL."
+            echo "=========================================================="
+            exit 1
+          fi
+          
+          # Remove trailing slash if present
+          URL="${URL%/}"
+          
+          echo "Pinging: $URL/api/ping"
+          RESPONSE=$(curl -s -w "%{http_code}" -o /dev/null "$URL/api/ping")
+          
+          echo "HTTP response status code: $RESPONSE"
+          if [ "$RESPONSE" -eq 200 ]; then
+            echo "Success: Keep-alive ping succeeded!"
+          else
+            echo "Error: Keep-alive ping failed with status code $RESPONSE"
+            exit 1
+          fi
