@@ -32,7 +32,8 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/images') ||
     pathname.startsWith('/videos') ||
     pathname.startsWith('/static') ||
-    pathname === '/api/early-access'; // Securely whitelist only this specific signup API, NOT all /api routes.
+    pathname === '/api/early-access' || // Securely whitelist only this specific signup API, NOT all /api routes.
+    pathname === '/api/ping';
 
   if (isAllowedPath) {
     return NextResponse.next();
