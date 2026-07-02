@@ -3,12 +3,22 @@
 import { useState, useCallback, useEffect } from 'react';
 import SignupForm from './SignupForm';
 import EarlyAccessFooter from './EarlyAccessFooter';
+import VideoFrame from './VideoFrame';
 
 type Phase = 'signup' | 'success';
 
 export default function EarlyAccessExperience() {
   const [phase, setPhase] = useState<Phase>('signup');
   const [mounted, setMounted] = useState(false);
+  const [hasEntered, setHasEntered] = useState(false);
+  const [isFadingOut, setIsFadingOut] = useState(false);
+
+  const handleEnter = useCallback(() => {
+    setIsFadingOut(true);
+    setTimeout(() => {
+      setHasEntered(true);
+    }, 800); // Wait for transition animation to complete
+  }, []);
 
   useEffect(() => {
     // Trigger mount animations
@@ -73,8 +83,93 @@ export default function EarlyAccessExperience() {
   };
 
   return (
-    <div className="relative min-h-screen w-full select-none overflow-y-auto overflow-x-hidden flex flex-col"
-         style={{ background: '#050505' }}>
+    <div 
+      className={`relative min-h-screen w-full select-none flex flex-col overflow-x-hidden ${
+        hasEntered ? 'overflow-y-auto' : 'overflow-hidden h-screen'
+      }`}
+      style={{ background: '#050505' }}
+    >
+
+      {/* ════ INTRO SPLASH OVERLAY ════════════════════════════════ */}
+      {!hasEntered && (
+        <div 
+          className={`fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#050505] transition-opacity duration-700 ease-in-out ${
+            isFadingOut ? 'opacity-0 pointer-events-none' : 'opacity-100'
+          }`}
+        >
+          {/* Custom style for animations */}
+          <style dangerouslySetInnerHTML={{__html: `
+            @keyframes logoIntro {
+              0% {
+                opacity: 0;
+                transform: scale(0.85) translateY(20px);
+                filter: brightness(0.2) drop-shadow(0 0 0px rgba(193, 18, 31, 0));
+              }
+              100% {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+                filter: brightness(1.05) drop-shadow(0 0 20px rgba(193, 18, 31, 0.65)) drop-shadow(0 0 45px rgba(193, 18, 31, 0.35));
+              }
+            }
+            @keyframes logoPulse {
+              0%, 100% {
+                transform: scale(1);
+                filter: brightness(1.05) drop-shadow(0 0 20px rgba(193, 18, 31, 0.65)) drop-shadow(0 0 45px rgba(193, 18, 31, 0.35));
+              }
+              50% {
+                transform: scale(1.04);
+                filter: brightness(1.15) drop-shadow(0 0 30px rgba(193, 18, 31, 0.85)) drop-shadow(0 0 65px rgba(193, 18, 31, 0.5));
+              }
+            }
+            @keyframes buttonFadeIn {
+              0% {
+                opacity: 0;
+                transform: translateY(20px);
+              }
+              100% {
+                opacity: 1;
+                transform: translateY(0);
+              }
+            }
+            .splash-logo {
+              animation: logoIntro 1.4s cubic-bezier(0.16, 1, 0.3, 1) forwards, 
+                         logoPulse 4s ease-in-out infinite 1.4s;
+            }
+            .splash-button-container {
+              animation: buttonFadeIn 1s cubic-bezier(0.16, 1, 0.3, 1) 0.6s forwards;
+              opacity: 0;
+            }
+          `}} />
+
+          {/* Logo container - enlarged */}
+          <div className="w-[320px] md:w-[500px] aspect-square flex items-center justify-center mb-6 relative">
+            <img 
+              src="/images/Full%20sleeve%20minimal%20front%20embroidery.png" 
+              alt="God's Own Logo" 
+              className="w-full h-auto object-contain splash-logo select-none pointer-events-none"
+            />
+          </div>
+
+          {/* Enter Button */}
+          <div className="splash-button-container flex flex-col items-center gap-5">
+            <p 
+              className="text-[9px] tracking-[0.4em] text-white/40 uppercase font-medium"
+              style={{ fontFamily: "'Inter', sans-serif" }}
+            >
+              FOR THOSE WHO DON&apos;T PLAY TO LOSE
+            </p>
+            <button
+              onClick={handleEnter}
+              className="ea-running-light-btn group w-[220px]"
+              style={{ height: '52px' }}
+            >
+              <span className="ea-running-light-btn-content" style={{ fontSize: '10px', letterSpacing: '0.25em' }}>
+                ENTER EXPERIENCE
+              </span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ════ HERO SECTION ══════════════════════════════════════════ */}
       <div className="relative w-full min-h-screen flex flex-col flex-shrink-0 z-10 overflow-hidden">
@@ -217,10 +312,23 @@ export default function EarlyAccessExperience() {
               transition: 'opacity 1s ease 0.4s',
             }}
           >
-            {/* Content - Left aligned for signup, centered for success */}
-            <div className={phase === 'success' ? 'w-full flex justify-center text-center' : 'max-w-[600px]'}>
-              {renderContent()}
-            </div>
+            {/* Content - Two columns on desktop for signup, centered for success */}
+            {phase === 'success' ? (
+              <div className="w-full flex justify-center text-center">
+                {renderContent()}
+              </div>
+            ) : (
+              <div className="w-full flex flex-col lg:flex-row lg:items-center justify-between gap-10 xl:gap-16">
+                {/* Left Column: Signup Form */}
+                <div className="w-full lg:max-w-[550px] flex-shrink-0">
+                  {renderContent()}
+                </div>
+                {/* Right Column: Video Frame */}
+                <div className="w-full lg:w-auto flex justify-center lg:justify-end lg:flex-1 mt-10 lg:mt-0 lg:-translate-y-12">
+                  <VideoFrame shouldPlay={isFadingOut || hasEntered} />
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

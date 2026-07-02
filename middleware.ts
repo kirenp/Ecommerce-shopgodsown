@@ -30,6 +30,7 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/_next') ||
     pathname === '/favicon.ico' ||
     pathname.startsWith('/images') ||
+    pathname.startsWith('/videos') ||
     pathname.startsWith('/static') ||
     pathname === '/api/early-access'; // Securely whitelist only this specific signup API, NOT all /api routes.
 
