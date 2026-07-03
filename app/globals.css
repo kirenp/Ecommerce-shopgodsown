@@ -13,6 +13,10 @@
   --foreground: #ffffff;
 }
 
+html, body {
+  cursor: url('/images/trident-cursor-32.png'), auto;
+}
+
 body {
   color: var(--foreground);
   background: var(--background);
