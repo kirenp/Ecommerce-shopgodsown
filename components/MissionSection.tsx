@@ -8,7 +8,7 @@ export default function MissionSection() {
   const { getPreviewPath } = usePreview();
 
   return (
-    <section className="py-24 px-6 md:px-12 bg-black overflow-hidden border-t border-white/5">
+    <section className="py-14 px-6 md:px-12 bg-black overflow-hidden">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-16">
         <div className="w-full md:w-1/2 space-y-8">
           <div className="text-[10px] text-white/30 tracking-[0.4em] uppercase">Our Mission</div>

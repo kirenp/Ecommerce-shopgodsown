@@ -71,7 +71,7 @@ export default function FilterableProductGrid({ products }: FilterableProductGri
   return (
     <>
       {/* Filter Bar */}
-      <div className="sticky top-[104px] z-40 bg-black/90 backdrop-blur-md border-b border-white/5 px-6 md:px-12 py-3">
+      <div className="sticky top-[104px] z-40 bg-[#0a0a0a] border-b border-white/5 px-6 md:px-12 py-3">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
           {/* Left: Filters */}
           <div className="flex items-center gap-6 flex-wrap">
@@ -215,7 +215,7 @@ export default function FilterableProductGrid({ products }: FilterableProductGri
       )}
 
       {/* Product Grid */}
-      <section className="py-16 px-6 md:px-12 bg-black min-h-[50vh]">
+      <section className="relative z-10 py-16 px-6 md:px-12 bg-black min-h-[50vh]">
         <div className="max-w-7xl mx-auto">
           {filtered.length === 0 ? (
             <div className="py-24 text-center">

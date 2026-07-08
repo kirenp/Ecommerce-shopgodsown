@@ -5,6 +5,7 @@ import Collections from "@/components/Collections";
 import CategoryStrip from "@/components/CategoryStrip";
 import MissionSection from "@/components/MissionSection";
 import VisionSection from "@/components/VisionSection";
+import PromiseBanner from "@/components/PromiseBanner";
 import Footer from "@/components/Footer";
 
 export default function HomePage() {
@@ -17,6 +18,7 @@ export default function HomePage() {
       <CategoryStrip />
       <MissionSection />
       <VisionSection />
+      <PromiseBanner />
       <Footer />
     </main>
   );

@@ -108,14 +108,14 @@ export default function Navbar() {
           </button>
 
           {/* Logo (centered inside the header bar) */}
-          <div className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 z-30">
-            <Link href={getPreviewPath("/")} className="font-pickyside text-2xl sm:text-3xl md:text-[32px] font-light tracking-[0.08em] uppercase whitespace-nowrap select-none">
+          <div className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 mt-1.5 md:mt-2 z-30">
+            <Link href={getPreviewPath("/")} className="font-pickyside text-3xl sm:text-4xl md:text-[44px] font-light tracking-[0.08em] uppercase whitespace-nowrap select-none">
               <span className="text-[#C81E1E]">GODS</span> <span className="text-[#111111]">OWN</span>
             </Link>
           </div>
 
           {/* Decorative Notch dipping below the header under the logo */}
-          <div className={`absolute left-1/2 -translate-x-1/2 bottom-0 translate-y-full ${isHomePage ? 'bg-[#F7F4EF]/95' : 'bg-white/95'} backdrop-blur-md w-48 h-4.5 rounded-b-xl z-20 shadow-md shadow-black/5 pointer-events-none`} />
+          <div className={`absolute left-1/2 -translate-x-1/2 bottom-0 translate-y-full ${isHomePage ? 'bg-[#F7F4EF]/95' : 'bg-white/95'} backdrop-blur-md w-56 md:w-64 h-4.5 rounded-b-xl z-20 shadow-md shadow-black/5 pointer-events-none`} />
 
           {/* Right Icons & Search Bar (Search placed on the right side) */}
           <div className="flex items-center space-x-6 md:space-x-8 text-black/60 z-10">

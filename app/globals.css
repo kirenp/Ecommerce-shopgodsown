@@ -8,6 +8,21 @@
   }
 }
 
+/* Apple Liquid Glass left-to-right glare sweep — fires once then pauses */
+@keyframes glass-shine {
+  0%    { transform: translateX(-130%) skewX(-20deg); opacity: 0; }
+  2%    { opacity: 1; }
+  16%   { transform: translateX(230%) skewX(-20deg); opacity: 0; }
+  16.1% { transform: translateX(-130%) skewX(-20deg); opacity: 0; }
+  100%  { transform: translateX(-130%) skewX(-20deg); opacity: 0; }
+}
+
+.animate-glass-shine {
+  animation: glass-shine 7s ease-in-out infinite;
+  animation-delay: 1.5s;
+}
+
+
 :root {
   --background: #000000;
   --foreground: #ffffff;

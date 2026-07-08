@@ -4,7 +4,7 @@ import { ChevronDown, SlidersHorizontal } from "lucide-react";
 
 export default function FilterBar() {
   return (
-    <div className="w-full bg-black border-b border-white/10 py-4 px-6 md:px-12 flex items-center justify-between sticky top-[104px] z-40 backdrop-blur-md bg-black/80">
+    <div className="w-full bg-[#0a0a0a] border-b border-white/10 py-4 px-6 md:px-12 flex items-center justify-between sticky top-[104px] z-40">
       <div className="flex items-center space-x-8">
         <button className="flex items-center space-x-2 text-white/60 hover:text-white transition-colors group">
           <SlidersHorizontal size={16} />

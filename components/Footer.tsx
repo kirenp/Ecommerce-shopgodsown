@@ -15,8 +15,8 @@ export default function Footer() {
         <div className="border-b border-black/10 pb-16 mb-16 relative">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 h-full">
             <div className="relative z-20">
-              <h2 className="font-geishta text-6xl md:text-9xl font-light text-black tracking-tight leading-none">
-                GODS OWN
+              <h2 className="font-pickyside text-6xl md:text-9xl font-light tracking-[0.08em] uppercase leading-none">
+                <span className="text-[#C81E1E]">GODS</span> <span className="text-[#111111]">OWN</span>
               </h2>
               <p className="mt-6 text-black/40 text-xs md:text-base max-w-lg tracking-[0.2em] leading-loose font-medium">
                 The new standard of streetwear. <br />
