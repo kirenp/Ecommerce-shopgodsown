@@ -8,9 +8,15 @@ import { usePreview } from "@/lib/preview";
 export default function Hero() {
   const { getPreviewPath } = usePreview();
   const [mounted, setMounted] = useState(false);
+  const [buttonVisible, setButtonVisible] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+    // Trigger slow load animation for the button after a short delay
+    const timer = setTimeout(() => {
+      setButtonVisible(true);
+    }, 450);
+    return () => clearTimeout(timer);
   }, []);
 
   return (
@@ -41,7 +47,13 @@ export default function Hero() {
         </div>
 
         {/* ── CENTERED FLOATING BUTTON (Positioned precisely in the EXCLUSIVE DROP gap) ── */}
-        <div className="absolute left-1/2 top-[46.5%] md:top-[44%] -translate-x-1/2 -translate-y-1/2 z-10">
+        <div 
+          className={`absolute left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 transition-all duration-[1200ms] ease-out ${
+            buttonVisible 
+              ? 'opacity-100 scale-100 top-[50.5%] md:top-[44%]' 
+              : 'opacity-0 scale-90 top-[52.5%] md:top-[46%]'
+          }`}
+        >
           <button 
             className="w-20 h-20 md:w-28 md:h-28 rounded-full border border-white/40 bg-white/10 backdrop-blur-md flex flex-col items-center justify-center text-center p-2 hover:bg-black/20 hover:rotate-12 transition-all duration-500 shadow-md hover:shadow-lg group"
             onClick={() => {
