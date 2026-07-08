@@ -32,7 +32,7 @@ export default function Hero() {
         {/* Mobile Banner Background Image */}
         <div className="absolute inset-0 z-0 block md:hidden">
           <img
-            src="/images/banner-mobile-season.png"
+            src="/images/banner-mobile-newseason.png"
             alt="GODS OWN Season Banner Mobile"
             className="w-full h-full object-cover select-none"
           />
