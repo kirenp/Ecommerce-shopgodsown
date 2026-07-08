@@ -58,19 +58,6 @@ export default function Hero() {
             </span>
           </button>
         </div>
-
-        {/* ── BOTTOM RIGHT DESCRIPTION COLUMN ── */}
-        <div className="w-full flex justify-center md:justify-end z-10 mt-auto">
-          <div className="flex flex-col items-center md:items-end gap-5 text-center md:text-right">
-            <p className="text-[10px] md:text-xs leading-relaxed text-white/80 font-semibold tracking-[0.05em] uppercase max-w-[280px] md:max-w-[340px]">
-              Crafted for those who embrace culture, confidence and individuality.
-            </p>
-            {/* Minimal decorative gold divider */}
-            <div className="w-32 h-[1px] bg-gradient-to-r from-transparent via-[#C9A45C] to-transparent relative flex items-center justify-center">
-              <span className="absolute text-[8px] text-[#C9A45C] bg-[#111111] px-2 rounded-sm">✦</span>
-            </div>
-          </div>
-        </div>
       </div>
     </section>
   );
