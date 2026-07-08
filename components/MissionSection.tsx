@@ -27,11 +27,10 @@ export default function MissionSection() {
         </div>
         
         <div className="w-full md:w-5/12 max-w-[400px] mx-auto relative aspect-[3/4] md:aspect-[4/5] overflow-hidden rounded-[2.5rem] shadow-2xl">
-          <Image
-            src="/images/hoodie-3.png"
+          <img
+            src="/images/mission-new.png"
             alt="Our Mission"
-            fill
-            className="object-cover grayscale hover:grayscale-0 transition-all duration-1000"
+            className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-1000 select-none"
           />
           <div className="absolute inset-0 bg-black/20" />
         </div>

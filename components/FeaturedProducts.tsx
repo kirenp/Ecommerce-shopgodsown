@@ -51,15 +51,23 @@ export default async function FeaturedProducts() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className={
+          products.length < 3
+            ? "flex flex-wrap justify-center gap-6"
+            : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
+        }>
           {products.map((product: any) => (
-            <ProductCard
-              key={product.id}
-              handle={product.handle}
-              image={product.image}
-              title={product.title}
-              price={product.price}
-            />
+            <div 
+              key={product.id} 
+              className={products.length < 3 ? "w-full max-w-[280px] sm:w-[280px]" : ""}
+            >
+              <ProductCard
+                handle={product.handle}
+                image={product.image}
+                title={product.title}
+                price={product.price}
+              />
+            </div>
           ))}
         </div>
       </div>

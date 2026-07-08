@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Cormorant_Garamond } from "next/font/google";
-import { geishta } from "@/lib/fonts";
+import { geishta, pickyside } from "@/lib/fonts";
 import "./globals.css";
 import { CartProvider } from "@/lib/cartContext";
 import { UIProvider } from "@/lib/uiContext";
@@ -25,7 +25,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${cormorant.variable} ${geishta.variable}`}>
+    <html lang="en" className={`${inter.variable} ${cormorant.variable} ${geishta.variable} ${pickyside.variable}`}>
+
       <body className="antialiased">
         <CartProvider>
           <UIProvider>

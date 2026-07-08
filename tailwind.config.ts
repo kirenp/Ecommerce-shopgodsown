@@ -34,6 +34,7 @@ const config: Config = {
         luxury: ["var(--font-inter)", "sans-serif"],
         brand: ["var(--font-cormorant)", "serif"],
         geishta: ["var(--font-geishta)", "sans-serif"],
+        pickyside: ["var(--font-pickyside)", "sans-serif"],
       },
       animation: {
         marquee: "marquee 25s linear infinite",
@@ -42,6 +43,8 @@ const config: Config = {
         glow: "glow 3s ease-in-out infinite",
         "fade-in-up": "fadeInUp 1s ease-out forwards",
         "pulse-gold": "pulseGold 2s ease-in-out infinite",
+        "fade-in": "fadeIn 1s ease-out forwards",
+        "slow-zoom": "slowZoom 20s ease-out forwards",
       },
       keyframes: {
         marquee: {
@@ -63,6 +66,14 @@ const config: Config = {
         fadeInUp: {
           "0%": { opacity: "0", transform: "translateY(30px)" },
           "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        fadeIn: {
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" },
+        },
+        slowZoom: {
+          "0%": { transform: "scale(1)" },
+          "100%": { transform: "scale(1.02)" },
         },
         pulseGold: {
           "0%, 100%": { boxShadow: "0 0 20px rgba(212, 175, 55, 0.3)" },

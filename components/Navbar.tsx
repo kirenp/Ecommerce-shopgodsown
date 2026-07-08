@@ -16,6 +16,7 @@ export default function Navbar() {
   const pathname = usePathname();
   const { itemCount } = useCart();
   const { isPreview, getPreviewPath } = usePreview();
+  const isHomePage = pathname === "/" || pathname === "/dev-preview" || pathname === getPreviewPath("/");
 
   useEffect(() => {
     if (searchOpen) inputRef.current?.focus();
@@ -62,31 +63,32 @@ export default function Navbar() {
         </div>
       )}
 
-      <nav className="w-full flex flex-col fixed top-0 z-50 transition-all duration-300">
+      <nav className="w-full flex flex-col absolute top-0 z-50">
         {/* Announcement Bar */}
-        <div className="w-full bg-black py-2 border-b border-luxury-kasavu/20 overflow-hidden relative select-none">
+        <div className="w-full bg-black py-2.5 overflow-hidden relative select-none">
           <div className="flex w-max animate-marquee md:hover:[animation-play-state:paused]">
-            <div className="text-[10px] md:text-xs text-luxury-kasavu font-medium tracking-[0.25em] uppercase whitespace-nowrap">
+            <div className="text-[9px] md:text-[10px] text-[#C9A45C] font-semibold tracking-[0.3em] uppercase whitespace-nowrap">
               {"JOIN THE GODS OWN CLUB · LIMITED RELEASES · EXCLUSIVE DROPS · NEW DROPS · GYM & STREET LEGAL · ".repeat(4)}
             </div>
-            <div className="text-[10px] md:text-xs text-luxury-kasavu font-medium tracking-[0.25em] uppercase whitespace-nowrap">
+            <div className="text-[9px] md:text-[10px] text-[#C9A45C] font-semibold tracking-[0.3em] uppercase whitespace-nowrap">
               {"JOIN THE GODS OWN CLUB · LIMITED RELEASES · EXCLUSIVE DROPS · NEW DROPS · GYM & STREET LEGAL · ".repeat(4)}
             </div>
           </div>
         </div>
 
         {/* Main Header */}
-        <div className="w-full bg-[#f7f5f2]/95 backdrop-blur-md px-6 md:px-12 py-5 flex items-center justify-between border-b border-black/5">
-          {/* Left Links (desktop) */}
-          <div className="hidden md:flex items-center space-x-8">
+        <div className={`w-full ${isHomePage ? 'bg-[#F7F4EF]/95' : 'bg-white/95'} backdrop-blur-md px-6 md:px-12 flex items-center justify-between h-20 relative`}>
+          {/* Left Links (desktop, restored as before) */}
+          <div className="hidden md:flex items-center space-x-10 h-full z-10">
             {navLinks.map((item) => {
               const isActive = pathname === item.href || pathname === getPreviewPath(item.href);
               return (
                 <Link
                   key={item.label}
                   href={getPreviewPath(item.href)}
-                  className={`text-[11px] font-medium tracking-[0.2em] uppercase transition-colors ${isActive ? "text-luxury-kasavu" : "text-black/60 hover:text-luxury-kasavu"
-                    }`}
+                  className={`relative py-1 text-[11px] font-semibold tracking-[0.2em] uppercase text-black/60 hover:text-black transition-colors after:absolute after:bottom-0 after:left-0 after:h-[1px] after:w-full after:origin-bottom-right after:scale-x-0 after:bg-black after:transition-transform after:duration-300 hover:after:origin-bottom-left hover:after:scale-x-100 ${
+                    isActive ? "text-black after:scale-x-100 after:origin-bottom-left" : ""
+                  }`}
                 >
                   {item.label}
                 </Link>
@@ -96,7 +98,7 @@ export default function Navbar() {
 
           {/* Mobile Menu Button */}
           <button
-            className="md:hidden flex flex-col gap-1.5 p-1"
+            className="md:hidden flex flex-col gap-1.5 p-1 z-10"
             onClick={() => setMenuOpen(!menuOpen)}
             aria-label="Menu"
           >
@@ -105,29 +107,51 @@ export default function Navbar() {
             <span className={`w-5 h-[1px] bg-black transition-transform duration-300 ${menuOpen ? "-rotate-45 -translate-y-2" : ""}`} />
           </button>
 
-          {/* Logo */}
-          <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center">
-            <Link href={getPreviewPath("/")} className="font-geishta text-lg sm:text-xl md:text-2xl lg:text-3xl font-light text-black tracking-[0.1em] sm:tracking-[0.2em] uppercase whitespace-nowrap">
-              GODS <span className="text-red-600">OWN</span>
+          {/* Logo (centered inside the header bar) */}
+          <div className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 z-30">
+            <Link href={getPreviewPath("/")} className="font-pickyside text-2xl sm:text-3xl md:text-[32px] font-light tracking-[0.08em] uppercase whitespace-nowrap select-none">
+              <span className="text-[#C81E1E]">GODS</span> <span className="text-[#111111]">OWN</span>
             </Link>
           </div>
 
-          {/* Right Icons */}
-          <div className="flex items-center space-x-5 md:space-x-7 text-black/60">
+          {/* Decorative Notch dipping below the header under the logo */}
+          <div className={`absolute left-1/2 -translate-x-1/2 bottom-0 translate-y-full ${isHomePage ? 'bg-[#F7F4EF]/95' : 'bg-white/95'} backdrop-blur-md w-48 h-4.5 rounded-b-xl z-20 shadow-md shadow-black/5 pointer-events-none`} />
+
+          {/* Right Icons & Search Bar (Search placed on the right side) */}
+          <div className="flex items-center space-x-6 md:space-x-8 text-black/60 z-10">
+            {/* Search Input Box (desktop only, on the right side) */}
+            <div className="hidden md:flex relative items-center bg-black/5 rounded-full px-4 py-2 w-60">
+              <Search size={13} className="text-black/40 mr-2.5" />
+              <input
+                type="text"
+                placeholder="What are you looking for..."
+                className="bg-transparent text-[11px] font-light outline-none text-black placeholder:text-black/35 w-full"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleSearch(e);
+                  }
+                }}
+              />
+            </div>
+
+            {/* Mobile-only standalone Search icon */}
             <button
               onClick={() => setSearchOpen(true)}
-              className="hover:text-luxury-kasavu transition-colors"
+              className="hover:text-[#C9A45C] transition-colors md:hidden"
               aria-label="Search"
             >
-              <Search size={17} />
+              <Search size={18} />
             </button>
-            <button className="hover:text-luxury-kasavu transition-colors hidden md:block" aria-label="Account">
-              <User size={17} />
+
+            <button className="hover:text-[#C9A45C] transition-colors hidden md:block" aria-label="Account">
+              <User size={18} />
             </button>
-            <Link href={getPreviewPath("/cart")} className="hover:text-luxury-kasavu transition-colors relative" aria-label="Cart">
-              <ShoppingBag size={17} />
+            <Link href={getPreviewPath("/cart")} className="hover:text-[#C9A45C] transition-colors relative" aria-label="Cart">
+              <ShoppingBag size={18} />
               {itemCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-black text-white text-[8px] font-bold w-4 h-4 flex items-center justify-center rounded-full leading-none">
+                <span className="absolute -top-1.5 -right-1.5 bg-[#C81E1E] text-white text-[8px] font-bold w-4 h-4 flex items-center justify-center rounded-full leading-none">
                   {itemCount > 9 ? "9+" : itemCount}
                 </span>
               )}
@@ -137,7 +161,7 @@ export default function Navbar() {
 
         {/* Mobile Dropdown */}
         {menuOpen && (
-          <div className="md:hidden bg-[#f7f5f2] border-b border-black/5 px-6 py-6 flex flex-col gap-5">
+          <div className={`md:hidden ${isHomePage ? 'bg-[#F7F4EF]' : 'bg-white'} border-b border-black/5 px-6 py-8 flex flex-col gap-6 animate-fade-in shadow-lg`}>
             {navLinks.map((item) => {
               const isActive = pathname === item.href || pathname === getPreviewPath(item.href);
               return (
@@ -145,8 +169,9 @@ export default function Navbar() {
                   key={item.label}
                   href={getPreviewPath(item.href)}
                   onClick={() => setMenuOpen(false)}
-                  className={`text-sm font-medium tracking-[0.2em] uppercase transition-colors ${isActive ? "text-luxury-kasavu" : "text-black/60 hover:text-luxury-kasavu"
-                    }`}
+                  className={`text-xs font-semibold tracking-[0.25em] uppercase transition-colors ${
+                    isActive ? "text-[#C81E1E]" : "text-black/60 hover:text-black"
+                  }`}
                 >
                   {item.label}
                 </Link>

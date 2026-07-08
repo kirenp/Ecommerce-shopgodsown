@@ -5,3 +5,10 @@ export const geishta = localFont({
   variable: '--font-geishta',
   display: 'swap',
 });
+
+export const pickyside = localFont({
+  src: '../fonts/pickyside-grunge/PICKYSIDE GRUNGE.otf',
+  variable: '--font-pickyside',
+  display: 'swap',
+});
+

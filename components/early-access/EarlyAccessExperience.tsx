@@ -103,22 +103,33 @@ export default function EarlyAccessExperience() {
               0% {
                 opacity: 0;
                 transform: scale(0.85) translateY(20px);
-                filter: brightness(0.2) drop-shadow(0 0 0px rgba(193, 18, 31, 0));
+                filter: brightness(0.2);
               }
               100% {
                 opacity: 1;
                 transform: scale(1) translateY(0);
-                filter: brightness(1.05) drop-shadow(0 0 20px rgba(193, 18, 31, 0.65)) drop-shadow(0 0 45px rgba(193, 18, 31, 0.35));
+                filter: brightness(1.05);
               }
             }
             @keyframes logoPulse {
               0%, 100% {
                 transform: scale(1);
-                filter: brightness(1.05) drop-shadow(0 0 20px rgba(193, 18, 31, 0.65)) drop-shadow(0 0 45px rgba(193, 18, 31, 0.35));
+                filter: brightness(1.05);
               }
               50% {
-                transform: scale(1.04);
-                filter: brightness(1.15) drop-shadow(0 0 30px rgba(193, 18, 31, 0.85)) drop-shadow(0 0 65px rgba(193, 18, 31, 0.5));
+                transform: scale(1.03);
+                filter: brightness(1.1);
+              }
+            }
+            @keyframes logoShine {
+              0% {
+                transform: translateX(-150%) skewX(-25deg);
+              }
+              30% {
+                transform: translateX(150%) skewX(-25deg);
+              }
+              100% {
+                transform: translateX(150%) skewX(-25deg);
               }
             }
             @keyframes buttonFadeIn {
@@ -135,19 +146,46 @@ export default function EarlyAccessExperience() {
               animation: logoIntro 1.4s cubic-bezier(0.16, 1, 0.3, 1) forwards, 
                          logoPulse 4s ease-in-out infinite 1.4s;
             }
+            .logo-shine-overlay {
+              position: absolute;
+              inset: 0;
+              background: linear-gradient(
+                90deg,
+                rgba(255, 255, 255, 0) 0%,
+                rgba(255, 255, 255, 0.05) 20%,
+                rgba(255, 255, 255, 0.6) 50%,
+                rgba(255, 255, 255, 0.05) 80%,
+                rgba(255, 255, 255, 0) 100%
+              );
+              mix-blend-mode: overlay;
+              animation: logoShine 4s ease-in-out infinite 1.4s;
+              mask-image: url("/images/ChatGPT%20Image%20Jul%208,%202026,%2002_49_03%20PM%20(2).png");
+              mask-size: contain;
+              mask-repeat: no-repeat;
+              mask-position: center;
+              -webkit-mask-image: url("/images/ChatGPT%20Image%20Jul%208,%202026,%2002_49_03%20PM%20(2).png");
+              -webkit-mask-size: contain;
+              -webkit-mask-repeat: no-repeat;
+              -webkit-mask-position: center;
+              pointer-events: none;
+            }
             .splash-button-container {
               animation: buttonFadeIn 1s cubic-bezier(0.16, 1, 0.3, 1) 0.6s forwards;
               opacity: 0;
             }
           `}} />
 
-          {/* Logo container - enlarged */}
-          <div className="w-[320px] md:w-[500px] aspect-square flex items-center justify-center mb-6 relative">
-            <img 
-              src="/images/Full%20sleeve%20minimal%20front%20embroidery.png" 
-              alt="God's Own Logo" 
-              className="w-full h-auto object-contain splash-logo select-none pointer-events-none"
-            />
+          {/* Logo container - sized to prevent clipping */}
+          <div className="w-[280px] md:w-[440px] aspect-square flex items-center justify-center mb-6 relative overflow-hidden">
+            <div className="relative w-[90%] h-[90%] flex items-center justify-center">
+              <img 
+                src="/images/ChatGPT%20Image%20Jul%208,%202026,%2002_49_03%20PM%20(2).png" 
+                alt="God's Own Logo" 
+                className="w-full h-auto object-contain splash-logo select-none pointer-events-none"
+              />
+              {/* Shining overlay */}
+              <div className="logo-shine-overlay" />
+            </div>
           </div>
 
           {/* Enter Button */}
