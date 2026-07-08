@@ -14,7 +14,7 @@ export default function Hero() {
   }, []);
 
   return (
-    <section className={`w-full px-4 md:px-8 pt-24 md:pt-28 pb-8 bg-[#F7F4EF] ${mounted ? 'animate-fade-in' : 'opacity-0'}`}>
+    <section className={`w-full px-4 md:px-8 pt-[128px] md:pt-[132px] pb-8 bg-[#F7F4EF] ${mounted ? 'animate-fade-in' : 'opacity-0'}`}>
       <div 
         className="w-full aspect-[1086/1448] md:aspect-[1693/929] h-auto rounded-[32px] relative overflow-hidden flex flex-col justify-between p-6 md:p-12 shadow-lg shadow-black/5"
       >
@@ -43,7 +43,7 @@ export default function Hero() {
         {/* ── CENTERED FLOATING BUTTON (Positioned precisely in the EXCLUSIVE DROP gap) ── */}
         <div className="absolute left-1/2 top-[46.5%] md:top-[44%] -translate-x-1/2 -translate-y-1/2 z-10">
           <button 
-            className="w-28 h-28 md:w-36 md:h-36 rounded-full border border-white/40 bg-white/10 backdrop-blur-md flex flex-col items-center justify-center text-center p-4 hover:bg-black/20 hover:rotate-12 transition-all duration-500 shadow-md hover:shadow-lg group"
+            className="w-20 h-20 md:w-28 md:h-28 rounded-full border border-white/40 bg-white/10 backdrop-blur-md flex flex-col items-center justify-center text-center p-2 hover:bg-black/20 hover:rotate-12 transition-all duration-500 shadow-md hover:shadow-lg group"
             onClick={() => {
               const element = document.getElementById("collections");
               if (element) {
@@ -53,7 +53,7 @@ export default function Hero() {
               }
             }}
           >
-            <span className="text-[10px] md:text-xs font-semibold tracking-[0.2em] uppercase text-white leading-normal transition-transform duration-300 group-hover:scale-105">
+            <span className="text-[8px] md:text-[10px] font-semibold tracking-[0.2em] uppercase text-white leading-normal transition-transform duration-300 group-hover:scale-105">
               DISCOVER<br/>MORE
             </span>
           </button>
