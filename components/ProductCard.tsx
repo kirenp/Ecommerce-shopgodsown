@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
+import { Heart, ShoppingCart } from "lucide-react";
 import { useUI } from "@/lib/uiContext";
 import { getProductDetails } from "@/app/actions";
 import { usePreview } from "@/lib/preview";
@@ -28,6 +29,7 @@ export default function ProductCard({
 }: ProductCardProps) {
   const { openQuickView } = useUI();
   const [loading, setLoading] = useState(false);
+  const [wishlisted, setWishlisted] = useState(false);
   const { getPreviewPath } = usePreview();
 
   const handleAddToCart = async (e: React.MouseEvent) => {
@@ -46,6 +48,12 @@ export default function ProductCard({
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleWishlist = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setWishlisted(prev => !prev);
   };
 
   if (variant === "glass") {
@@ -110,9 +118,9 @@ export default function ProductCard({
   return (
     <Link href={getPreviewPath(`/products/${handle}`)} className="group cursor-pointer block">
       {/* Dark tinted card */}
-      <div className="relative bg-black/85 border border-black/10 rounded-2xl overflow-hidden transition-all duration-500 hover:shadow-[0_8px_40px_rgba(0,0,0,0.25)] hover:-translate-y-1">
+      <div className="relative bg-[#0a0a0a] border border-white/[0.08] rounded-xl overflow-hidden transition-all duration-500 hover:shadow-[0_8px_40px_rgba(0,0,0,0.6)] hover:border-white/[0.15] hover:-translate-y-1">
         {/* Image */}
-        <div className="relative aspect-[3/4] overflow-hidden rounded-t-2xl [transform:translateZ(0)]">
+        <div className="relative aspect-[3/4] overflow-hidden rounded-t-xl [transform:translateZ(0)]">
           <Image
             src={image}
             alt={title}
@@ -124,24 +132,35 @@ export default function ProductCard({
               <span className="text-[9px] text-white uppercase tracking-widest">Sale</span>
             </div>
           )}
+
+          {/* Wishlist Heart Icon */}
+          <button
+            onClick={handleWishlist}
+            className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-black/20 backdrop-blur-sm border border-white/10 flex items-center justify-center transition-all duration-300 hover:bg-black/40 hover:scale-110"
+          >
+            <Heart
+              size={14}
+              className={`transition-colors duration-300 ${wishlisted ? "fill-red-500 text-red-500" : "text-white/60"}`}
+            />
+          </button>
         </div>
 
         {/* Info */}
-        <div className="p-5 space-y-4">
+        <div className="p-4 space-y-4">
           <div>
-            <h3 className="text-white text-sm font-medium tracking-wider uppercase truncate group-hover:text-white transition-colors">
+            <h3 className="text-white/90 text-[13px] font-bold tracking-[0.05em] uppercase truncate group-hover:text-white transition-colors">
               {title}
             </h3>
-            <p className="text-white/60 text-xs font-light mt-1 tracking-widest">
+            <p className="text-white/50 text-[11px] font-medium mt-1 tracking-widest">
               ₹{parseFloat(price).toLocaleString("en-IN")} {currencyCode}
             </p>
           </div>
 
-          {/* ADD TO CART button on card */}
+          {/* ADD TO CART button with cart icon */}
           <button
             onClick={handleAddToCart}
             disabled={loading}
-            className="w-full py-3 bg-white/10 backdrop-blur-md border border-white/10 text-white text-[10px] font-bold uppercase tracking-[0.25em] rounded-xl hover:bg-white hover:text-black transition-all duration-400 flex items-center justify-center gap-2"
+            className="w-full py-3 bg-[#171717] border border-white/[0.04] text-white/80 text-[10px] font-bold uppercase tracking-[0.2em] rounded-lg hover:bg-[#222222] hover:text-white transition-all duration-400 flex items-center justify-center gap-2.5"
           >
             {loading ? (
               <>
@@ -151,7 +170,12 @@ export default function ProductCard({
                 </svg>
                 Processing
               </>
-            ) : "Add to Cart"}
+            ) : (
+              <>
+                <ShoppingCart size={13} />
+                Add to Cart
+              </>
+            )}
           </button>
         </div>
       </div>

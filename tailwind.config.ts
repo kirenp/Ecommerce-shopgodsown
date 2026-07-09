@@ -45,6 +45,7 @@ const config: Config = {
         "pulse-gold": "pulseGold 2s ease-in-out infinite",
         "fade-in": "fadeIn 1s ease-out forwards",
         "slow-zoom": "slowZoom 20s ease-out forwards",
+        "slide-in-left": "slideInLeft 0.35s cubic-bezier(0.16,1,0.3,1) forwards",
       },
       keyframes: {
         marquee: {
@@ -74,6 +75,10 @@ const config: Config = {
         slowZoom: {
           "0%": { transform: "scale(1)" },
           "100%": { transform: "scale(1.02)" },
+        },
+        slideInLeft: {
+          "0%": { transform: "translateX(-100%)", opacity: "0" },
+          "100%": { transform: "translateX(0)", opacity: "1" },
         },
         pulseGold: {
           "0%, 100%": { boxShadow: "0 0 20px rgba(212, 175, 55, 0.3)" },

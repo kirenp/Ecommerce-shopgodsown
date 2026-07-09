@@ -9,7 +9,7 @@ export default function Footer() {
   const { getPreviewPath } = usePreview();
 
   return (
-    <footer className="bg-white border-t border-black/10 pt-20 pb-10 px-6 md:px-12 relative overflow-hidden">
+    <footer className="bg-white border-t border-black/10 pt-20 pb-10 px-6 md:px-12 relative z-[1] overflow-hidden">
       <div className="max-w-7xl mx-auto relative z-10">
         {/* Brand Name & Snake Boat Illustration — Large */}
         <div className="border-b border-black/10 pb-16 mb-16 relative">
