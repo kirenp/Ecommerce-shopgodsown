@@ -1,0 +1,43 @@
+{
+  "data": {
+    "product": {
+      "media": {
+        "edges": [
+          {
+            "node": {
+              "mediaContentType": "IMAGE"
+            }
+          },
+          {
+            "node": {
+              "mediaContentType": "IMAGE"
+            }
+          },
+          {
+            "node": {
+              "mediaContentType": "VIDEO",
+              "id": "gid://shopify/Video/26735233040478",
+              "sources": [
+                {
+                  "url": "https://shopgodsown.com/cdn/shop/videos/c/vp/2b4ebe24491b4eeeaf6578ff12dd023a/2b4ebe24491b4eeeaf6578ff12dd023a.m3u8",
+                  "mimeType": "application/x-mpegURL",
+                  "format": "m3u8"
+                },
+                {
+                  "url": "https://shopgodsown.com/cdn/shop/videos/c/vp/2b4ebe24491b4eeeaf6578ff12dd023a/2b4ebe24491b4eeeaf6578ff12dd023a.SD-480p-1.5Mbps-88614110.mp4",
+                  "mimeType": "video/mp4",
+                  "format": "mp4"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  },
+  "extensions": {
+    "cost": {
+      "requestedQueryCost": 14
+    }
+  }
+}

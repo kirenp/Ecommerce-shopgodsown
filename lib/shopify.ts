@@ -271,13 +271,26 @@ export const GET_PRODUCT_DETAILS_QUERY = `
       category {
         name
       }
-      images(first: 5) {
+      media(first: 10) {
         edges {
           node {
-            url
-            altText
-            width
-            height
+            mediaContentType
+            ... on MediaImage {
+              image {
+                url
+                altText
+                width
+                height
+              }
+            }
+            ... on Video {
+              id
+              sources {
+                url
+                mimeType
+                format
+              }
+            }
           }
         }
       }
@@ -411,7 +424,36 @@ export async function getProduct(handle: string) {
     description: product.description,
     descriptionHtml: product.descriptionHtml,
     available: product.availableForSale,
-    images: product.images.edges.map((edge: any) => edge.node),
+    images: product.media.edges.map((edge: any) => {
+      const node = edge.node;
+      if (node.mediaContentType === 'IMAGE' && node.image) {
+        return {
+          type: 'IMAGE',
+          url: node.image.url,
+          altText: node.image.altText || null
+        };
+      } else if (node.mediaContentType === 'VIDEO') {
+        const source = node.sources.find((s: any) => s.format === 'mp4') || node.sources[0];
+        let url = source?.url;
+        // Fix for headless stores: ensure video URLs use the raw CDN domain 
+        // instead of the primary domain which might be password protected.
+        if (url) {
+          try {
+            const urlObj = new URL(url);
+            urlObj.hostname = 'cdn.shopify.com';
+            url = urlObj.toString();
+          } catch (e) {
+            console.error("Invalid video URL", url);
+          }
+        }
+        return {
+          type: 'VIDEO',
+          url: url,
+          altText: null
+        };
+      }
+      return null;
+    }).filter((m: any) => m && m.url),
     options: filteredOptions,
     colors,
     sizes,

@@ -13,36 +13,9 @@ export default function ContactForm() {
 
   return (
     <>
-      {/* Form + Brand Name Section */}
-      <section className="pt-36 pb-0 px-6 md:px-16 min-h-screen">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-stretch gap-12 md:gap-0 min-h-[70vh]">
-
-          {/* Left: Vertical Brand Name */}
-          <div className="md:w-1/3 flex flex-col items-center justify-center md:pr-16 md:py-6">
-            {/* Desktop & Tablet Vertical Brand Name — Inverted (bottom-to-top) */}
-            <div className="hidden md:flex flex-col items-center justify-center h-full">
-              <div className="flex flex-col items-center gap-1.5 lg:gap-2.5 text-white font-geishta text-5xl lg:text-7xl xl:text-8xl leading-none select-none uppercase tracking-normal rotate-180">
-                <span>N</span>
-                <span>W</span>
-                <span>O</span>
-                <span className="h-6 lg:h-10" /> {/* Balanced space between OWN and GODS */}
-                <span>S</span>
-                <span>D</span>
-                <span>O</span>
-                <span>G</span>
-              </div>
-            </div>
-            {/* Mobile horizontal / balanced */}
-            <div className="md:hidden flex flex-col items-center justify-center mb-8">
-              <h1 className="font-geishta text-4xl text-white uppercase tracking-wider select-none">
-                GODS OWN
-              </h1>
-              <p className="text-white/30 text-[9px] tracking-[0.3em] uppercase mt-3">Get in touch</p>
-            </div>
-          </div>
-
-          {/* Right: Glass Form */}
-          <div className="md:w-2/3 flex items-center">
+      {/* Form Section */}
+      <section className="pt-36 pb-24 px-6 md:px-16">
+        <div className="max-w-3xl mx-auto flex items-center min-h-[60vh]">
             <div className="w-full bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-10 md:p-14 shadow-[0_8px_64px_rgba(255,255,255,0.04)]">
               {sent ? (
                 <div className="py-12 text-center space-y-4">
@@ -109,7 +82,6 @@ export default function ContactForm() {
                 </>
               )}
             </div>
-          </div>
         </div>
       </section>
 

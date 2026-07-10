@@ -1,0 +1,1 @@
+import { NextResponse } from 'next/server'; import { shopifyFetch, GET_PRODUCT_DETAILS_QUERY } from '@/lib/shopify'; export async function GET() { const res = await shopifyFetch({ query: GET_PRODUCT_DETAILS_QUERY, variables: { handle: 'gods-own-limited-edition-tees' } }); return NextResponse.json(res); }

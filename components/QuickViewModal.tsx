@@ -103,8 +103,18 @@ export default function QuickViewModal() {
 
                 {/* Left: Product Image */}
                 <div className="w-full md:w-[60%] h-[50vh] md:h-auto bg-[#f8f8f8] p-4 flex items-center justify-center">
-                    <div className="relative w-full h-full max-h-[700px] rounded-xl overflow-hidden shadow-sm border border-black/5 bg-white">
-                        <Image src={displayImage} alt={quickViewProduct.title} fill className="object-contain object-center" priority />
+                    <div className="relative w-full h-full max-h-[700px] rounded-xl overflow-hidden shadow-sm border border-black/5 bg-white flex items-center justify-center">
+                        {(() => {
+                            const activeMedia = quickViewProduct.images.find((m: any) => m.url === displayImage) || { type: 'IMAGE', url: displayImage };
+                            if (activeMedia.type === 'VIDEO') {
+                                return (
+                                    <video key={activeMedia.url} src={activeMedia.url} autoPlay muted loop playsInline controls className="w-full h-full object-contain object-center" />
+                                );
+                            }
+                            return (
+                                <Image src={activeMedia.url} alt={quickViewProduct.title} fill className="object-contain object-center" priority />
+                            );
+                        })()}
                     </div>
                 </div>
 

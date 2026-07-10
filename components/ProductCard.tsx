@@ -70,9 +70,7 @@ export default function ProductCard({
               fill
               className="object-cover transition-transform duration-700 group-hover:scale-105"
             />
-            {/* Apple Liquid Glass Highlight reflection (diagonal glare line) */}
-            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent pointer-events-none z-10" />
-            
+            {/* Apple Liquid Glass Highlight reflection removed as requested */}
             {isSale && (
               <div className="absolute top-4 left-4 bg-white/30 backdrop-blur-md px-3 py-1 rounded-full border border-white/20 z-20">
                 <span className="text-[9px] text-zinc-800 uppercase tracking-widest font-semibold">Sale</span>

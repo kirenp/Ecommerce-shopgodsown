@@ -74,8 +74,18 @@ export default function ProductDetail({ product }: ProductDetailProps) {
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
       {/* Image Gallery */}
       <div className="space-y-4">
-        <div className="relative aspect-[4/5] overflow-hidden rounded-2xl bg-white/3 border border-white/5">
-          <Image src={displayImage} alt={product.title} fill className="object-cover transition-all duration-700" priority />
+        <div className="relative aspect-[4/5] overflow-hidden rounded-2xl bg-white/3 border border-white/5 flex items-center justify-center">
+          {(() => {
+            const activeMedia = product.images.find((m: any) => m.url === displayImage) || { type: 'IMAGE', url: displayImage };
+            if (activeMedia.type === 'VIDEO') {
+              return (
+                <video key={activeMedia.url} src={activeMedia.url} autoPlay muted loop playsInline controls className="w-full h-full object-cover transition-all duration-700" />
+              );
+            }
+            return (
+              <Image src={activeMedia.url} alt={product.title} fill className="object-cover transition-all duration-700" priority />
+            );
+          })()}
         </div>
         <div className="grid grid-cols-4 gap-3">
           {product.images.map((img: any, i: number) => (
@@ -84,7 +94,11 @@ export default function ProductDetail({ product }: ProductDetailProps) {
               onClick={() => setDisplayImage(img.url)}
               className={`relative aspect-square overflow-hidden rounded-xl cursor-pointer border transition-all duration-300 ${displayImage === img.url ? "border-white/60 ring-1 ring-white/20" : "border-white/5 opacity-50 hover:opacity-100"}`}
             >
-              <Image src={img.url} alt={`${product.title} ${i}`} fill className="object-cover" />
+              {img.type === 'VIDEO' ? (
+                <video src={img.url} autoPlay muted loop playsInline className="w-full h-full object-cover pointer-events-none" />
+              ) : (
+                <Image src={img.url} alt={`${product.title} ${i}`} fill className="object-cover" />
+              )}
             </div>
           ))}
         </div>
