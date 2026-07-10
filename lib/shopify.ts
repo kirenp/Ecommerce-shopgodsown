@@ -435,12 +435,17 @@ export async function getProduct(handle: string) {
       } else if (node.mediaContentType === 'VIDEO') {
         const source = node.sources.find((s: any) => s.format === 'mp4') || node.sources[0];
         let url = source?.url;
-        // Fix for headless stores: ensure video URLs use the raw CDN domain 
-        // instead of the primary domain which might be password protected.
+        // Fix for headless stores: Shopify custom domains proxy CDN assets 
+        // through /cdn/shop/ prefix, but cdn.shopify.com serves them directly.
+        // e.g. shopgodsown.com/cdn/shop/videos/... → cdn.shopify.com/videos/...
         if (url) {
           try {
             const urlObj = new URL(url);
             urlObj.hostname = 'cdn.shopify.com';
+            // Strip the /cdn/shop proxy prefix that custom domains use
+            if (urlObj.pathname.startsWith('/cdn/shop/')) {
+              urlObj.pathname = urlObj.pathname.replace('/cdn/shop/', '/');
+            }
             url = urlObj.toString();
           } catch (e) {
             console.error("Invalid video URL", url);
