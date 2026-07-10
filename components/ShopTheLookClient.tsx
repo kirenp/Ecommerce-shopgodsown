@@ -107,13 +107,14 @@ export default function ShopTheLookClient({ slides }: ShopTheLookClientProps) {
               <div
                 key={index}
                 ref={(el) => { containerRefs.current[index] = el; }}
-                className={`relative w-full ${slide.layoutClass} h-[85vh] overflow-hidden group rounded-xl bg-black/20`}
+                className={`relative w-full ${slide.layoutClass} h-[70vh] md:h-[85vh] overflow-hidden group rounded-xl bg-black/5`}
               >
                 {/* Full-Bleed Lifestyle Image */}
                 <Image
                   src={slide.lifestyleImage}
                   alt={product?.title || 'Shop the look'}
                   fill
+                  unoptimized
                   style={{ objectPosition: `${slide.objectPosition.x * 100}% ${slide.objectPosition.y * 100}%` }}
                   className="object-cover transition-transform duration-[1.2s] ease-out group-hover:scale-[1.02]"
                   sizes="(max-width: 768px) 100vw, 50vw"
@@ -174,11 +175,52 @@ export default function ShopTheLookClient({ slides }: ShopTheLookClientProps) {
                       <line x1="3" y1="8" x2="13" y2="8" />
                     </svg>
                   </button>
+                </div>
 
-                  {/* Product Popup Card — positioned relative to hotspot */}
+
+                  {/* Mobile Popup Card (Fixed at bottom on small screens) */}
                   {isPopupOpen && product && (
                     <div
-                      className={`absolute z-40 ${
+                      className="md:hidden absolute bottom-4 left-4 right-4 z-40 bg-white rounded-xl shadow-2xl overflow-hidden"
+                      style={{
+                        animation: 'stlCardIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Link
+                        href={`/dev-preview/products/${product.handle}`}
+                        className="flex items-center p-3 gap-4"
+                      >
+                        <div className="relative w-16 h-20 bg-gray-100 rounded-lg overflow-hidden shrink-0">
+                          <Image
+                            src={product.images[0]?.url || ''}
+                            alt={product.title}
+                            fill
+                            unoptimized
+                            className="object-cover"
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-[9px] text-gray-400 uppercase tracking-widest mb-1 font-medium">
+                            Shop Now →
+                          </p>
+                          <p className="text-xs font-semibold text-black leading-tight line-clamp-2">
+                            {product.title}
+                          </p>
+                          {product.price && product.price !== '0.0' && (
+                            <p className="text-xs text-gray-500 mt-1 font-medium">
+                              ₹{parseFloat(product.price).toLocaleString('en-IN')}
+                            </p>
+                          )}
+                        </div>
+                      </Link>
+                    </div>
+                  )}
+
+                  {/* Desktop Product Popup Card — positioned relative to hotspot */}
+                  {isPopupOpen && product && (
+                    <div
+                      className={`hidden md:block absolute z-40 ${
                         index === 0
                           ? 'left-full ml-3 top-0 -translate-y-1/4'
                           : 'right-full mr-3 top-0 -translate-y-1/4'
@@ -191,7 +233,7 @@ export default function ShopTheLookClient({ slides }: ShopTheLookClientProps) {
                     >
                       <Link
                         href={`/dev-preview/products/${product.handle}`}
-                        className="block w-[175px] md:w-[195px] bg-white rounded-xl overflow-hidden 
+                        className="block w-[195px] bg-white rounded-xl overflow-hidden 
                           shadow-[0_8px_40px_rgba(0,0,0,0.6)] hover:shadow-[0_16px_60px_rgba(0,0,0,0.7)] 
                           transition-all duration-300 group/card"
                       >
@@ -201,6 +243,7 @@ export default function ShopTheLookClient({ slides }: ShopTheLookClientProps) {
                             src={product.images[0]?.url || ''}
                             alt={product.title}
                             fill
+                            unoptimized
                             className="object-cover transition-transform duration-500 group-hover/card:scale-105"
                             sizes="195px"
                           />
@@ -218,6 +261,7 @@ export default function ShopTheLookClient({ slides }: ShopTheLookClientProps) {
                                   src={img.url}
                                   alt=""
                                   fill
+                                  unoptimized
                                   className="object-cover"
                                   sizes="44px"
                                 />
@@ -240,16 +284,15 @@ export default function ShopTheLookClient({ slides }: ShopTheLookClientProps) {
                           </div>
                         )}
 
-                        {/* Product Info */}
-                        <div className="px-2.5 pb-2.5 pt-1.5">
-                          <p className="text-[8px] text-gray-400 uppercase tracking-[0.15em] mb-0.5 font-medium">
+                        <div className="px-3 pb-3 pt-2">
+                          <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-1 font-medium">
                             Shop Now →
                           </p>
-                          <p className="text-[11px] font-semibold text-black leading-tight line-clamp-2">
+                          <p className="text-xs font-semibold text-black leading-tight line-clamp-2">
                             {product.title}
                           </p>
                           {product.price && product.price !== '0.0' && (
-                            <p className="text-[11px] text-gray-500 mt-0.5 font-medium">
+                            <p className="text-xs text-gray-500 mt-1 font-medium">
                               ₹{parseFloat(product.price).toLocaleString('en-IN')}
                             </p>
                           )}
@@ -257,7 +300,6 @@ export default function ShopTheLookClient({ slides }: ShopTheLookClientProps) {
                       </Link>
                     </div>
                   )}
-                </div>
 
                 {/* Bottom editorial label */}
                 <div className="absolute bottom-6 md:bottom-8 left-6 md:left-8 z-10 pointer-events-none">
