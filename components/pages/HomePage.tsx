@@ -2,7 +2,6 @@ import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
 import FeaturedProducts from "@/components/FeaturedProducts";
 import ShopTheLook from "@/components/ShopTheLook";
-import CategoryStrip from "@/components/CategoryStrip";
 import MissionSection from "@/components/MissionSection";
 import VisionSection from "@/components/VisionSection";
 import PromiseBanner from "@/components/PromiseBanner";
@@ -15,7 +14,6 @@ export default function HomePage() {
       <Hero />
       <FeaturedProducts />
       <ShopTheLook />
-      <CategoryStrip />
       <MissionSection />
       <VisionSection />
       <PromiseBanner />

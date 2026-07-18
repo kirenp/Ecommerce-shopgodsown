@@ -175,131 +175,93 @@ export default function ShopTheLookClient({ slides }: ShopTheLookClientProps) {
                       <line x1="3" y1="8" x2="13" y2="8" />
                     </svg>
                   </button>
-                </div>
-
-
-                  {/* Mobile Popup Card (Fixed at bottom on small screens) */}
-                  {isPopupOpen && product && (
-                    <div
-                      className="md:hidden absolute bottom-4 left-4 right-4 z-40 bg-white rounded-xl shadow-2xl overflow-hidden"
-                      style={{
-                        animation: 'stlCardIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards',
-                      }}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <Link
-                        href={`/dev-preview/products/${product.handle}`}
-                        className="flex items-center p-3 gap-4"
-                      >
-                        <div className="relative w-16 h-20 bg-gray-100 rounded-lg overflow-hidden shrink-0">
-                          <Image
-                            src={product.images[0]?.url || ''}
-                            alt={product.title}
-                            fill
-                            unoptimized
-                            className="object-cover"
-                          />
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-[9px] text-gray-400 uppercase tracking-widest mb-1 font-medium">
-                            Shop Now →
-                          </p>
-                          <p className="text-xs font-semibold text-black leading-tight line-clamp-2">
-                            {product.title}
-                          </p>
-                          {product.price && product.price !== '0.0' && (
-                            <p className="text-xs text-gray-500 mt-1 font-medium">
-                              ₹{parseFloat(product.price).toLocaleString('en-IN')}
-                            </p>
-                          )}
-                        </div>
-                      </Link>
-                    </div>
-                  )}
-
                   {/* Desktop Product Popup Card — positioned relative to hotspot */}
                   {isPopupOpen && product && (
                     <div
                       className={`hidden md:block absolute z-40 ${
                         index === 0
-                          ? 'left-full ml-3 top-0 -translate-y-1/4'
-                          : 'right-full mr-3 top-0 -translate-y-1/4'
+                          ? 'left-full ml-3 top-1/2 -translate-y-1/2'
+                          : 'right-full mr-3 top-1/2 -translate-y-1/2'
                       }`}
-                      onMouseEnter={() => showPopup(index)}
-                      onMouseLeave={() => scheduleHide(index)}
                       style={{
                         animation: 'stlCardIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards',
                       }}
                     >
                       <Link
                         href={`/dev-preview/products/${product.handle}`}
-                        className="block w-[195px] bg-white rounded-xl overflow-hidden 
+                        className="flex w-[260px] bg-white rounded-xl overflow-hidden p-2 gap-3 items-center
                           shadow-[0_8px_40px_rgba(0,0,0,0.6)] hover:shadow-[0_16px_60px_rgba(0,0,0,0.7)] 
                           transition-all duration-300 group/card"
                       >
-                        {/* Main Product Image */}
-                        <div className="relative aspect-[4/5] bg-[#f5f5f5] overflow-hidden">
+                        {/* Square Image on the left */}
+                        <div className="relative w-20 h-20 bg-[#f5f5f5] rounded-md overflow-hidden shrink-0">
                           <Image
                             src={product.images[0]?.url || ''}
                             alt={product.title}
                             fill
                             unoptimized
                             className="object-cover transition-transform duration-500 group-hover/card:scale-105"
-                            sizes="195px"
+                            sizes="80px"
                           />
                         </div>
 
-                        {/* Product Thumbnails Row */}
-                        {product.images.length > 1 && (
-                          <div className="flex gap-1 px-2.5 pt-2">
-                            {product.images.slice(1, 4).map((img, i) => (
-                              <div
-                                key={i}
-                                className="relative w-11 h-11 rounded-md overflow-hidden bg-[#eee] border border-gray-100"
-                              >
-                                <Image
-                                  src={img.url}
-                                  alt=""
-                                  fill
-                                  unoptimized
-                                  className="object-cover"
-                                  sizes="44px"
-                                />
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Color Swatches */}
-                        {product.colors && product.colors.length > 0 && (
-                          <div className="flex gap-1.5 px-2.5 pt-2">
-                            {product.colors.map((colorObj, i) => (
-                              <div
-                                key={i}
-                                className="w-4 h-4 rounded-full border border-gray-200 shadow-sm"
-                                style={{ backgroundColor: colorObj.color?.toLowerCase() || '#000' }}
-                                title={colorObj.label}
-                              />
-                            ))}
-                          </div>
-                        )}
-
-                        <div className="px-3 pb-3 pt-2">
-                          <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-1 font-medium">
-                            Shop Now →
-                          </p>
-                          <p className="text-xs font-semibold text-black leading-tight line-clamp-2">
+                        {/* Details on the right */}
+                        <div className="flex-1 min-w-0 py-1">
+                          <p className="text-xs font-semibold text-black leading-tight line-clamp-2 mb-1">
                             {product.title}
                           </p>
                           {product.price && product.price !== '0.0' && (
-                            <p className="text-xs text-gray-500 mt-1 font-medium">
+                            <p className="text-[11px] text-gray-500 font-medium mb-2">
                               ₹{parseFloat(product.price).toLocaleString('en-IN')}
                             </p>
                           )}
+                          <div className="inline-block text-[9px] bg-black text-white px-3 py-1.5 rounded uppercase tracking-widest font-semibold group-hover/card:bg-[#C81E1E] transition-colors">
+                            Shop Now
+                          </div>
                         </div>
                       </Link>
                     </div>
                   )}
+                </div>
+
+                {/* Mobile Popup Card (Fixed at bottom on small screens) */}
+                {isPopupOpen && product && (
+                  <div
+                    className="md:hidden absolute bottom-4 left-4 right-4 z-40 bg-white rounded-xl shadow-2xl overflow-hidden"
+                    style={{
+                      animation: 'stlCardIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Link
+                      href={`/dev-preview/products/${product.handle}`}
+                      className="flex items-center p-3 gap-4"
+                    >
+                      <div className="relative w-16 h-20 bg-gray-100 rounded-lg overflow-hidden shrink-0">
+                        <Image
+                          src={product.images[0]?.url || ''}
+                          alt={product.title}
+                          fill
+                          unoptimized
+                          className="object-cover"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-[9px] text-gray-400 uppercase tracking-widest mb-1 font-medium">
+                          Shop Now →
+                        </p>
+                        <p className="text-xs font-semibold text-black leading-tight line-clamp-2">
+                          {product.title}
+                        </p>
+                        {product.price && product.price !== '0.0' && (
+                          <p className="text-xs text-gray-500 mt-1 font-medium">
+                            ₹{parseFloat(product.price).toLocaleString('en-IN')}
+                          </p>
+                        )}
+                      </div>
+                    </Link>
+                  </div>
+                )}
 
                 {/* Bottom editorial label */}
                 <div className="absolute bottom-6 md:bottom-8 left-6 md:left-8 z-10 pointer-events-none">
