@@ -3,9 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
-import { Heart, ShoppingCart } from "lucide-react";
-import { useUI } from "@/lib/uiContext";
-import { getProductDetails } from "@/app/actions";
+import { Heart } from "lucide-react";
 import { usePreview } from "@/lib/preview";
 
 interface ProductCardProps {
@@ -27,28 +25,8 @@ export default function ProductCard({
   isSale,
   variant = "dark"
 }: ProductCardProps) {
-  const { openQuickView } = useUI();
-  const [loading, setLoading] = useState(false);
   const [wishlisted, setWishlisted] = useState(false);
   const { getPreviewPath } = usePreview();
-
-  const handleAddToCart = async (e: React.MouseEvent) => {
-    e.preventDefault(); // Don't navigate to product page
-
-    if (loading) return;
-
-    setLoading(true);
-    try {
-      const fullProduct = await getProductDetails(handle);
-      if (fullProduct) {
-        openQuickView(fullProduct);
-      }
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleWishlist = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -91,21 +69,13 @@ export default function ProductCard({
               </p>
             </div>
 
-            {/* ADD TO CART button on glass card */}
-            <button
-              onClick={handleAddToCart}
-              disabled={loading}
+            {/* SHOP NOW button on glass card */}
+            <div
               className="w-full py-3.5 bg-zinc-200/50 hover:bg-zinc-100/80 backdrop-blur-sm border border-zinc-300/30 text-zinc-800 text-[10px] font-bold uppercase tracking-[0.25em] rounded-2xl transition-all duration-400 flex items-center justify-between px-6 shadow-sm group-hover:shadow-md"
             >
-              {loading ? (
-                <span className="w-full text-center">Processing...</span>
-              ) : (
-                <>
-                  <span>Add to Cart</span>
-                  <span className="text-base font-light leading-none">→</span>
-                </>
-              )}
-            </button>
+              <span>Shop Now</span>
+              <span className="text-base font-light leading-none">→</span>
+            </div>
           </div>
         </div>
       </Link>
@@ -154,27 +124,12 @@ export default function ProductCard({
             </p>
           </div>
 
-          {/* ADD TO CART button with cart icon */}
-          <button
-            onClick={handleAddToCart}
-            disabled={loading}
+          {/* SHOP NOW button */}
+          <div
             className="w-full py-3 bg-[#171717] border border-white/[0.04] text-white/80 text-[10px] font-bold uppercase tracking-[0.2em] rounded-lg hover:bg-[#222222] hover:text-white transition-all duration-400 flex items-center justify-center gap-2.5"
           >
-            {loading ? (
-              <>
-                <svg className="animate-spin h-3 w-3 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Processing
-              </>
-            ) : (
-              <>
-                <ShoppingCart size={13} />
-                Add to Cart
-              </>
-            )}
-          </button>
+            Shop Now
+          </div>
         </div>
       </div>
     </Link>
