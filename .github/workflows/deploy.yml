@@ -1,4 +1,4 @@
-name: Deploy to Production
+name: Deploy Production
 
 on:
   push:
@@ -7,14 +7,10 @@ on:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
-      - name: Deploy to EC2
-        uses: appleboy/ssh-action@v1.2.2
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_PRIVATE_KEY }}
-          script: |
-            /opt/shopgodsown-codebase/deploy.sh
+      - name: Deploy application
+        run: |
+          cd /opt/shopgodsown-codebase
+          ./deploy.sh
