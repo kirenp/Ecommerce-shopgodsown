@@ -1,0 +1,18 @@
+services:
+  godsownculture:
+    container_name: godsownculture
+
+    build:
+      context: .
+
+    restart: unless-stopped
+
+    ports:
+      - "3002:3002"
+
+    env_file:
+      - .env
+
+    environment:
+      NODE_ENV: production
+      PORT: 3002

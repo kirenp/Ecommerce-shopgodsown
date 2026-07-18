@@ -1,0 +1,15 @@
+.git
+.github
+.next
+node_modules
+
+.vscode
+.env.local
+.env.development
+.env.test
+
+README.md
+Dockerfile
+docker-compose.yml
+
+*.log
