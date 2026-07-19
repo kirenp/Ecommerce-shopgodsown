@@ -132,9 +132,9 @@ export default function ProductDetail({ product }: ProductDetailProps) {
         <div className="space-y-8">
           {availableColors.length > 0 && (
             <div className="space-y-4">
-              <h4 className="text-[10px] text-white/30 uppercase tracking-[0.3em]">
+              <h4 className="text-[10px] text-white/70 uppercase tracking-[0.3em]">
                 Color
-                {selectedColor && <span className="text-white/70 ml-3 font-medium">— {selectedColor}</span>}
+                {selectedColor && <span className="text-white/75 ml-3 font-medium tracking-widest">— {selectedColor}</span>}
               </h4>
               <div className="flex flex-wrap gap-4">
                 {availableColors.map((c: any, i: number) => (
@@ -157,11 +157,11 @@ export default function ProductDetail({ product }: ProductDetailProps) {
           {(availableSizesForColor.length > 0 || (availableColors.length === 0 && (product.sizes?.length > 0))) && (
             <div className="space-y-4">
               <div className="flex justify-between items-center">
-                <h4 className="text-[10px] text-white/30 uppercase tracking-[0.3em]">
+                <h4 className="text-[10px] text-white/70 uppercase tracking-[0.3em]">
                   Size
-                  {selectedSize && <span className="text-white/70 ml-3 font-medium">— {selectedSize}</span>}
+                  {selectedSize && <span className="text-white/75 ml-3 font-medium tracking-widest">— {selectedSize}</span>}
                 </h4>
-                <button onClick={() => setShowSizeGuide(true)} className="text-[10px] text-white/50 hover:text-white uppercase tracking-wider underline underline-offset-4 font-medium transition-colors">Size Guide</button>
+                <button onClick={() => setShowSizeGuide(true)} className="text-[10px] text-white/80 hover:text-white uppercase tracking-wider underline underline-offset-4 font-medium transition-colors">Size Guide</button>
               </div>
               <div className="flex flex-wrap gap-3">
                 {(availableSizesForColor.length > 0 ? availableSizesForColor : product.sizes || []).map((s: any, i: number) => (
@@ -180,7 +180,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
 
         {/* Selection guard hint */}
         {!isVariantSelected && availableColors.length > 0 && (
-          <p className="text-white/20 text-[10px] tracking-widest uppercase">
+          <p className="text-luxury-kasavu text-[11px] tracking-[0.15em] font-semibold uppercase animate-pulse">
             {!selectedColor ? "← Select a color to continue" : "← Now select a size"}
           </p>
         )}
@@ -230,26 +230,14 @@ export default function ProductDetail({ product }: ProductDetailProps) {
                 </svg>
               </div>
 
-              {/* UPI Icons Group - Centered below */}
-              <div className={`flex items-center justify-center gap-2 ${!isVariantSelected || !isAvailable ? 'opacity-20' : 'opacity-100'}`}>
-                {/* Google Pay */}
-                <div className="w-10 h-6 rounded bg-white flex items-center justify-center px-2 py-1 border border-black/5 z-30">
-                  <svg viewBox="0 0 40 40" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M18.8 17.5v-2.1h4.1c-.2-1-.8-1.8-1.6-2.3l2.8-2.2c1.8 1.7 2.8 4.2 2.8 7s-.1 1.2-.2 1.8h-7.9z" fill="#4285F4" />
-                    <path d="M11.2 17.5c0-.8.1-1.6.4-2.3l-2.8-2.2C8.3 14.2 8 15.8 8 17.5s.3 3.3.8 4.6l2.8-2.2c-.3-.7-.4-1.5-.4-2.4z" fill="#FBBC05" />
-                    <path d="M18.8 24.2c2 0 3.7-.7 5-1.8l-2.8-2.2c-.6.4-1.4.6-2.2.6-1.7 0-3.1-1.1-3.6-2.6l-2.8 2.2C13.9 22.8 16.2 24.2 18.8 24.2z" fill="#34A853" />
-                    <path d="M18.8 10.8c1.5 0 2.9.5 4 1.5l2.8-2.2C23.7 8.5 21.4 7.6 18.8 7.6c-2.6 0-4.9 1.4-6.3 3.6l2.8 2.2c.5-1.5 1.9-2.6 3.5-2.6z" fill="#EA4335" />
-                  </svg>
-                </div>
-                {/* PhonePe */}
-                <div className="w-10 h-6 rounded bg-white flex items-center justify-center border border-black/5 z-20 text-[6.5px] font-black text-[#5f259f] tracking-tight">
-                  PhonePe
-                </div>
-                {/* Paytm */}
-                <div className="w-10 h-6 rounded bg-white flex items-center justify-center border border-black/5 z-10 text-[8px] font-black text-[#00baf2] italic">
-                  Paytm
-                </div>
-              </div>
+              {/* Payment Options - compact badge strip */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/images/BUUYNOWBUYYON.png"
+                alt="UPI · VISA · Mastercard · American Express"
+                style={{ width: '180px', height: 'auto' }}
+                className={`transition-opacity duration-300 ${!isVariantSelected || !isAvailable ? 'opacity-25' : 'opacity-70'}`}
+              />
             </button>
           </div>
         </div>

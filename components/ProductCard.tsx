@@ -3,7 +3,9 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
-import { Heart } from "lucide-react";
+import { Heart, ShoppingCart } from "lucide-react";
+import { useUI } from "@/lib/uiContext";
+import { getProductDetails } from "@/app/actions";
 import { usePreview } from "@/lib/preview";
 
 interface ProductCardProps {
@@ -25,8 +27,29 @@ export default function ProductCard({
   isSale,
   variant = "dark"
 }: ProductCardProps) {
+  const { openQuickView } = useUI();
+  const [loading, setLoading] = useState(false);
   const [wishlisted, setWishlisted] = useState(false);
   const { getPreviewPath } = usePreview();
+
+  const handleAddToCart = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (loading) return;
+
+    setLoading(true);
+    try {
+      const fullProduct = await getProductDetails(handle);
+      if (fullProduct) {
+        openQuickView(fullProduct);
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleWishlist = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -69,13 +92,21 @@ export default function ProductCard({
               </p>
             </div>
 
-            {/* SHOP NOW button on glass card */}
-            <div
+            {/* ADD TO CART button on glass card */}
+            <button
+              onClick={handleAddToCart}
+              disabled={loading}
               className="w-full py-3.5 bg-zinc-200/50 hover:bg-zinc-100/80 backdrop-blur-sm border border-zinc-300/30 text-zinc-800 text-[10px] font-bold uppercase tracking-[0.25em] rounded-2xl transition-all duration-400 flex items-center justify-between px-6 shadow-sm group-hover:shadow-md"
             >
-              <span>Shop Now</span>
-              <span className="text-base font-light leading-none">→</span>
-            </div>
+              {loading ? (
+                <span className="w-full text-center">Processing...</span>
+              ) : (
+                <>
+                  <span>Add to Cart</span>
+                  <span className="text-base font-light leading-none">→</span>
+                </>
+              )}
+            </button>
           </div>
         </div>
       </Link>
