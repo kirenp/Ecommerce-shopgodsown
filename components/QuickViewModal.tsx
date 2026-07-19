@@ -108,7 +108,7 @@ export default function QuickViewModal() {
                             const activeMedia = quickViewProduct.images.find((m: any) => m.url === displayImage) || { type: 'IMAGE', url: displayImage };
                             if (activeMedia.type === 'VIDEO') {
                                 return (
-                                    <video key={activeMedia.url} src={activeMedia.url} autoPlay muted loop playsInline controls className="w-full h-full object-contain object-center" />
+                                    <video key={activeMedia.url} src={activeMedia.url} autoPlay muted loop playsInline className="w-full h-full object-contain object-center" />
                                 );
                             }
                             return (

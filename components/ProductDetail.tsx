@@ -70,6 +70,23 @@ export default function ProductDetail({ product }: ProductDetailProps) {
     setTimeout(() => setCartFeedback(false), 2000);
   };
 
+  const handleBuyNow = () => {
+    if (!isVariantSelected || !isAvailable) return;
+    addToCart({
+      id: product.id,
+      variantId: currentVariant?.id || product.id,
+      handle: product.handle,
+      title: product.title,
+      image: displayImage,
+      color: selectedColor || "",
+      size: selectedSize || "",
+      price: currentVariant?.price || product.price,
+      currencyCode: product.currencyCode || "INR",
+    });
+    // Navigate to checkout
+    window.location.href = "/checkout";
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
       {/* Image Gallery */}
@@ -79,7 +96,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
             const activeMedia = product.images.find((m: any) => m.url === displayImage) || { type: 'IMAGE', url: displayImage };
             if (activeMedia.type === 'VIDEO') {
               return (
-                <video key={activeMedia.url} src={activeMedia.url} autoPlay muted loop playsInline controls className="w-full h-full object-cover transition-all duration-700" />
+                <video key={activeMedia.url} src={activeMedia.url} autoPlay muted loop playsInline className="w-full h-full object-cover transition-all duration-700" />
               );
             }
             return (
@@ -209,37 +226,77 @@ export default function ProductDetail({ product }: ProductDetailProps) {
             {cartFeedback ? "✓ Added to Cart" : "Add to Cart"}
           </button>
 
-          {/* BUY NOW — redesigned per reference */}
+          {/* BUY NOW — Apple Liquid Glass + Running Red Light */}
           <div className="relative group mt-2">
-            {/* Glow effect behind the button */}
-            <div className={`absolute -inset-1 rounded-xl blur-sm opacity-10 group-hover:opacity-40 transition duration-1000 group-hover:duration-200 ${!isVariantSelected || !isAvailable ? 'hidden' : 'bg-gradient-to-r from-luxury-kasavu to-luxury-gold'}`}></div>
+            {/* Running red light on border — conic gradient rotates endlessly */}
+            <div
+              className={`absolute -inset-[1.5px] rounded-xl transition-opacity duration-500 ${!isVariantSelected || !isAvailable ? 'opacity-0' : 'opacity-100'}`}
+              style={{
+                background: 'conic-gradient(from var(--angle, 0deg), transparent 60%, #ef4444 75%, #ff6b6b 80%, transparent 90%)',
+                animation: 'spin-border 2.4s linear infinite',
+                borderRadius: '0.75rem',
+              }}
+            />
 
+            {/* Glass button body */}
             <button
+              onClick={handleBuyNow}
               disabled={!isVariantSelected || !isAvailable}
-              className={`relative w-full py-6 px-4 flex flex-col items-center justify-center gap-3 rounded-xl transition-all duration-500 overflow-hidden ${!isVariantSelected || !isAvailable
-                ? "bg-white/5 border border-white/5 text-white/20 cursor-not-allowed"
-                : "bg-black hover:bg-black/90 text-white border border-white/10 shadow-[0_4px_24px_rgba(229,196,83,0.15)] hover:shadow-[0_8px_32px_rgba(229,196,83,0.25)] ring-1 ring-white/10"
+              className={`relative w-full py-6 px-4 flex flex-col items-center justify-center gap-3 rounded-xl transition-all duration-500 overflow-hidden
+                backdrop-blur-2xl
+                ${!isVariantSelected || !isAvailable
+                  ? 'bg-white/4 border border-white/5 text-white/20 cursor-not-allowed'
+                  : 'bg-white/8 border border-white/15 text-white cursor-pointer hover:bg-white/12 hover:border-white/25'
                 }`}
+              style={isVariantSelected && isAvailable ? {
+                boxShadow: '0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.15), inset 0 -1px 0 rgba(0,0,0,0.3)',
+              } : {}}
             >
-              <div className="flex items-center justify-center gap-4 w-full">
-                <span className="text-sm font-bold uppercase tracking-[0.4em] text-white">Buy Now</span>
+              {/* Glass inner highlight streak */}
+              {isVariantSelected && isAvailable && (
+                <div
+                  className="absolute inset-0 pointer-events-none rounded-xl"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(255,255,255,0.12) 0%, transparent 50%, rgba(255,255,255,0.04) 100%)',
+                  }}
+                />
+              )}
 
-                {/* Right Chevron */}
+              {/* Red ambient glow beneath text */}
+              {isVariantSelected && isAvailable && (
+                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-40 h-8 rounded-full blur-2xl opacity-30"
+                  style={{ background: 'rgba(239,68,68,0.6)' }} />
+              )}
+
+              <div className="flex items-center justify-center gap-4 w-full relative z-10">
+                <span className="text-sm font-bold uppercase tracking-[0.4em] text-white drop-shadow-sm">Buy Now</span>
                 <svg viewBox="0 0 24 24" className={`w-5 h-5 transition-transform duration-300 group-hover:translate-x-1 ${!isVariantSelected || !isAvailable ? 'text-white/20' : 'text-white'}`} fill="none" stroke="currentColor" strokeWidth="2.5">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
                 </svg>
               </div>
 
-              {/* Payment Options - compact badge strip */}
+              {/* Payment Options */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/images/BUUYNOWBUYYON.png"
                 alt="UPI · VISA · Mastercard · American Express"
                 style={{ width: '180px', height: 'auto' }}
-                className={`transition-opacity duration-300 ${!isVariantSelected || !isAvailable ? 'opacity-25' : 'opacity-70'}`}
+                className={`relative z-10 transition-opacity duration-300 ${!isVariantSelected || !isAvailable ? 'opacity-20' : 'opacity-65'}`}
               />
             </button>
           </div>
+
+          {/* Keyframe for spinning border light */}
+          <style dangerouslySetInnerHTML={{ __html: `
+            @property --angle {
+              syntax: '<angle>';
+              initial-value: 0deg;
+              inherits: false;
+            }
+            @keyframes spin-border {
+              to { --angle: 360deg; }
+            }
+          ` }} />
         </div>
 
         {/* Shipping Info */}

@@ -64,18 +64,79 @@ export default function Navbar() {
       )}
 
       <nav className="w-full flex flex-col absolute top-0 z-50">
-        {/* Announcement Bar */}
-        <div className="w-full bg-black py-2.5 overflow-hidden relative select-none">
-          <div className="flex w-max animate-marquee md:hover:[animation-play-state:paused]">
-            <div className="text-[9px] md:text-[10px] text-[#C9A45C] font-semibold tracking-[0.3em] uppercase whitespace-nowrap">
-              {"JOIN THE GODS OWN CLUB · LIMITED RELEASES · EXCLUSIVE DROPS · NEW DROPS · GYM & STREET LEGAL · ".repeat(4)}
-            </div>
-            <div className="text-[9px] md:text-[10px] text-[#C9A45C] font-semibold tracking-[0.3em] uppercase whitespace-nowrap">
-              {"JOIN THE GODS OWN CLUB · LIMITED RELEASES · EXCLUSIVE DROPS · NEW DROPS · GYM & STREET LEGAL · ".repeat(4)}
-            </div>
-          </div>
-        </div>
+        {/* Announcement Bar — Apple Liquid Glass */}
+        <div className="w-full overflow-hidden relative select-none" style={{ height: '36px', background: '#000' }}>
+          {/* Glass sheen overlay */}
+          <div className="absolute inset-0 pointer-events-none"
+            style={{
+              background: 'linear-gradient(180deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.02) 50%, rgba(255,255,255,0.00) 100%)',
+              backdropFilter: 'blur(0px)',
+            }}
+          />
 
+          {/* Top highlight streak */}
+          <div className="absolute top-0 left-0 right-0 h-[1px] pointer-events-none"
+            style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.25) 40%, rgba(180,220,255,0.2) 60%, transparent)' }}
+          />
+
+          {/* Running red glow — sweeps left to right */}
+          <div className="absolute inset-0 pointer-events-none"
+            style={{
+              background: 'linear-gradient(90deg, transparent 0%, rgba(239,68,68,0.0) 30%, rgba(239,68,68,0.45) 50%, rgba(239,68,68,0.0) 70%, transparent 100%)',
+              animation: 'ticker-sweep 3s ease-in-out infinite',
+            }}
+          />
+
+          {/* Scrolling mixed-color text */}
+          {(() => {
+            const redStyle: React.CSSProperties = {
+              color: '#ef4444',
+              textShadow: '0 0 10px rgba(239,68,68,0.8), 0 0 22px rgba(239,68,68,0.4)',
+            };
+            const whiteStyle: React.CSSProperties = {
+              color: '#ffffff',
+              textShadow: '0 0 10px rgba(255,255,255,0.9), 0 0 20px rgba(255,255,255,0.5)',
+            };
+            const segment = (
+              <span className="font-bold tracking-[0.35em] uppercase whitespace-nowrap">
+                <span style={whiteStyle}>JOIN THE </span>
+                <span style={redStyle}>GODS OWN </span>
+                <span style={whiteStyle}>CLUB</span>
+                <span style={redStyle}> · </span>
+                <span style={whiteStyle}>LIMITED RELEASES</span>
+                <span style={redStyle}> · </span>
+                <span style={whiteStyle}>EXCLUSIVE DROPS</span>
+                <span style={redStyle}> · </span>
+                <span style={whiteStyle}>NEW DROPS</span>
+                <span style={redStyle}> · </span>
+                <span style={whiteStyle}>GYM &amp; STREET LEGAL</span>
+                <span style={redStyle}> · </span>
+              </span>
+            );
+            return (
+              <div className="absolute inset-0 flex items-center">
+                <div className="flex w-max animate-marquee md:hover:[animation-play-state:paused] text-[9px] md:text-[10px]">
+                  {[...Array(4)].map((_, i) => <span key={`a${i}`}>{segment}</span>)}
+                  {[...Array(4)].map((_, i) => <span key={`b${i}`}>{segment}</span>)}
+                </div>
+              </div>
+            );
+          })()}
+
+
+          {/* Bottom edge */}
+          <div className="absolute bottom-0 left-0 right-0 h-[1px] pointer-events-none"
+            style={{ background: 'linear-gradient(90deg, transparent, rgba(239,68,68,0.25) 30%, rgba(239,68,68,0.25) 70%, transparent)' }}
+          />
+
+          {/* CSS keyframes */}
+          <style dangerouslySetInnerHTML={{ __html: `
+            @keyframes ticker-sweep {
+              0% { transform: translateX(-100%); }
+              100% { transform: translateX(100%); }
+            }
+          ` }} />
+        </div>
         {/* Main Header */}
         <div className={`w-full ${isHomePage ? 'bg-[#F7F4EF]/95' : 'bg-white/95'} backdrop-blur-md px-6 md:px-12 flex items-center justify-between h-20 relative`}>
           {/* Left Links (desktop, restored as before) */}
