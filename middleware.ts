@@ -29,6 +29,8 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/dev-preview/') ||
     pathname.startsWith('/_next') ||
     pathname === '/favicon.ico' ||
+    pathname === '/sitemap.xml' ||
+    pathname === '/robots.txt' ||
     pathname.startsWith('/images') ||
     pathname.startsWith('/videos') ||
     pathname.startsWith('/static') ||
