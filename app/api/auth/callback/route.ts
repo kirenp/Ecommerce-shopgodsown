@@ -13,9 +13,18 @@ export async function GET(req: NextRequest) {
     const state = searchParams.get("state");
     const error = searchParams.get("error");
     const errorDescription = searchParams.get("error_description");
+    // Determine public origin (from cookie or headers, avoiding internal container hostnames)
+    const cookieOrigin = req.cookies.get("goc_auth_origin")?.value;
+    const headerHost = req.headers.get("x-forwarded-host") || req.headers.get("host");
+    const headerProto = req.headers.get("x-forwarded-proto") || (req.url.startsWith("https") ? "https" : "http");
+    const fallbackOrigin = headerHost ? `${headerProto}://${headerHost}` : req.nextUrl.origin;
+    
+    // Use cookieOrigin if available and valid, otherwise fallback
+    const savedOrigin = (cookieOrigin && !cookieOrigin.includes("b2591201c62c")) ? cookieOrigin : fallbackOrigin;
+
     // Retrieve return path from cookie (defaulting to /dev-preview)
     const returnPathCookie = req.cookies.get("goc_auth_return_url")?.value || "/dev-preview";
-    const returnUrl = new URL(returnPathCookie, req.url);
+    const returnUrl = new URL(returnPathCookie, savedOrigin);
 
     // Handle errors from Shopify
     if (error) {
@@ -45,10 +54,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Determine redirect URI (must match what was used in authorize)
-    const origin = req.headers.get("x-forwarded-proto") 
-      ? `${req.headers.get("x-forwarded-proto")}://${req.headers.get("host")}`
-      : `${req.nextUrl.protocol}//${req.nextUrl.host}`;
-    const redirectUri = `${origin}/api/auth/callback`;
+    const redirectUri = `${savedOrigin}/api/auth/callback`;
 
     // Exchange authorization code for tokens
     const tokens = await exchangeCodeForTokens({
@@ -112,6 +118,7 @@ export async function GET(req: NextRequest) {
     response.cookies.delete("goc_pkce_verifier");
     response.cookies.delete("goc_pkce_state");
     response.cookies.delete("goc_auth_return_url");
+    response.cookies.delete("goc_auth_origin");
 
     return response;
   } catch (error: any) {

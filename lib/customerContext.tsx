@@ -194,27 +194,31 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
   // ─── Initiate Shopify OAuth (redirects to OTP page) ────────────────
   const initiateAuth = async (): Promise<{ authorizationUrl?: string; error?: string }> => {
     try {
+      const clientOrigin = typeof window !== 'undefined' ? window.location.origin : '';
+      const clientPath = typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/dev-preview';
+
       const res = await fetch("/api/customer/auth", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "initiate-auth" }),
+        body: JSON.stringify({ action: "initiate-auth", origin: clientOrigin, returnPath: clientPath }),
       });
       const json = await res.json();
       if (!res.ok) {
         return { error: json.error || "Failed to initiate authentication." };
       }
 
-      // Store PKCE verifier, state, and return URL in cookies (for the callback to read)
+      // Store PKCE verifier, state, origin and return URL in cookies (for the callback to read)
       if (json.codeVerifier) {
         setCookie("goc_pkce_verifier", json.codeVerifier, 600); // 10 min
       }
       if (json.state) {
         setCookie("goc_pkce_state", json.state, 600);
       }
-      if (json.returnPath) {
-        setCookie("goc_auth_return_url", json.returnPath, 600);
-      } else if (typeof window !== 'undefined') {
-        setCookie("goc_auth_return_url", window.location.pathname + window.location.search, 600);
+      if (json.origin || clientOrigin) {
+        setCookie("goc_auth_origin", json.origin || clientOrigin, 600);
+      }
+      if (json.returnPath || clientPath) {
+        setCookie("goc_auth_return_url", json.returnPath || clientPath, 600);
       }
 
       return { authorizationUrl: json.authorizationUrl };

@@ -211,12 +211,12 @@ export async function POST(req: NextRequest) {
 
       // Determine the base URL for the callback
       const referer = req.headers.get("referer") || "";
-      const origin = req.headers.get("origin") || (referer ? new URL(referer).origin : "http://localhost:3000");
+      const origin = body.origin || req.headers.get("origin") || (referer ? new URL(referer).origin : "http://localhost:3000");
       const redirectUri = `${origin}/api/auth/callback`;
 
       // Extract return path from referer if on dev-preview
-      let returnPath = "/";
-      if (referer) {
+      let returnPath = body.returnPath || "/dev-preview";
+      if (!body.returnPath && referer) {
         try {
           const refUrl = new URL(referer);
           returnPath = refUrl.pathname + refUrl.search;
@@ -245,6 +245,7 @@ export async function POST(req: NextRequest) {
         state,
         nonce,
         returnPath,
+        origin,
       });
     }
 
