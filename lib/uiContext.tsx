@@ -10,6 +10,9 @@ interface UIContextType {
     isCartSidebarOpen: boolean;
     openCartSidebar: () => void;
     closeCartSidebar: () => void;
+    isAccountSidebarOpen: boolean;
+    openAccountSidebar: () => void;
+    closeAccountSidebar: () => void;
 }
 
 const UIContext = createContext<UIContextType | undefined>(undefined);
@@ -18,6 +21,7 @@ export function UIProvider({ children }: { children: ReactNode }) {
     const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
     const [quickViewProduct, setQuickViewProduct] = useState<any | null>(null);
     const [isCartSidebarOpen, setIsCartSidebarOpen] = useState(false);
+    const [isAccountSidebarOpen, setIsAccountSidebarOpen] = useState(false);
 
     const openQuickView = (product: any) => {
         setQuickViewProduct(product);
@@ -37,6 +41,14 @@ export function UIProvider({ children }: { children: ReactNode }) {
         setIsCartSidebarOpen(false);
     };
 
+    const openAccountSidebar = () => {
+        setIsAccountSidebarOpen(true);
+    };
+
+    const closeAccountSidebar = () => {
+        setIsAccountSidebarOpen(false);
+    };
+
     return (
         <UIContext.Provider
             value={{
@@ -47,6 +59,9 @@ export function UIProvider({ children }: { children: ReactNode }) {
                 isCartSidebarOpen,
                 openCartSidebar,
                 closeCartSidebar,
+                isAccountSidebarOpen,
+                openAccountSidebar,
+                closeAccountSidebar,
             }}
         >
             {children}

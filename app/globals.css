@@ -29,7 +29,7 @@
 }
 
 html, body {
-  cursor: url('/images/trident-cursor-32.png'), auto;
+  cursor: auto;
 }
 
 /* ── Glossy Red Liquid Glass Scrollbar ── */
@@ -106,6 +106,15 @@ body {
 
 .hover-zoom:hover {
   transform: scale(1.05);
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 /* ══════ EARLY ACCESS STYLES — DARK LUXURY ══════ */

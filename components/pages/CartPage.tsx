@@ -73,7 +73,12 @@ export default function CartPageContent() {
                         </span>
                         <button
                           onClick={() => updateQuantity(item.variantId, item.quantity + 1)}
-                          className="px-3 py-2 text-white/60 hover:text-white hover:bg-white/5 transition-colors"
+                          disabled={item.quantity >= (item.quantityAvailable ?? 999)}
+                          className={`px-3 py-2 transition-colors ${
+                            item.quantity >= (item.quantityAvailable ?? 999)
+                              ? "text-white/20 cursor-not-allowed bg-white/5"
+                              : "text-white/60 hover:text-white hover:bg-white/5"
+                          }`}
                         >
                           <Plus size={12} />
                         </button>
@@ -112,9 +117,12 @@ export default function CartPageContent() {
                   <span>Total</span>
                   <span>₹{parseFloat(subtotal).toLocaleString("en-IN")}</span>
                 </div>
-                <button className="w-full py-4 bg-white text-black text-xs font-bold tracking-[0.3em] uppercase rounded-xl hover:bg-white/90 transition-all duration-300 mt-2">
+                <Link
+                  href={getPreviewPath("/checkout")}
+                  className="block text-center w-full py-4 bg-white text-black text-xs font-bold tracking-[0.3em] uppercase rounded-xl hover:bg-white/90 transition-all duration-300 mt-2"
+                >
                   Proceed to Checkout
-                </button>
+                </Link>
                 <Link href={getPreviewPath("/catalog")} className="block text-center text-white/30 hover:text-white text-[10px] tracking-widest uppercase transition-colors">
                   Continue Shopping
                 </Link>

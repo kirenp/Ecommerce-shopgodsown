@@ -17,7 +17,7 @@ export default function Footer() {
         {/* Left Column */}
         <div className="lg:w-[400px] flex flex-col justify-between">
           <div>
-            <h2 className="font-pickyside text-6xl md:text-7xl tracking-[0.08em] uppercase leading-none mb-4">
+            <h2 className="font-sans font-bold text-4xl md:text-5xl tracking-[0.25em] uppercase leading-none mb-4">
               <span className="text-[#C81E1E]">GODS</span> <span className="text-[#111111]">OWN</span>
             </h2>
             <p className="text-black/60 text-xs tracking-wider leading-relaxed font-medium mb-6">
@@ -74,6 +74,7 @@ export default function Footer() {
             <div className="w-6 h-[2px] bg-[#C81E1E] mt-4 mb-6"></div>
             <ul className="space-y-3">
               {[
+                { label: "Track Order", href: "/track-order" },
                 { label: "Shipping Policy", href: "/shipping-policy" },
                 { label: "Refund Policy", href: "/refund-policy" },
                 { label: "Terms of Service", href: "/terms-of-service" },

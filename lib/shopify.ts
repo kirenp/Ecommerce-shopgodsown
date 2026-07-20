@@ -30,8 +30,11 @@ export async function shopifyFetch<T>({
     });
 
     const json = await res.json();
-    if (!res.ok || json.errors) {
-      console.error("Shopify API Error:", json.errors || res.statusText);
+    if (json.errors) {
+      console.warn("Shopify API non-fatal warnings/errors:", JSON.stringify(json.errors, null, 2));
+    }
+    if (!res.ok || !json.data) {
+      console.error("Shopify API Fatal Error:", json.errors || res.statusText);
       throw new Error(`Shopify API error: ${res.statusText}`);
     }
 
@@ -336,6 +339,7 @@ export const GET_PRODUCT_DETAILS_QUERY = `
             id
             title
             availableForSale
+            quantityAvailable
             selectedOptions {
               name
               value
@@ -472,6 +476,7 @@ export async function getProduct(handle: string) {
       id: edge.node.id,
       title: edge.node.title,
       available: edge.node.availableForSale,
+      quantityAvailable: edge.node.quantityAvailable ?? 999, // default to 999 if null/scope denied, so it doesn't hard-restrict to 1
       price: edge.node.price.amount,
       options: edge.node.selectedOptions,
       image: edge.node.image?.url || null

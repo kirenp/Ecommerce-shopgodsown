@@ -70,7 +70,7 @@ export default function FilterableProductGrid({ products }: FilterableProductGri
   const [sortBy, setSortBy] = useState<SortKey>("newest");
 
   // UI state
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [showSizeGuide, setShowSizeGuide] = useState(false);
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false);

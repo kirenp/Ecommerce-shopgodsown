@@ -13,6 +13,7 @@ export interface CartItem {
   price: string;
   currencyCode: string;
   quantity: number;
+  quantityAvailable?: number;
 }
 
 interface CartContextType {
@@ -29,27 +30,58 @@ const CartContext = createContext<CartContextType | null>(null);
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   // Load from localStorage on mount
   useEffect(() => {
     try {
       const saved = localStorage.getItem("goc_cart");
       if (saved) setItems(JSON.parse(saved));
-    } catch {}
+    } catch (e) {
+      console.error("Failed to load cart from localStorage:", e);
+    } finally {
+      setIsLoaded(true);
+    }
   }, []);
 
-  // Save to localStorage on change
+  // Save to localStorage on change ONLY AFTER initial load has completed
   useEffect(() => {
-    localStorage.setItem("goc_cart", JSON.stringify(items));
-  }, [items]);
+    if (isLoaded) {
+      localStorage.setItem("goc_cart", JSON.stringify(items));
+    }
+  }, [items, isLoaded]);
 
-  const addToCart = (item: Omit<CartItem, 'quantity'>) => {
+  const addToCart = (item: Omit<CartItem, 'quantity'> & { quantity?: number }) => {
     setItems(prev => {
+      let nextItems;
       const existing = prev.find(i => i.variantId === item.variantId);
+      const maxStock = item.quantityAvailable ?? 999;
+      const qtyToAdd = item.quantity || 1;
+
       if (existing) {
-        return prev.map(i => i.variantId === item.variantId ? { ...i, quantity: i.quantity + 1 } : i);
+        const newQty = existing.quantity + qtyToAdd;
+        if (newQty > maxStock) {
+          alert(`Not enough stock available. You can only add up to ${maxStock} item${maxStock === 1 ? '' : 's'} for this variant (${item.color ? item.color + ' / ' : ''}${item.size || ''}).`);
+          return prev;
+        }
+        nextItems = prev.map(i => i.variantId === item.variantId ? { ...i, quantity: newQty, quantityAvailable: maxStock } : i);
+      } else {
+        if (maxStock < 1) {
+          alert(`This item (${item.color ? item.color + ' / ' : ''}${item.size || ''}) is currently out of stock.`);
+          return prev;
+        }
+        if (qtyToAdd > maxStock) {
+          alert(`Not enough stock available. You can only add up to ${maxStock} item${maxStock === 1 ? '' : 's'} for this variant.`);
+          return prev;
+        }
+        nextItems = [...prev, { ...item, quantity: qtyToAdd, quantityAvailable: maxStock }];
       }
-      return [...prev, { ...item, quantity: 1 }];
+      try {
+        localStorage.setItem("goc_cart", JSON.stringify(nextItems));
+      } catch (e) {
+        console.error("Failed to save cart to localStorage:", e);
+      }
+      return nextItems;
     });
   };
 
@@ -59,7 +91,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const updateQuantity = (variantId: string, qty: number) => {
     if (qty < 1) { removeFromCart(variantId); return; }
-    setItems(prev => prev.map(i => i.variantId === variantId ? { ...i, quantity: qty } : i));
+    setItems(prev => prev.map(i => {
+      if (i.variantId === variantId) {
+        const maxStock = i.quantityAvailable ?? 999;
+        if (qty > maxStock) {
+          alert(`Not enough stock available. You can only add up to ${maxStock} item${maxStock === 1 ? '' : 's'} for this variant.`);
+          return { ...i, quantity: maxStock };
+        }
+        return { ...i, quantity: qty };
+      }
+      return i;
+    }));
   };
 
   const clearCart = () => setItems([]);

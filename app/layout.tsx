@@ -4,8 +4,12 @@ import { geishta, pickyside } from "@/lib/fonts";
 import "./globals.css";
 import { CartProvider } from "@/lib/cartContext";
 import { UIProvider } from "@/lib/uiContext";
+import { RecentlyViewedProvider } from "@/lib/recentlyViewedContext";
+import { WishlistProvider } from "@/lib/wishlistContext";
+import { CustomerProvider } from "@/lib/customerContext";
 import QuickViewModal from "@/components/QuickViewModal";
 import CartSidebar from "@/components/CartSidebar";
+import AccountSidebar from "@/components/AccountSidebar";
 import Script from "next/script";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -201,13 +205,20 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased">
-        <CartProvider>
-          <UIProvider>
-            {children}
-            <QuickViewModal />
-            <CartSidebar />
-          </UIProvider>
-        </CartProvider>
+        <CustomerProvider>
+          <WishlistProvider>
+            <RecentlyViewedProvider>
+              <CartProvider>
+                <UIProvider>
+                  {children}
+                  <QuickViewModal />
+                  <CartSidebar />
+                  <AccountSidebar />
+                </UIProvider>
+              </CartProvider>
+            </RecentlyViewedProvider>
+          </WishlistProvider>
+        </CustomerProvider>
       </body>
     </html>
   );

@@ -27,15 +27,14 @@ export function middleware(request: NextRequest) {
     pathname === '/early-access' ||
     pathname === '/dev-preview' ||
     pathname.startsWith('/dev-preview/') ||
+    pathname.startsWith('/api') ||
     pathname.startsWith('/_next') ||
     pathname === '/favicon.ico' ||
     pathname === '/sitemap.xml' ||
     pathname === '/robots.txt' ||
     pathname.startsWith('/images') ||
     pathname.startsWith('/videos') ||
-    pathname.startsWith('/static') ||
-    pathname === '/api/early-access' || // Securely whitelist only this specific signup API, NOT all /api routes.
-    pathname === '/api/ping';
+    pathname.startsWith('/static');
 
   if (isAllowedPath) {
     return NextResponse.next();

@@ -3,19 +3,43 @@
 import { useState, useMemo, useEffect } from "react";
 import Image from "next/image";
 import { useCart } from "@/lib/cartContext";
+import { useRecentlyViewed } from "@/lib/recentlyViewedContext";
+import { useWishlist } from "@/lib/wishlistContext";
+import { usePreview } from "@/lib/preview";
+import { useRouter } from "next/navigation";
+import { Heart } from "lucide-react";
 
 interface ProductDetailProps {
   product: any;
 }
 
 export default function ProductDetail({ product }: ProductDetailProps) {
-  const { addToCart } = useCart();
+  const { items, addToCart } = useCart();
+  const { addRecentlyViewed } = useRecentlyViewed();
+  const { wishlistItems, toggleWishlist, isInWishlist } = useWishlist();
+  const { getPreviewPath } = usePreview();
+  const router = useRouter();
 
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [displayImage, setDisplayImage] = useState(product.images[0]?.url || "/images/placeholder.png");
   const [cartFeedback, setCartFeedback] = useState(false);
   const [showSizeGuide, setShowSizeGuide] = useState(false);
+
+  // Register product into Recently Viewed Context on mount
+  useEffect(() => {
+    if (product && product.handle) {
+      addRecentlyViewed({
+        id: product.id,
+        title: product.title,
+        handle: product.handle,
+        image: product.images[0]?.url || displayImage,
+        price: product.price,
+        currencyCode: product.currencyCode || "INR",
+        category: product.category || "",
+      });
+    }
+  }, [product.id, product.handle]);
 
   const availableColors = product.colors || [];
 
@@ -52,6 +76,10 @@ export default function ProductDetail({ product }: ProductDetailProps) {
 
   const isVariantSelected = selectedColor !== null && selectedSize !== null;
   const isAvailable = currentVariant ? currentVariant.available : product.available;
+  const availableStock = currentVariant?.quantityAvailable ?? 999;
+  const inCartItem = items.find(i => i.variantId === currentVariant?.id);
+  const inCartQty = inCartItem ? inCartItem.quantity : 0;
+  const isMaxStockReached = isVariantSelected && inCartQty >= availableStock;
 
   const handleAddToCart = () => {
     if (!isVariantSelected || !isAvailable) return;
@@ -65,6 +93,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
       size: selectedSize || "",
       price: currentVariant?.price || product.price,
       currencyCode: product.currencyCode || "INR",
+      quantityAvailable: currentVariant?.quantityAvailable
     });
     setCartFeedback(true);
     setTimeout(() => setCartFeedback(false), 2000);
@@ -82,9 +111,10 @@ export default function ProductDetail({ product }: ProductDetailProps) {
       size: selectedSize || "",
       price: currentVariant?.price || product.price,
       currencyCode: product.currencyCode || "INR",
+      quantityAvailable: currentVariant?.quantityAvailable
     });
-    // Navigate to checkout
-    window.location.href = "/checkout";
+    // Navigate to checkout using Next.js client-side push
+    router.push(getPreviewPath("/checkout"));
   };
 
   return (
@@ -202,29 +232,63 @@ export default function ProductDetail({ product }: ProductDetailProps) {
           </p>
         )}
 
-        {/* Stock */}
+        {/* Stock Status Indicator */}
         <div className="flex items-center space-x-3">
-          <div className={`w-1.5 h-1.5 rounded-full ${isAvailable ? "bg-green-400" : "bg-red-400"}`} />
-          <span className="text-[10px] text-white/40 uppercase tracking-widest">
-            {isAvailable ? "In Stock — Ready to ship" : "Out of Stock"}
+          <div className={`w-1.5 h-1.5 rounded-full ${!isAvailable || availableStock <= 0 ? "bg-red-400" : "bg-green-400"}`} />
+          <span className="text-[10px] text-white/60 uppercase tracking-widest font-medium">
+            {!isAvailable || availableStock <= 0
+              ? "Out of Stock"
+              : "In Stock — Ready to ship"}
           </span>
         </div>
 
         {/* CTA Buttons */}
         <div className="space-y-3">
-          {/* ADD TO CART — glass, secondary */}
-          <button
-            onClick={handleAddToCart}
-            disabled={!isVariantSelected || !isAvailable}
-            className={`w-full py-4 bg-white/8 backdrop-blur-md border text-xs font-bold uppercase tracking-[0.3em] rounded-xl transition-all duration-500 ${!isVariantSelected || !isAvailable
-              ? "border-white/5 text-white/20 cursor-not-allowed"
-              : cartFeedback
-                ? "border-green-400/50 text-green-300 bg-green-400/10"
-                : "border-white/15 text-white hover:bg-white/15 hover:border-white/30"
+          <div className="flex gap-3">
+            {/* ADD TO CART — glass, secondary */}
+            <button
+              onClick={handleAddToCart}
+              disabled={!isVariantSelected || !isAvailable || isMaxStockReached}
+              className={`flex-1 py-4 bg-white/8 backdrop-blur-md border text-xs font-bold uppercase tracking-[0.3em] rounded-xl transition-all duration-500 ${!isVariantSelected || !isAvailable || isMaxStockReached
+                ? "border-white/5 text-white/20 cursor-not-allowed"
+                : cartFeedback
+                  ? "border-green-400/50 text-green-300 bg-green-400/10"
+                  : "border-white/15 text-white hover:bg-white/15 hover:border-white/30"
+                }`}
+            >
+              {cartFeedback ? "✓ Added to Cart" : isMaxStockReached ? "Max Stock in Cart" : "Add to Cart"}
+            </button>
+
+            {/* WISHLIST HEART TOGGLE */}
+            <button
+              onClick={() => {
+                toggleWishlist({
+                  id: currentVariant?.id || product.id,
+                  title: product.title,
+                  handle: product.handle,
+                  image: displayImage,
+                  price: currentVariant?.price || product.price,
+                  color: selectedColor || "",
+                  size: selectedSize || "",
+                  currencyCode: product.currencyCode || "INR"
+                });
+              }}
+              className={`px-4 py-4 rounded-xl border backdrop-blur-md transition-all duration-300 flex items-center justify-center ${
+                isInWishlist(product.id) || isInWishlist(currentVariant?.id || "")
+                  ? "bg-[#C81E1E]/20 border-[#C81E1E] text-[#C81E1E]"
+                  : "bg-white/8 border-white/15 text-white/60 hover:text-white hover:border-white/30"
               }`}
-          >
-            {cartFeedback ? "✓ Added to Cart" : "Add to Cart"}
-          </button>
+              title="Add to Wishlist"
+            >
+              <Heart size={18} className={isInWishlist(product.id) || isInWishlist(currentVariant?.id || "") ? "fill-[#C81E1E]" : ""} />
+            </button>
+          </div>
+
+          {isMaxStockReached && (
+            <p className="text-[11px] text-amber-400/90 font-medium tracking-wide text-center pt-1">
+              You have added the maximum available quantity for this variant.
+            </p>
+          )}
 
           {/* BUY NOW — Apple Liquid Glass + Running Red Light */}
           <div className="relative group mt-2">

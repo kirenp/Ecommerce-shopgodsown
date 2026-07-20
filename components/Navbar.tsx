@@ -6,6 +6,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useCart } from "@/lib/cartContext";
 import { usePreview } from "@/lib/preview";
+import { useUI } from "@/lib/uiContext";
 
 export default function Navbar() {
   const [searchOpen, setSearchOpen] = useState(false);
@@ -16,6 +17,7 @@ export default function Navbar() {
   const pathname = usePathname();
   const { itemCount } = useCart();
   const { isPreview, getPreviewPath } = usePreview();
+  const { openAccountSidebar } = useUI();
   const isHomePage = pathname === "/" || pathname === "/dev-preview" || pathname === getPreviewPath("/");
 
   useEffect(() => {
@@ -34,6 +36,7 @@ export default function Navbar() {
   const navLinks = [
     { label: "Home", href: "/" },
     { label: "Shop", href: "/catalog" },
+    { label: "Track Order", href: "/track-order" },
     { label: "About", href: "/about" },
     { label: "Contact", href: "/contact" },
   ];
@@ -170,7 +173,7 @@ export default function Navbar() {
 
           {/* Logo (centered inside the header bar) */}
           <div className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 mt-1.5 md:mt-2 z-30">
-            <Link href={getPreviewPath("/")} className="font-pickyside text-3xl sm:text-4xl md:text-[44px] font-light tracking-[0.08em] uppercase whitespace-nowrap select-none">
+            <Link href={getPreviewPath("/")} className="font-sans font-bold text-2xl sm:text-3xl md:text-[34px] tracking-[0.25em] uppercase whitespace-nowrap select-none">
               <span className="text-[#C81E1E]">GODS</span> <span className="text-[#111111]">OWN</span>
             </Link>
           </div>
@@ -206,7 +209,11 @@ export default function Navbar() {
               <Search size={18} />
             </button>
 
-            <button className="hover:text-[#C9A45C] transition-colors hidden md:block" aria-label="Account">
+            <button
+              onClick={openAccountSidebar}
+              className="hover:text-[#C9A45C] transition-colors"
+              aria-label="Account"
+            >
               <User size={18} />
             </button>
             <Link href={getPreviewPath("/cart")} className="hover:text-[#C9A45C] transition-colors relative" aria-label="Cart">
