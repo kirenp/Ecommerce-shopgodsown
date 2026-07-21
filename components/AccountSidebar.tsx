@@ -263,8 +263,17 @@ export default function AccountSidebar() {
                 {/* Email-Only Auth Form */}
                 <form onSubmit={handleCustomerSubmit} className="bg-white border border-gray-200/80 rounded-2xl p-5 shadow-sm space-y-3">
                   {authError && (
-                    <div className="bg-red-50 border border-red-200 text-red-600 text-xs rounded-xl p-3 font-medium">
-                      {authError}
+                    <div className="bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl p-3.5 font-medium space-y-2.5">
+                      <div>{authError}</div>
+                      {authError.includes("Shopify authenticated as") && (
+                        <button
+                          type="button"
+                          onClick={() => logout(true)}
+                          className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-3 rounded-xl text-[11px] uppercase tracking-wider transition-colors shadow-xs"
+                        >
+                          Clear Shopify Browser Session & Retry
+                        </button>
+                      )}
                     </div>
                   )}
 
@@ -342,11 +351,26 @@ export default function AccountSidebar() {
                     <p className="text-xs text-white/50 font-mono">{customer?.email}</p>
                   </div>
                   <button
-                    onClick={logout}
+                    onClick={() => logout(false)}
                     className="p-2 text-white/40 hover:text-red-400 hover:bg-white/10 rounded-full transition-colors"
                     title="Sign Out"
                   >
                     <LogOut size={16} />
+                  </button>
+                </div>
+                <div className="pt-2 border-t border-white/10 flex justify-between items-center text-[11px]">
+                  <span className="text-white/50 text-[10px]">Not {customer?.email}?</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      logout(false);
+                      setShowLoginForm(true);
+                      setLoginEmail("");
+                      setAuthError("");
+                    }}
+                    className="text-[#00C853] hover:underline font-bold uppercase tracking-wider text-[10px]"
+                  >
+                    Switch Account
                   </button>
                 </div>
               </div>

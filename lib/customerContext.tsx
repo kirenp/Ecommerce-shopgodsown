@@ -57,7 +57,7 @@ interface CustomerContextType {
   checkEmail: (email: string) => Promise<{ exists: boolean; unverified?: boolean; error?: string }>;
   signUp: (email: string) => Promise<{ success: boolean; error?: string }>;
   initiateAuth: (email?: string) => Promise<{ authorizationUrl?: string; error?: string }>;
-  logout: () => void;
+  logout: (clearShopifySession?: boolean) => void;
   addAddress: (address: Omit<CustomerAddress, 'id'>) => void;
   removeAddress: (id: string) => void;
 }
@@ -274,17 +274,48 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
   };
 
   // ─── Logout ────────────────────────────────────────────────────────
-  const logout = useCallback(() => {
+  const logout = useCallback((clearShopifySession = false) => {
+    let idToken: string | undefined = undefined;
+    const sessionCookie = getCookie("goc_auth_session");
+    if (sessionCookie) {
+      try {
+        const session = JSON.parse(sessionCookie);
+        idToken = session.idToken;
+      } catch (e) {}
+    }
+
     setCustomer(null);
     setOrderHistory([]);
     setSavedAddresses([]);
     deleteCookie("goc_auth_session");
     deleteCookie("goc_pkce_verifier");
     deleteCookie("goc_pkce_state");
+    deleteCookie("goc_auth_origin");
+    deleteCookie("goc_auth_return_url");
+    deleteCookie("goc_auth_intended_email");
+
     if (typeof window !== 'undefined') {
       try {
         localStorage.removeItem("goc_customer_profile");
+        sessionStorage.clear();
       } catch (e) {}
+
+      if (clearShopifySession) {
+        const clientOrigin = window.location.origin;
+        const clientPath = window.location.pathname + window.location.search;
+        fetch("/api/customer/auth", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "get-logout-url", origin: clientOrigin, returnPath: clientPath, idToken }),
+        })
+          .then(res => res.json())
+          .then(data => {
+            if (data.logoutUrl) {
+              window.location.href = data.logoutUrl;
+            }
+          })
+          .catch(() => {});
+      }
     }
   }, []);
 

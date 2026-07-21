@@ -262,6 +262,23 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // ─── ACTION: GET-LOGOUT-URL ────────────────────────────────────────
+    // Generate Shopify Customer Account logout URL to clear domain session
+    if (action === "get-logout-url") {
+      const referer = req.headers.get("referer") || "";
+      const origin = body.origin || req.headers.get("origin") || (referer ? new URL(referer).origin : "http://localhost:3000");
+      const postLogoutRedirectUri = body.returnPath ? `${origin}${body.returnPath}` : `${origin}/dev-preview`;
+      const idTokenHint = body.idToken;
+
+      const logoutUrl = buildLogoutUrl({
+        shopId,
+        idTokenHint,
+        postLogoutRedirectUri,
+      });
+
+      return NextResponse.json({ logoutUrl });
+    }
+
     // ─── ACTION: GET-CUSTOMER-DATA ───────────────────────────────────
     // Fetch customer orders/profile from Admin API by email (post-auth)
     if (action === "get-customer-data") {
