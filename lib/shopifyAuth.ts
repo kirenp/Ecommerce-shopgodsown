@@ -59,7 +59,7 @@ export function buildAuthorizationUrl({
   const authUrl = new URL(`https://shopify.com/authentication/${shopId}/oauth/authorize`);
   
   authUrl.searchParams.set('client_id', clientId);
-  authUrl.searchParams.set('scope', 'openid email https://api.customers.com/auth/customer.graphql');
+  authUrl.searchParams.set('scope', 'openid email customer-account-api:full');
   authUrl.searchParams.set('response_type', 'code');
   authUrl.searchParams.set('redirect_uri', redirectUri);
   authUrl.searchParams.set('state', state);
