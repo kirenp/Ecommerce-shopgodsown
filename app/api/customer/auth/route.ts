@@ -43,6 +43,28 @@ const ADMIN_SEARCH_CUSTOMER_QUERY = `
           lastName
           email
           phone
+          defaultAddress {
+            id
+            firstName
+            lastName
+            address1
+            address2
+            city
+            province
+            zip
+            phone
+          }
+          addresses {
+            id
+            firstName
+            lastName
+            address1
+            address2
+            city
+            province
+            zip
+            phone
+          }
         }
       }
     }
@@ -327,6 +349,22 @@ export async function POST(req: NextRequest) {
         }
       }
 
+      let formattedAddresses: any[] = [];
+      if (customer) {
+        const rawAddrs = customer.addresses || (customer.defaultAddress ? [customer.defaultAddress] : []);
+        formattedAddresses = rawAddrs.map((a: any) => ({
+          id: a.id || `addr_${Date.now()}`,
+          firstName: a.firstName || customer.firstName || "",
+          lastName: a.lastName || customer.lastName || "",
+          address: [a.address1, a.address2].filter(Boolean).join(", ") || "",
+          city: a.city || "",
+          state: a.province || "Kerala",
+          pinCode: a.zip || "",
+          phone: a.phone || customer.phone || "",
+          isDefault: customer.defaultAddress?.id === a.id,
+        }));
+      }
+
       return NextResponse.json({
         success: true,
         customer: customer ? {
@@ -347,6 +385,7 @@ export async function POST(req: NextRequest) {
           tier: "Club Member",
           points: 100,
         },
+        addresses: formattedAddresses,
         orders,
       });
     }

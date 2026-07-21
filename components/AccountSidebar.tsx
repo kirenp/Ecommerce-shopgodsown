@@ -13,7 +13,7 @@ import { usePreview } from "@/lib/preview";
 
 export default function AccountSidebar() {
   const { isAccountSidebarOpen, openAccountSidebar, closeAccountSidebar } = useUI();
-  const { customer, isLoggedIn, initiateAuth, logout, savedAddresses, orderHistory, addAddress, removeAddress } = useCustomer();
+  const { customer, isLoggedIn, initiateAuth, logout, savedAddresses, orderHistory, addAddress, updateAddress, removeAddress } = useCustomer();
   // Sign In View Toggle State
   const [showLoginForm, setShowLoginForm] = useState(false);
   const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
@@ -67,17 +67,12 @@ export default function AccountSidebar() {
       const emailToSubmit = loginEmail.trim().toLowerCase();
 
       // Directly initiate Shopify Customer Account OAuth with login_hint.
-      // Shopify's hosted authorization page handles both sign-in and sign-up
-      // natively — it sends a 6-digit OTP to the email regardless of whether
-      // the customer exists. No pre-check is needed (and the Admin API token
-      // lacks read_customers scope, making pre-checks unreliable).
       const authResult = await initiateAuth(emailToSubmit);
       if (authResult.error) {
         setAuthError(authResult.error);
         return;
       }
       if (authResult.authorizationUrl) {
-        // Redirect to Shopify's hosted OTP verification page
         window.location.href = authResult.authorizationUrl;
       }
     } catch (err: any) {
@@ -94,8 +89,9 @@ export default function AccountSidebar() {
   // Active Tab State for Logged-In Customer
   const [activeTab, setActiveTab] = useState<"profile" | "orders" | "addresses" | "wishlist">("profile");
 
-  // New Address Form State
+  // Address Form State
   const [showAddAddr, setShowAddAddr] = useState(false);
+  const [editingAddressId, setEditingAddressId] = useState<string | null>(null);
   const [newFirstName, setNewFirstName] = useState("");
   const [newLastName, setNewLastName] = useState("");
   const [newAddrStr, setNewAddrStr] = useState("");
@@ -106,27 +102,56 @@ export default function AccountSidebar() {
 
   if (!isAccountSidebarOpen) return null;
 
-  const handleSaveNewAddress = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newFirstName || !newAddrStr || !newCity || !newPin || !newPhone) return;
+  const handleEditAddress = (addr: any) => {
+    setEditingAddressId(addr.id);
+    setNewFirstName(addr.firstName || "");
+    setNewLastName(addr.lastName || "");
+    setNewAddrStr(addr.address || "");
+    setNewCity(addr.city || "");
+    setNewState(addr.state || "Kerala");
+    setNewPin(addr.pinCode || "");
+    setNewPhone(addr.phone || "");
+    setShowAddAddr(true);
+  };
 
-    addAddress({
-      firstName: newFirstName,
-      lastName: newLastName,
-      address: newAddrStr,
-      city: newCity,
-      state: newState,
-      pinCode: newPin,
-      phone: newPhone,
-    });
-
+  const resetAddressForm = () => {
     setShowAddAddr(false);
+    setEditingAddressId(null);
     setNewFirstName("");
     setNewLastName("");
     setNewAddrStr("");
     setNewCity("");
     setNewPin("");
     setNewPhone("");
+  };
+
+  const handleSaveNewAddress = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newFirstName || !newAddrStr || !newCity || !newPin || !newPhone) return;
+
+    if (editingAddressId) {
+      updateAddress(editingAddressId, {
+        firstName: newFirstName,
+        lastName: newLastName,
+        address: newAddrStr,
+        city: newCity,
+        state: newState,
+        pinCode: newPin,
+        phone: newPhone,
+      });
+    } else {
+      addAddress({
+        firstName: newFirstName,
+        lastName: newLastName,
+        address: newAddrStr,
+        city: newCity,
+        state: newState,
+        pinCode: newPin,
+        phone: newPhone,
+      });
+    }
+
+    resetAddressForm();
   };
 
   return (
@@ -499,18 +524,32 @@ export default function AccountSidebar() {
                       <p className="font-bold text-black">{addr.firstName} {addr.lastName}</p>
                       <p className="text-black/60 leading-relaxed font-medium">{addr.address}, {addr.city}, {addr.state} - {addr.pinCode}</p>
                       <p className="text-black/50 font-mono text-[11px]">Phone: {addr.phone}</p>
-                      <button
-                        onClick={() => removeAddress(addr.id)}
-                        className="text-[10px] text-red-500 hover:underline font-bold uppercase pt-1 block"
-                      >
-                        Remove Address
-                      </button>
+                      <div className="flex items-center gap-3 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => handleEditAddress(addr)}
+                          className="text-[10px] text-black hover:underline font-bold uppercase"
+                        >
+                          Edit Address
+                        </button>
+                        <span className="text-black/20">•</span>
+                        <button
+                          type="button"
+                          onClick={() => removeAddress(addr.id)}
+                          className="text-[10px] text-red-500 hover:underline font-bold uppercase"
+                        >
+                          Remove Address
+                        </button>
+                      </div>
                     </div>
                   ))}
 
                   {!showAddAddr ? (
                     <button
-                      onClick={() => setShowAddAddr(true)}
+                      onClick={() => {
+                        resetAddressForm();
+                        setShowAddAddr(true);
+                      }}
                       className="w-full border border-dashed border-gray-300 hover:border-black text-black py-3 rounded-xl font-bold uppercase text-[10px] tracking-wider flex items-center justify-center gap-1.5 transition-colors bg-white"
                     >
                       <Plus size={14} />
@@ -518,14 +557,16 @@ export default function AccountSidebar() {
                     </button>
                   ) : (
                     <form onSubmit={handleSaveNewAddress} className="bg-white border border-gray-200 rounded-2xl p-4 space-y-2.5 shadow-sm">
-                      <h5 className="font-bold text-black uppercase tracking-wider text-[10px]">New Address</h5>
+                      <h5 className="font-bold text-black uppercase tracking-wider text-[10px]">
+                        {editingAddressId ? "Edit Address" : "New Address"}
+                      </h5>
                       <div className="grid grid-cols-2 gap-2">
                         <input
                           type="text"
-                          placeholder="First Name"
+                          placeholder="First Name *"
                           value={newFirstName}
                           onChange={(e) => setNewFirstName(e.target.value)}
-                          className="bg-gray-50 border border-gray-200 rounded-lg p-2 text-xs outline-none"
+                          className="bg-gray-50 border border-gray-200 rounded-lg p-2 text-xs text-black placeholder:text-gray-400 outline-none focus:border-black transition-colors"
                           required
                         />
                         <input
@@ -533,41 +574,42 @@ export default function AccountSidebar() {
                           placeholder="Last Name"
                           value={newLastName}
                           onChange={(e) => setNewLastName(e.target.value)}
-                          className="bg-gray-50 border border-gray-200 rounded-lg p-2 text-xs outline-none"
+                          className="bg-gray-50 border border-gray-200 rounded-lg p-2 text-xs text-black placeholder:text-gray-400 outline-none focus:border-black transition-colors"
                         />
                       </div>
                       <input
                         type="text"
-                        placeholder="Street Address"
+                        placeholder="Street Address *"
                         value={newAddrStr}
                         onChange={(e) => setNewAddrStr(e.target.value)}
-                        className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 text-xs outline-none"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 text-xs text-black placeholder:text-gray-400 outline-none focus:border-black transition-colors"
                         required
                       />
                       <div className="grid grid-cols-2 gap-2">
                         <input
                           type="text"
-                          placeholder="City"
+                          placeholder="City *"
                           value={newCity}
                           onChange={(e) => setNewCity(e.target.value)}
-                          className="bg-gray-50 border border-gray-200 rounded-lg p-2 text-xs outline-none"
+                          className="bg-gray-50 border border-gray-200 rounded-lg p-2 text-xs text-black placeholder:text-gray-400 outline-none focus:border-black transition-colors"
                           required
                         />
                         <input
                           type="text"
-                          placeholder="PIN Code"
+                          placeholder="PIN Code *"
                           value={newPin}
                           onChange={(e) => setNewPin(e.target.value)}
-                          className="bg-gray-50 border border-gray-200 rounded-lg p-2 text-xs outline-none"
+                          className="bg-gray-50 border border-gray-200 rounded-lg p-2 text-xs text-black placeholder:text-gray-400 outline-none focus:border-black transition-colors"
                           required
                         />
                       </div>
                       <input
-                        type="text"
-                        placeholder="Phone Number"
+                        type="tel"
+                        placeholder="Phone Number (10 digits) *"
                         value={newPhone}
-                        onChange={(e) => setNewPhone(e.target.value)}
-                        className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 text-xs outline-none"
+                        maxLength={10}
+                        onChange={(e) => setNewPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 text-xs text-black placeholder:text-gray-400 outline-none focus:border-black transition-colors"
                         required
                       />
                       <div className="flex gap-2 pt-1">
@@ -575,11 +617,11 @@ export default function AccountSidebar() {
                           type="submit"
                           className="flex-1 bg-black text-white text-[10px] font-bold uppercase tracking-wider py-2 rounded-lg"
                         >
-                          Save Address
+                          {editingAddressId ? "Update Address" : "Save Address"}
                         </button>
                         <button
                           type="button"
-                          onClick={() => setShowAddAddr(false)}
+                          onClick={resetAddressForm}
                           className="px-3 border border-gray-200 text-black text-[10px] font-bold uppercase rounded-lg"
                         >
                           Cancel

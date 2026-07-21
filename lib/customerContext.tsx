@@ -59,6 +59,7 @@ interface CustomerContextType {
   initiateAuth: (email?: string) => Promise<{ authorizationUrl?: string; error?: string }>;
   logout: (clearShopifySession?: boolean) => void;
   addAddress: (address: Omit<CustomerAddress, 'id'>) => void;
+  updateAddress: (id: string, address: Partial<CustomerAddress>) => void;
   removeAddress: (id: string) => void;
 }
 
@@ -83,6 +84,25 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
   const [savedAddresses, setSavedAddresses] = useState<CustomerAddress[]>([]);
   const [orderHistory, setOrderHistory] = useState<CustomerOrder[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+
+  const loadStoredAddresses = (email: string): CustomerAddress[] => {
+    if (typeof window === 'undefined' || !email) return [];
+    try {
+      const key = `goc_saved_addresses_${email.toLowerCase()}`;
+      const data = localStorage.getItem(key);
+      return data ? JSON.parse(data) : [];
+    } catch (e) {
+      return [];
+    }
+  };
+
+  const persistStoredAddresses = (email: string, addresses: CustomerAddress[]) => {
+    if (typeof window === 'undefined' || !email) return;
+    try {
+      const key = `goc_saved_addresses_${email.toLowerCase()}`;
+      localStorage.setItem(key, JSON.stringify(addresses));
+    } catch (e) {}
+  };
 
   const persistLocalCustomer = (cust: CustomerProfile | null) => {
     if (typeof window === 'undefined') return;
@@ -119,6 +139,10 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
       if (restoredCust) {
         setCustomer(restoredCust);
         persistLocalCustomer(restoredCust);
+        const storedAddrs = loadStoredAddresses(restoredCust.email);
+        if (storedAddrs.length > 0) {
+          setSavedAddresses(storedAddrs);
+        }
         fetchCustomerData(restoredCust.email);
       }
 
@@ -138,6 +162,10 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
           if (succCust) {
             setCustomer(succCust);
             persistLocalCustomer(succCust);
+            const storedAddrs = loadStoredAddresses(succCust.email);
+            if (storedAddrs.length > 0) {
+              setSavedAddresses(storedAddrs);
+            }
             fetchCustomerData(succCust.email);
           }
           // Dispatch custom event to auto-open account sidebar drawer
@@ -178,6 +206,21 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
         }
         if (json.orders) {
           setOrderHistory(json.orders);
+        }
+        
+        // Combine stored addresses with Admin API returned addresses
+        const localAddrs = loadStoredAddresses(email);
+        const apiAddrs: CustomerAddress[] = json.addresses || [];
+        
+        const combined = [...apiAddrs];
+        for (const loc of localAddrs) {
+          if (!combined.some(a => a.id === loc.id || (a.address === loc.address && a.pinCode === loc.pinCode))) {
+            combined.push(loc);
+          }
+        }
+        if (combined.length > 0) {
+          setSavedAddresses(combined);
+          persistStoredAddresses(email, combined);
         }
       }
     } catch (err) {
@@ -326,11 +369,27 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
       id: `addr_${Date.now()}`,
       isDefault: savedAddresses.length === 0
     };
-    setSavedAddresses(prev => [addrWithId, ...prev]);
+    setSavedAddresses(prev => {
+      const next = [addrWithId, ...prev];
+      if (customer?.email) persistStoredAddresses(customer.email, next);
+      return next;
+    });
+  };
+
+  const updateAddress = (id: string, updatedAddr: Partial<CustomerAddress>) => {
+    setSavedAddresses(prev => {
+      const next = prev.map(a => a.id === id ? { ...a, ...updatedAddr } : a);
+      if (customer?.email) persistStoredAddresses(customer.email, next);
+      return next;
+    });
   };
 
   const removeAddress = (id: string) => {
-    setSavedAddresses(prev => prev.filter(a => a.id !== id));
+    setSavedAddresses(prev => {
+      const next = prev.filter(a => a.id !== id);
+      if (customer?.email) persistStoredAddresses(customer.email, next);
+      return next;
+    });
   };
 
   return (
@@ -346,6 +405,7 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
         initiateAuth,
         logout,
         addAddress,
+        updateAddress,
         removeAddress,
       }}
     >

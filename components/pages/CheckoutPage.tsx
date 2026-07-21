@@ -2,6 +2,7 @@
 
 import { useCart } from "@/lib/cartContext";
 import { useUI } from "@/lib/uiContext";
+import { useCustomer } from "@/lib/customerContext";
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect } from "react";
@@ -66,6 +67,7 @@ const loadRazorpayScript = () => {
 export default function CheckoutPageContent() {
   const { items, removeFromCart, updateQuantity, subtotal } = useCart();
   const { openAccountSidebar } = useUI();
+  const { customer, isLoggedIn, savedAddresses } = useCustomer();
   const { getPreviewPath } = usePreview();
 
   // Shipping Form State
@@ -99,21 +101,44 @@ export default function CheckoutPageContent() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
+  // Pre-fill logged in customer email & default saved address
+  useEffect(() => {
+    if (isLoggedIn && customer) {
+      if (customer.email && !emailOrPhone) {
+        setEmailOrPhone(customer.email);
+      }
+      const defaultAddr = savedAddresses.find(a => a.isDefault) || savedAddresses[0];
+      if (defaultAddr) {
+        if (!firstName && defaultAddr.firstName) setFirstName(defaultAddr.firstName);
+        if (!lastName && defaultAddr.lastName) setLastName(defaultAddr.lastName);
+        if (!address && defaultAddr.address) setAddress(defaultAddr.address);
+        if (!city && defaultAddr.city) setCity(defaultAddr.city);
+        if (!state && defaultAddr.state) setState(defaultAddr.state);
+        if (!pinCode && defaultAddr.pinCode) setPinCode(defaultAddr.pinCode);
+        if (!phone && defaultAddr.phone) setPhone(defaultAddr.phone);
+      } else if (customer.firstName) {
+        if (!firstName) setFirstName(customer.firstName);
+        if (!lastName && customer.lastName) setLastName(customer.lastName);
+        if (!phone && customer.phone) setPhone(customer.phone);
+      }
+    }
+  }, [isLoggedIn, customer, savedAddresses]);
+
   // Auto-fill saved address from localStorage if available
   useEffect(() => {
     try {
       const savedData = localStorage.getItem("goc_saved_address");
       if (savedData) {
         const parsed = JSON.parse(savedData);
-        if (parsed.emailOrPhone) setEmailOrPhone(parsed.emailOrPhone);
-        if (parsed.firstName) setFirstName(parsed.firstName);
-        if (parsed.lastName) setLastName(parsed.lastName);
-        if (parsed.address) setAddress(parsed.address);
-        if (parsed.apartment) setApartment(parsed.apartment);
-        if (parsed.city) setCity(parsed.city);
-        if (parsed.state) setState(parsed.state);
-        if (parsed.pinCode) setPinCode(parsed.pinCode);
-        if (parsed.phone) setPhone(parsed.phone);
+        if (parsed.emailOrPhone && !emailOrPhone) setEmailOrPhone(parsed.emailOrPhone);
+        if (parsed.firstName && !firstName) setFirstName(parsed.firstName);
+        if (parsed.lastName && !lastName) setLastName(parsed.lastName);
+        if (parsed.address && !address) setAddress(parsed.address);
+        if (parsed.apartment && !apartment) setApartment(parsed.apartment);
+        if (parsed.city && !city) setCity(parsed.city);
+        if (parsed.state && !state) setState(parsed.state);
+        if (parsed.pinCode && !pinCode) setPinCode(parsed.pinCode);
+        if (parsed.phone && !phone) setPhone(parsed.phone);
         if (parsed.billingSame !== undefined) setBillingSame(parsed.billingSame);
         if (parsed.billingFirstName) setBillingFirstName(parsed.billingFirstName);
         if (parsed.billingLastName) setBillingLastName(parsed.billingLastName);
@@ -926,7 +951,7 @@ export default function CheckoutPageContent() {
               items.map((item, idx) => (
                 <div key={`${item.variantId}-${idx}`} className="flex items-center gap-4 py-3 border-b border-gray-200/60 last:border-b-0">
                   
-                  {/* Image with Quantity Badge */}
+                  {/* Image */}
                   <div className="relative w-16 h-20 bg-white border border-gray-200 rounded-xl flex-shrink-0">
                     <Image
                       src={item.image}
@@ -934,10 +959,6 @@ export default function CheckoutPageContent() {
                       fill
                       className="object-cover rounded-xl"
                     />
-                    {/* Badge */}
-                    <span className="absolute -top-1.5 -right-1.5 bg-black text-white text-[9px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center border border-white/5 shadow-md">
-                      {item.quantity}
-                    </span>
                   </div>
 
                   {/* Details & Interactive Quantity Controls */}
@@ -1059,9 +1080,6 @@ export default function CheckoutPageContent() {
               <span className="text-sm font-bold uppercase tracking-wider">Total</span>
               <div className="text-right">
                 <span className="text-2xl font-black font-sans leading-none">₹{totalAmount.toLocaleString("en-IN")}</span>
-                <p className="text-[9px] text-black/40 uppercase tracking-widest font-bold mt-1">
-                  Including ₹{taxes.toLocaleString("en-IN")} in taxes
-                </p>
               </div>
             </div>
           </div>
