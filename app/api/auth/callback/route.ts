@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { exchangeCodeForTokens, fetchCustomerProfile } from "@/lib/shopifyAuth";
+import { exchangeCodeForTokens, fetchCustomerProfile, buildLogoutUrl } from "@/lib/shopifyAuth";
 
 export const dynamic = 'force-dynamic';
 
@@ -118,12 +118,20 @@ export async function GET(req: NextRequest) {
     const authenticatedEmail = customerObj.email?.toLowerCase();
     
     if (intendedEmail && authenticatedEmail && intendedEmail !== authenticatedEmail) {
-      // Shopify authenticated a different email (due to Shopify's active browser SSO session)
-      // Reject session according to Headless Shopify standard pattern
+      // Shopify auto-authenticated a different account due to a cached domain cookie on shopify.com.
+      // Automatically redirect to Shopify's logout endpoint using the newly issued id_token so that
+      // Shopify's domain session is cleanly invalidated without any "Invalid id_token" errors.
       returnUrl.searchParams.set("auth_error", 
-        `Shopify authenticated as ${authenticatedEmail} instead of ${intendedEmail}. Please log out from your Shopify Customer Account or switch accounts on Shopify.`
+        `Shopify session for ${authenticatedEmail} has been cleared. Please re-enter ${intendedEmail} to receive your OTP.`
       );
-      const mismatchResponse = NextResponse.redirect(returnUrl);
+      
+      const logoutUrl = buildLogoutUrl({
+        shopId,
+        idTokenHint: tokens.id_token,
+        postLogoutRedirectUri: returnUrl.toString(),
+      });
+
+      const mismatchResponse = NextResponse.redirect(logoutUrl);
       mismatchResponse.cookies.delete("goc_pkce_verifier");
       mismatchResponse.cookies.delete("goc_pkce_state");
       mismatchResponse.cookies.delete("goc_auth_return_url");
