@@ -13,10 +13,9 @@ import { usePreview } from "@/lib/preview";
 
 export default function AccountSidebar() {
   const { isAccountSidebarOpen, openAccountSidebar, closeAccountSidebar } = useUI();
-  const { customer, isLoggedIn, checkEmail, signUp, initiateAuth, logout, savedAddresses, orderHistory, addAddress, removeAddress } = useCustomer();
+  const { customer, isLoggedIn, initiateAuth, logout, savedAddresses, orderHistory, addAddress, removeAddress } = useCustomer();
   // Sign In View Toggle State
   const [showLoginForm, setShowLoginForm] = useState(false);
-  const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
 
   // Auth Form State — email only
   const [loginEmail, setLoginEmail] = useState("");
@@ -52,34 +51,11 @@ export default function AccountSidebar() {
     try {
       const emailToSubmit = loginEmail.trim().toLowerCase();
 
-      // Step 1: Check if email exists in Shopify
-      const emailCheck = await checkEmail(emailToSubmit);
-      if (emailCheck.error) {
-        setAuthError(emailCheck.error);
-        return;
-      }
-
-      // Step 2: Handle based on mode
-      if (authMode === "signup") {
-        if (emailCheck.exists) {
-          setAuthError("An account with this email already exists. Please Sign In instead.");
-          return;
-        }
-        // Create customer in Shopify
-        const createResult = await signUp(emailToSubmit);
-        if (!createResult.success) {
-          setAuthError(createResult.error || "Failed to create account.");
-          return;
-        }
-      } else {
-        // Sign In: customer must exist
-        if (!emailCheck.exists) {
-          setAuthError("No account found with this email. Please Sign Up first.");
-          return;
-        }
-      }
-
-      // Step 3: Initiate Shopify OAuth with login_hint → redirects to OTP page for target email
+      // Directly initiate Shopify Customer Account OAuth with login_hint.
+      // Shopify's hosted authorization page handles both sign-in and sign-up
+      // natively — it sends a 6-digit OTP to the email regardless of whether
+      // the customer exists. No pre-check is needed (and the Admin API token
+      // lacks read_customers scope, making pre-checks unreliable).
       const authResult = await initiateAuth(emailToSubmit);
       if (authResult.error) {
         setAuthError(authResult.error);
@@ -235,37 +211,13 @@ export default function AccountSidebar() {
                   ← Back to Options
                 </button>
 
-                {/* Auth Mode Toggle Tabs */}
-                <div className="grid grid-cols-2 gap-1 bg-gray-200/70 p-1 rounded-xl text-center">
-                  <button
-                    type="button"
-                    onClick={() => { setAuthMode("signin"); setAuthError(""); }}
-                    className={`py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all ${
-                      authMode === "signin" ? "bg-white text-black shadow-xs" : "text-black/50 hover:text-black"
-                    }`}
-                  >
-                    Sign In
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setAuthMode("signup"); setAuthError(""); }}
-                    className={`py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all ${
-                      authMode === "signup" ? "bg-white text-black shadow-xs" : "text-black/50 hover:text-black"
-                    }`}
-                  >
-                    Sign Up
-                  </button>
-                </div>
-
                 {/* Banner */}
                 <div className="text-center space-y-1">
                   <h3 className="text-base font-bold text-black uppercase tracking-[0.12em] font-sans">
-                    {authMode === "signup" ? "Create Account" : "Sign In To Account"}
+                    Sign In or Create Account
                   </h3>
                   <p className="text-xs text-black/50 tracking-wide font-medium">
-                    {authMode === "signup"
-                      ? "Enter your email to create a new account"
-                      : "Enter your email to receive a verification code"}
+                    Enter your email to receive a verification code
                   </p>
                 </div>
 
@@ -307,7 +259,7 @@ export default function AccountSidebar() {
                         <span>Connecting to Shopify...</span>
                       </>
                     ) : (
-                      <span>{authMode === "signup" ? "Create Account & Verify" : "Continue with Email"}</span>
+                      <span>Continue with Email</span>
                     )}
                   </button>
                 </form>

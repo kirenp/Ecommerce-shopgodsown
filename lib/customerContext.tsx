@@ -221,8 +221,16 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
   // ─── Initiate Shopify OAuth (redirects to OTP page) ────────────────
   const initiateAuth = async (email?: string): Promise<{ authorizationUrl?: string; error?: string }> => {
     try {
-      if (email && customer?.email && customer.email.toLowerCase() !== email.toLowerCase()) {
-        logout();
+      // Always clear any previous session before starting new auth flow
+      // This prevents stale profile data from a prior login from leaking through
+      setCustomer(null);
+      setOrderHistory([]);
+      setSavedAddresses([]);
+      deleteCookie("goc_auth_session");
+      deleteCookie("goc_pkce_verifier");
+      deleteCookie("goc_pkce_state");
+      if (typeof window !== 'undefined') {
+        try { localStorage.removeItem("goc_customer_profile"); } catch (e) {}
       }
 
       const clientOrigin = typeof window !== 'undefined' ? window.location.origin : '';
