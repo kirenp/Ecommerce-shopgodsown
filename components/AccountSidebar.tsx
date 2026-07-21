@@ -50,8 +50,10 @@ export default function AccountSidebar() {
 
     setIsSubmitting(true);
     try {
+      const emailToSubmit = loginEmail.trim().toLowerCase();
+
       // Step 1: Check if email exists in Shopify
-      const emailCheck = await checkEmail(loginEmail.trim());
+      const emailCheck = await checkEmail(emailToSubmit);
       if (emailCheck.error) {
         setAuthError(emailCheck.error);
         return;
@@ -59,26 +61,26 @@ export default function AccountSidebar() {
 
       // Step 2: Handle based on mode
       if (authMode === "signup") {
-        if (emailCheck.exists && !emailCheck.unverified) {
+        if (emailCheck.exists) {
           setAuthError("An account with this email already exists. Please Sign In instead.");
           return;
         }
-        // Create customer in Shopify Admin
-        const createResult = await signUp(loginEmail.trim());
+        // Create customer in Shopify
+        const createResult = await signUp(emailToSubmit);
         if (!createResult.success) {
           setAuthError(createResult.error || "Failed to create account.");
           return;
         }
       } else {
         // Sign In: customer must exist
-        if (!emailCheck.exists && !emailCheck.unverified) {
+        if (!emailCheck.exists) {
           setAuthError("No account found with this email. Please Sign Up first.");
           return;
         }
       }
 
-      // Step 3: Initiate Shopify OAuth → redirects to OTP page
-      const authResult = await initiateAuth();
+      // Step 3: Initiate Shopify OAuth with login_hint → redirects to OTP page for target email
+      const authResult = await initiateAuth(emailToSubmit);
       if (authResult.error) {
         setAuthError(authResult.error);
         return;

@@ -46,6 +46,7 @@ export function buildAuthorizationUrl({
   state,
   nonce,
   codeChallenge,
+  loginHint,
 }: {
   shopId: string;
   clientId: string;
@@ -53,6 +54,7 @@ export function buildAuthorizationUrl({
   state: string;
   nonce: string;
   codeChallenge: string;
+  loginHint?: string;
 }): string {
   const authUrl = new URL(`https://shopify.com/${shopId}/auth/oauth/authorize`);
   
@@ -64,6 +66,9 @@ export function buildAuthorizationUrl({
   authUrl.searchParams.set('nonce', nonce);
   authUrl.searchParams.set('code_challenge', codeChallenge);
   authUrl.searchParams.set('code_challenge_method', 'S256');
+  if (loginHint) {
+    authUrl.searchParams.set('login_hint', loginHint);
+  }
   
   return authUrl.toString();
 }

@@ -56,7 +56,7 @@ interface CustomerContextType {
   orderHistory: CustomerOrder[];
   checkEmail: (email: string) => Promise<{ exists: boolean; unverified?: boolean; error?: string }>;
   signUp: (email: string) => Promise<{ success: boolean; error?: string }>;
-  initiateAuth: () => Promise<{ authorizationUrl?: string; error?: string }>;
+  initiateAuth: (email?: string) => Promise<{ authorizationUrl?: string; error?: string }>;
   logout: () => void;
   addAddress: (address: Omit<CustomerAddress, 'id'>) => void;
   removeAddress: (id: string) => void;
@@ -219,15 +219,19 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
   };
 
   // ─── Initiate Shopify OAuth (redirects to OTP page) ────────────────
-  const initiateAuth = async (): Promise<{ authorizationUrl?: string; error?: string }> => {
+  const initiateAuth = async (email?: string): Promise<{ authorizationUrl?: string; error?: string }> => {
     try {
+      if (email && customer?.email && customer.email.toLowerCase() !== email.toLowerCase()) {
+        logout();
+      }
+
       const clientOrigin = typeof window !== 'undefined' ? window.location.origin : '';
       const clientPath = typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/dev-preview';
 
       const res = await fetch("/api/customer/auth", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "initiate-auth", origin: clientOrigin, returnPath: clientPath }),
+        body: JSON.stringify({ action: "initiate-auth", origin: clientOrigin, returnPath: clientPath, email }),
       });
       const json = await res.json();
       if (!res.ok) {
@@ -262,6 +266,11 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
     deleteCookie("goc_auth_session");
     deleteCookie("goc_pkce_verifier");
     deleteCookie("goc_pkce_state");
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem("goc_customer_profile");
+      } catch (e) {}
+    }
   }, []);
 
   // ─── Address management ────────────────────────────────────────────

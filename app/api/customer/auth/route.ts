@@ -106,6 +106,23 @@ const ADMIN_GET_CUSTOMER_ORDERS = `
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+const storefrontToken = process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN || "";
+
+// Storefront API helper for customer existence check
+async function storefrontFetch(query: string, variables = {}) {
+  const endpoint = `https://${domain}/api/${apiVersion}/graphql.json`;
+  const res = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Shopify-Storefront-Access-Token": storefrontToken,
+    },
+    body: JSON.stringify({ query, variables }),
+    cache: "no-store",
+  });
+  return res.json();
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -116,7 +133,7 @@ export async function POST(req: NextRequest) {
     }
 
     // ─── ACTION: CHECK-EMAIL ──────────────────────────────────────────
-    // Check if a customer with this email exists in Shopify Admin
+    // Check if a customer with this email exists in Shopify
     if (action === "check-email") {
       if (!email?.trim()) {
         return NextResponse.json({ error: "Email address is required." }, { status: 400 });
@@ -126,34 +143,55 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Please enter a valid email address." }, { status: 400 });
       }
 
-      let existingCustomer: any = null;
-      let checkFailed = false;
+      let exists = false;
 
+      // Method 1: Check via Admin API if token configured and has scope
       if (adminToken) {
         try {
           const searchRes = await adminFetch(ADMIN_SEARCH_CUSTOMER_QUERY, { queryStr: `email:${cleanEmail}` });
-          if (searchRes?.errors) {
-            console.warn("Admin search customer notice:", searchRes.errors);
-            checkFailed = true;
-          } else {
-            existingCustomer = searchRes?.data?.customers?.edges?.[0]?.node || null;
+          if (!searchRes?.errors && searchRes?.data?.customers?.edges?.[0]?.node) {
+            exists = true;
+          }
+        } catch (e) {}
+      }
+
+      // Method 2: Real-time check via Storefront API customerCreate dry-run
+      if (!exists && storefrontToken) {
+        try {
+          const createMutation = `
+            mutation customerCreate($input: CustomerCreateInput!) {
+              customerCreate(input: $input) {
+                customer { id email }
+                customerUserErrors { code field message }
+              }
+            }
+          `;
+          const sfRes = await storefrontFetch(createMutation, {
+            input: { email: cleanEmail, password: "CheckExistDummyPassword123!" }
+          });
+          const errors = sfRes?.data?.customerCreate?.customerUserErrors || [];
+          const createdCust = sfRes?.data?.customerCreate?.customer;
+
+          if (!createdCust?.id) {
+            const isTaken = errors.some((e: any) =>
+              e.code === "TAKEN" ||
+              e.code === "CUSTOMER_DISABLED" ||
+              e.message?.toLowerCase().includes("taken") ||
+              e.message?.toLowerCase().includes("verify your email") ||
+              e.message?.toLowerCase().includes("already")
+            );
+            if (isTaken) {
+              exists = true;
+            }
           }
         } catch (e) {
-          console.warn("Admin search customer exception:", e);
-          checkFailed = true;
+          console.warn("Storefront checkEmail notice:", e);
         }
-      } else {
-        checkFailed = true;
       }
 
       return NextResponse.json({
-        exists: checkFailed ? true : !!existingCustomer?.id,
-        customer: existingCustomer ? {
-          firstName: existingCustomer.firstName,
-          lastName: existingCustomer.lastName,
-          email: existingCustomer.email,
-        } : null,
-        unverified: checkFailed,
+        exists,
+        email: cleanEmail,
       });
     }
 
@@ -232,7 +270,7 @@ export async function POST(req: NextRequest) {
       const nonce = generateNonce();
       const codeChallenge = await generateCodeChallenge(codeVerifier);
 
-      // Build authorization URL
+      // Build authorization URL with login_hint if email provided
       const authorizationUrl = buildAuthorizationUrl({
         shopId,
         clientId,
@@ -240,6 +278,7 @@ export async function POST(req: NextRequest) {
         state,
         nonce,
         codeChallenge,
+        loginHint: email?.trim(),
       });
 
       return NextResponse.json({
