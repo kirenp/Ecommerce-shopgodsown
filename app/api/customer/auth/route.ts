@@ -7,6 +7,11 @@ import {
   buildAuthorizationUrl,
   buildLogoutUrl,
 } from "@/lib/shopifyAuth";
+import {
+  getServerCustomerAddresses,
+  saveServerCustomerAddress,
+  removeServerCustomerAddress,
+} from "@/lib/serverCustomerStore";
 
 export const dynamic = 'force-dynamic';
 
@@ -418,6 +423,14 @@ export async function POST(req: NextRequest) {
         }
       }
 
+      // Combine Admin/Order addresses with server store addresses
+      const serverAddrs = getServerCustomerAddresses(cleanEmail);
+      for (const sa of serverAddrs) {
+        if (!formattedAddresses.some(a => a.id === sa.id || (a.address.toLowerCase() === sa.address.toLowerCase() && a.pinCode === sa.pinCode))) {
+          formattedAddresses.push(sa);
+        }
+      }
+
       return NextResponse.json({
         success: true,
         customer: customer ? {
@@ -444,13 +457,16 @@ export async function POST(req: NextRequest) {
     }
 
     // ─── ACTION: SAVE-ADDRESS ────────────────────────────────────────
-    // Save or sync customer address to Shopify Admin DB
+    // Save customer address to server database & sync to Shopify Admin DB
     if (action === "save-address") {
       const { email, address } = body;
       if (!email?.trim() || !address) {
         return NextResponse.json({ error: "Email and address are required." }, { status: 400 });
       }
       const cleanEmail = email.trim().toLowerCase();
+
+      // Save persistently to server customer store
+      const updatedAddrs = saveServerCustomerAddress(cleanEmail, address);
 
       if (adminToken) {
         try {
@@ -482,7 +498,18 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      return NextResponse.json({ success: true });
+      return NextResponse.json({ success: true, addresses: updatedAddrs });
+    }
+
+    // ─── ACTION: REMOVE-ADDRESS ──────────────────────────────────────
+    if (action === "remove-address") {
+      const { email, addressId } = body;
+      if (!email?.trim() || !addressId) {
+        return NextResponse.json({ error: "Email and addressId are required." }, { status: 400 });
+      }
+      const cleanEmail = email.trim().toLowerCase();
+      const updatedAddrs = removeServerCustomerAddress(cleanEmail, addressId);
+      return NextResponse.json({ success: true, addresses: updatedAddrs });
     }
 
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });

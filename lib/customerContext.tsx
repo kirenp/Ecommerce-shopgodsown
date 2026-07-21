@@ -363,12 +363,21 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // ─── Address management ────────────────────────────────────────────
-  const syncAddressToApi = (email: string, addr: any) => {
-    fetch("/api/customer/auth", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "save-address", email, address: addr }),
-    }).catch(err => console.warn("Failed to sync address to API:", err));
+  const syncAddressToApi = async (email: string, addr: any) => {
+    try {
+      const res = await fetch("/api/customer/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "save-address", email, address: addr }),
+      });
+      const data = await res.json();
+      if (data.success && data.addresses) {
+        setSavedAddresses(data.addresses);
+        persistStoredAddresses(email, data.addresses);
+      }
+    } catch (err) {
+      console.warn("Failed to sync address to API:", err);
+    }
   };
 
   const addAddress = (newAddr: Omit<CustomerAddress, 'id'>) => {
@@ -402,7 +411,22 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
   const removeAddress = (id: string) => {
     setSavedAddresses(prev => {
       const next = prev.filter(a => a.id !== id);
-      if (customer?.email) persistStoredAddresses(customer.email, next);
+      if (customer?.email) {
+        persistStoredAddresses(customer.email, next);
+        fetch("/api/customer/auth", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "remove-address", email: customer.email, addressId: id }),
+        })
+          .then(res => res.json())
+          .then(data => {
+            if (data.success && data.addresses) {
+              setSavedAddresses(data.addresses);
+              persistStoredAddresses(customer.email, data.addresses);
+            }
+          })
+          .catch(() => {});
+      }
       return next;
     });
   };
