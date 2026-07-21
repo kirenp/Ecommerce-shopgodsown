@@ -125,10 +125,12 @@ export async function GET(req: NextRequest) {
         `Shopify session for ${authenticatedEmail} has been cleared. Please re-enter ${intendedEmail} to receive your OTP.`
       );
       
+      const postLogoutRedirectUri = `${savedOrigin}/api/auth/logout`;
+
       const logoutUrl = buildLogoutUrl({
         shopId,
         idTokenHint: tokens.id_token,
-        postLogoutRedirectUri: returnUrl.toString(),
+        postLogoutRedirectUri,
       });
 
       const mismatchResponse = NextResponse.redirect(logoutUrl);
