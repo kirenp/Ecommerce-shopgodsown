@@ -89,6 +89,24 @@ const ADMIN_CUSTOMER_CREATE_MUTATION = `
   }
 `;
 
+const ADMIN_CUSTOMER_UPDATE_MUTATION = `
+  mutation adminCustomerUpdate($input: CustomerInput!) {
+    customerUpdate(input: $input) {
+      customer {
+        id
+        firstName
+        lastName
+        email
+        phone
+      }
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+`;
+
 const ADMIN_GET_CUSTOMER_ORDERS = `
   query getCustomerOrders($queryStr: String!) {
     orders(first: 20, query: $queryStr) {
@@ -104,6 +122,16 @@ const ADMIN_GET_CUSTOMER_ORDERS = `
               amount
               currencyCode
             }
+          }
+          shippingAddress {
+            firstName
+            lastName
+            address1
+            address2
+            city
+            province
+            zip
+            phone
           }
           lineItems(first: 10) {
             edges {
@@ -312,6 +340,7 @@ export async function POST(req: NextRequest) {
       let customer: any = null;
       let orders: any[] = [];
 
+      let rawOrderEdges: any[] = [];
       if (adminToken) {
         try {
           const searchRes = await adminFetch(ADMIN_SEARCH_CUSTOMER_QUERY, { queryStr: `email:${cleanEmail}` });
@@ -325,8 +354,8 @@ export async function POST(req: NextRequest) {
         try {
           const ordersRes = await adminFetch(ADMIN_GET_CUSTOMER_ORDERS, { queryStr: `email:${cleanEmail}` });
           if (!ordersRes?.errors) {
-            const orderEdges = ordersRes?.data?.orders?.edges || [];
-            orders = orderEdges.map((e: any) => {
+            rawOrderEdges = ordersRes?.data?.orders?.edges || [];
+            orders = rawOrderEdges.map((e: any) => {
               const ord = e.node;
               return {
                 id: ord.id,
@@ -361,8 +390,32 @@ export async function POST(req: NextRequest) {
           state: a.province || "Kerala",
           pinCode: a.zip || "",
           phone: a.phone || customer.phone || "",
-          isDefault: customer.defaultAddress?.id === a.id,
+          isDefault: customer.defaultAddress?.id ? customer.defaultAddress.id === a.id : true,
         }));
+      }
+
+      // Fallback: Also extract shipping address from customer orders if customer profile has no saved addresses
+      if (rawOrderEdges.length > 0) {
+        for (const edge of rawOrderEdges) {
+          const shipAddr = edge.node?.shippingAddress;
+          if (shipAddr && shipAddr.address1) {
+            const fullAddrStr = [shipAddr.address1, shipAddr.address2].filter(Boolean).join(", ");
+            const exists = formattedAddresses.some(a => a.address === fullAddrStr || (a.pinCode && a.pinCode === shipAddr.zip));
+            if (!exists) {
+              formattedAddresses.push({
+                id: `addr_order_${edge.node.id}`,
+                firstName: shipAddr.firstName || customer?.firstName || "",
+                lastName: shipAddr.lastName || customer?.lastName || "",
+                address: fullAddrStr,
+                city: shipAddr.city || "",
+                state: shipAddr.province || "Kerala",
+                pinCode: shipAddr.zip || "",
+                phone: shipAddr.phone || customer?.phone || "",
+                isDefault: formattedAddresses.length === 0,
+              });
+            }
+          }
+        }
       }
 
       return NextResponse.json({
@@ -388,6 +441,48 @@ export async function POST(req: NextRequest) {
         addresses: formattedAddresses,
         orders,
       });
+    }
+
+    // ─── ACTION: SAVE-ADDRESS ────────────────────────────────────────
+    // Save or sync customer address to Shopify Admin DB
+    if (action === "save-address") {
+      const { email, address } = body;
+      if (!email?.trim() || !address) {
+        return NextResponse.json({ error: "Email and address are required." }, { status: 400 });
+      }
+      const cleanEmail = email.trim().toLowerCase();
+
+      if (adminToken) {
+        try {
+          const searchRes = await adminFetch(ADMIN_SEARCH_CUSTOMER_QUERY, { queryStr: `email:${cleanEmail}` });
+          const custNode = searchRes?.data?.customers?.edges?.[0]?.node;
+          if (custNode?.id) {
+            await adminFetch(ADMIN_CUSTOMER_UPDATE_MUTATION, {
+              input: {
+                id: custNode.id,
+                firstName: address.firstName || custNode.firstName,
+                lastName: address.lastName || custNode.lastName,
+                phone: address.phone || custNode.phone,
+                addresses: [
+                  {
+                    address1: address.address,
+                    city: address.city,
+                    province: address.state || "Kerala",
+                    zip: address.pinCode,
+                    phone: address.phone,
+                    firstName: address.firstName,
+                    lastName: address.lastName,
+                  }
+                ]
+              }
+            });
+          }
+        } catch (err) {
+          console.warn("Failed to sync customer address to Shopify Admin:", err);
+        }
+      }
+
+      return NextResponse.json({ success: true });
     }
 
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });

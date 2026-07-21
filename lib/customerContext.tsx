@@ -363,6 +363,14 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // ─── Address management ────────────────────────────────────────────
+  const syncAddressToApi = (email: string, addr: any) => {
+    fetch("/api/customer/auth", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "save-address", email, address: addr }),
+    }).catch(err => console.warn("Failed to sync address to API:", err));
+  };
+
   const addAddress = (newAddr: Omit<CustomerAddress, 'id'>) => {
     const addrWithId: CustomerAddress = {
       ...newAddr,
@@ -371,7 +379,10 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
     };
     setSavedAddresses(prev => {
       const next = [addrWithId, ...prev];
-      if (customer?.email) persistStoredAddresses(customer.email, next);
+      if (customer?.email) {
+        persistStoredAddresses(customer.email, next);
+        syncAddressToApi(customer.email, addrWithId);
+      }
       return next;
     });
   };
@@ -379,7 +390,11 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
   const updateAddress = (id: string, updatedAddr: Partial<CustomerAddress>) => {
     setSavedAddresses(prev => {
       const next = prev.map(a => a.id === id ? { ...a, ...updatedAddr } : a);
-      if (customer?.email) persistStoredAddresses(customer.email, next);
+      if (customer?.email) {
+        persistStoredAddresses(customer.email, next);
+        const fullAddr = next.find(a => a.id === id);
+        if (fullAddr) syncAddressToApi(customer.email, fullAddr);
+      }
       return next;
     });
   };
