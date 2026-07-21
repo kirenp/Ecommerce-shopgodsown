@@ -54,7 +54,7 @@ interface CustomerContextType {
   loading: boolean;
   savedAddresses: CustomerAddress[];
   orderHistory: CustomerOrder[];
-  checkEmail: (email: string) => Promise<{ exists: boolean; error?: string }>;
+  checkEmail: (email: string) => Promise<{ exists: boolean; unverified?: boolean; error?: string }>;
   signUp: (email: string) => Promise<{ success: boolean; error?: string }>;
   initiateAuth: () => Promise<{ authorizationUrl?: string; error?: string }>;
   logout: () => void;
@@ -84,21 +84,42 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
   const [orderHistory, setOrderHistory] = useState<CustomerOrder[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
-  // ─── Restore session from cookie on mount ──────────────────────────
+  const persistLocalCustomer = (cust: CustomerProfile | null) => {
+    if (typeof window === 'undefined') return;
+    if (cust) {
+      try {
+        localStorage.setItem("goc_customer_profile", JSON.stringify(cust));
+      } catch (e) {}
+    } else {
+      localStorage.removeItem("goc_customer_profile");
+    }
+  };
+
+  // ─── Restore session from cookie / localStorage on mount ──────────
   useEffect(() => {
     try {
+      let restoredCust: CustomerProfile | null = null;
       const sessionCookie = getCookie("goc_auth_session");
       if (sessionCookie) {
         const session = JSON.parse(sessionCookie);
-        
-        if (session.customer) {
-          setCustomer(session.customer);
-          
-          // Fetch latest orders from Admin API
-          if (session.customer.email) {
-            fetchCustomerData(session.customer.email);
-          }
+        if (session.customer && session.customer.email) {
+          restoredCust = session.customer;
         }
+      }
+
+      if (!restoredCust && typeof window !== 'undefined') {
+        const localData = localStorage.getItem("goc_customer_profile");
+        if (localData) {
+          try {
+            restoredCust = JSON.parse(localData);
+          } catch (e) {}
+        }
+      }
+
+      if (restoredCust) {
+        setCustomer(restoredCust);
+        persistLocalCustomer(restoredCust);
+        fetchCustomerData(restoredCust.email);
       }
 
       // Check URL params for auth callback success/error
@@ -106,17 +127,22 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
         const params = new URLSearchParams(window.location.search);
         
         if (params.get("auth_success") === "true") {
-          // Re-read cookie after redirect — it was just set by the callback
           const freshSession = getCookie("goc_auth_session");
+          let succCust = restoredCust;
           if (freshSession) {
             const session = JSON.parse(freshSession);
-            if (session.customer) {
-              setCustomer(session.customer);
-              if (session.customer.email) {
-                fetchCustomerData(session.customer.email);
-              }
+            if (session.customer && session.customer.email) {
+              succCust = session.customer;
             }
           }
+          if (succCust) {
+            setCustomer(succCust);
+            persistLocalCustomer(succCust);
+            fetchCustomerData(succCust.email);
+          }
+          // Dispatch custom event to auto-open account sidebar drawer
+          window.dispatchEvent(new Event("goc_auth_success"));
+
           // Clean URL
           window.history.replaceState({}, '', window.location.pathname);
         }
@@ -144,7 +170,8 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
       const json = await res.json();
       if (json.success) {
         if (json.customer) {
-          setCustomer(json.customer);
+          setCustomer(prev => ({ ...(prev || {}), ...json.customer }));
+          persistLocalCustomer(json.customer);
         }
         if (json.orders) {
           setOrderHistory(json.orders);
@@ -156,7 +183,7 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
   };
 
   // ─── Check if email exists in Shopify ──────────────────────────────
-  const checkEmail = async (email: string): Promise<{ exists: boolean; error?: string }> => {
+  const checkEmail = async (email: string): Promise<{ exists: boolean; unverified?: boolean; error?: string }> => {
     try {
       const res = await fetch("/api/customer/auth", {
         method: "POST",
@@ -167,7 +194,7 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
       if (!res.ok) {
         return { exists: false, error: json.error || "Failed to check email." };
       }
-      return { exists: json.exists };
+      return { exists: json.exists, unverified: json.unverified };
     } catch (err: any) {
       return { exists: false, error: err.message || "Network error." };
     }

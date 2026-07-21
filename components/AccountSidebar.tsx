@@ -8,11 +8,11 @@ import { useCart } from "@/lib/cartContext";
 import { X, Truck, Search, User, Package, MapPin, Heart, LogOut, Plus, Trash2, ArrowRight, ExternalLink } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { usePreview } from "@/lib/preview";
 
 export default function AccountSidebar() {
-  const { isAccountSidebarOpen, closeAccountSidebar } = useUI();
+  const { isAccountSidebarOpen, openAccountSidebar, closeAccountSidebar } = useUI();
   const { customer, isLoggedIn, checkEmail, signUp, initiateAuth, logout, savedAddresses, orderHistory, addAddress, removeAddress } = useCustomer();
   // Sign In View Toggle State
   const [showLoginForm, setShowLoginForm] = useState(false);
@@ -22,6 +22,15 @@ export default function AccountSidebar() {
   const [loginEmail, setLoginEmail] = useState("");
   const [authError, setAuthError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Auto-open sidebar when auth callback succeeds
+  useEffect(() => {
+    const handleAuthSuccess = () => {
+      openAccountSidebar();
+    };
+    window.addEventListener("goc_auth_success", handleAuthSuccess);
+    return () => window.removeEventListener("goc_auth_success", handleAuthSuccess);
+  }, [openAccountSidebar]);
 
   const handleCustomerSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,7 +59,7 @@ export default function AccountSidebar() {
 
       // Step 2: Handle based on mode
       if (authMode === "signup") {
-        if (emailCheck.exists) {
+        if (emailCheck.exists && !emailCheck.unverified) {
           setAuthError("An account with this email already exists. Please Sign In instead.");
           return;
         }
@@ -62,7 +71,7 @@ export default function AccountSidebar() {
         }
       } else {
         // Sign In: customer must exist
-        if (!emailCheck.exists) {
+        if (!emailCheck.exists && !emailCheck.unverified) {
           setAuthError("No account found with this email. Please Sign Up first.");
           return;
         }

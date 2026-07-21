@@ -185,38 +185,6 @@ export async function fetchCustomerProfile({
           zip
           phoneNumber
         }
-        orders(first: 20) {
-          edges {
-            node {
-              id
-              name
-              processedAt
-              financialStatus
-              fulfillments {
-                status
-              }
-              totalPrice {
-                amount
-                currencyCode
-              }
-              lineItems(first: 10) {
-                edges {
-                  node {
-                    title
-                    quantity
-                    price {
-                      amount
-                    }
-                    image {
-                      url
-                      altText
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
       }
     }
   `;

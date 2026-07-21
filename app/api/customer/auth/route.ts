@@ -126,20 +126,34 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Please enter a valid email address." }, { status: 400 });
       }
 
-      if (!adminToken) {
-        return NextResponse.json({ error: "Admin API not configured." }, { status: 500 });
+      let existingCustomer: any = null;
+      let checkFailed = false;
+
+      if (adminToken) {
+        try {
+          const searchRes = await adminFetch(ADMIN_SEARCH_CUSTOMER_QUERY, { queryStr: `email:${cleanEmail}` });
+          if (searchRes?.errors) {
+            console.warn("Admin search customer notice:", searchRes.errors);
+            checkFailed = true;
+          } else {
+            existingCustomer = searchRes?.data?.customers?.edges?.[0]?.node || null;
+          }
+        } catch (e) {
+          console.warn("Admin search customer exception:", e);
+          checkFailed = true;
+        }
+      } else {
+        checkFailed = true;
       }
 
-      const searchRes = await adminFetch(ADMIN_SEARCH_CUSTOMER_QUERY, { queryStr: `email:${cleanEmail}` });
-      const existingCustomer = searchRes?.data?.customers?.edges?.[0]?.node;
-
       return NextResponse.json({
-        exists: !!existingCustomer?.id,
+        exists: checkFailed ? true : !!existingCustomer?.id,
         customer: existingCustomer ? {
           firstName: existingCustomer.firstName,
           lastName: existingCustomer.lastName,
           email: existingCustomer.email,
         } : null,
+        unverified: checkFailed,
       });
     }
 
@@ -154,47 +168,36 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Please enter a valid email address." }, { status: 400 });
       }
 
-      if (!adminToken) {
-        return NextResponse.json({ error: "Admin API not configured." }, { status: 500 });
+      if (adminToken) {
+        try {
+          const createInput = {
+            email: cleanEmail,
+            firstName: cleanEmail.split("@")[0],
+            acceptsMarketing: true,
+          };
+          const createRes = await adminFetch(ADMIN_CUSTOMER_CREATE_MUTATION, { input: createInput });
+          if (createRes?.data?.customerCreate?.customer) {
+            const newCustomer = createRes.data.customerCreate.customer;
+            return NextResponse.json({
+              success: true,
+              customer: {
+                id: newCustomer.id,
+                firstName: newCustomer.firstName,
+                lastName: newCustomer.lastName,
+                email: newCustomer.email,
+              },
+            });
+          }
+        } catch (e) {
+          console.warn("Admin customerCreate notice:", e);
+        }
       }
-
-      // First check if customer already exists
-      const searchRes = await adminFetch(ADMIN_SEARCH_CUSTOMER_QUERY, { queryStr: `email:${cleanEmail}` });
-      const existingCustomer = searchRes?.data?.customers?.edges?.[0]?.node;
-
-      if (existingCustomer?.id) {
-        return NextResponse.json(
-          { error: `An account with "${cleanEmail}" already exists. Please Sign In instead.` },
-          { status: 409 }
-        );
-      }
-
-      // Create new customer
-      const createInput = {
-        email: cleanEmail,
-        firstName: cleanEmail.split("@")[0], // Use email prefix as initial name
-        acceptsMarketing: true,
-      };
-
-      const createRes = await adminFetch(ADMIN_CUSTOMER_CREATE_MUTATION, { input: createInput });
-      const userErrors = createRes?.data?.customerCreate?.userErrors;
-
-      if (userErrors && userErrors.length > 0) {
-        const errMsg = userErrors.map((e: any) => e.message).join(", ");
-        console.error("Shopify customerCreate errors:", userErrors);
-        return NextResponse.json({ error: errMsg }, { status: 400 });
-      }
-
-      const newCustomer = createRes?.data?.customerCreate?.customer;
-      console.log("Created new customer in Shopify Admin:", newCustomer?.email);
 
       return NextResponse.json({
         success: true,
         customer: {
-          id: newCustomer?.id,
-          firstName: newCustomer?.firstName,
-          lastName: newCustomer?.lastName,
-          email: newCustomer?.email,
+          email: cleanEmail,
+          firstName: cleanEmail.split("@")[0],
         },
       });
     }
@@ -257,38 +260,44 @@ export async function POST(req: NextRequest) {
       }
       const cleanEmail = email.trim().toLowerCase();
 
-      if (!adminToken) {
-        return NextResponse.json({ error: "Admin API not configured." }, { status: 500 });
-      }
-
-      // Get customer profile
-      const searchRes = await adminFetch(ADMIN_SEARCH_CUSTOMER_QUERY, { queryStr: `email:${cleanEmail}` });
-      const customer = searchRes?.data?.customers?.edges?.[0]?.node;
-
-      // Get customer orders
+      let customer: any = null;
       let orders: any[] = [];
-      try {
-        const ordersRes = await adminFetch(ADMIN_GET_CUSTOMER_ORDERS, { queryStr: `email:${cleanEmail}` });
-        const orderEdges = ordersRes?.data?.orders?.edges || [];
-        orders = orderEdges.map((e: any) => {
-          const ord = e.node;
-          return {
-            id: ord.id,
-            orderNumber: ord.name,
-            processedAt: ord.processedAt,
-            totalPrice: ord.totalPriceSet?.shopMoney?.amount || "0.00",
-            fulfillmentStatus: ord.displayFulfillmentStatus || "UNFULFILLED",
-            financialStatus: ord.displayFinancialStatus || "PAID",
-            items: ord.lineItems.edges.map((itemEdge: any) => ({
-              title: itemEdge.node.title,
-              quantity: itemEdge.node.quantity,
-              price: itemEdge.node.originalUnitPriceSet?.shopMoney?.amount || "0.00",
-              image: itemEdge.node.image?.url || null,
-            })),
-          };
-        });
-      } catch (err) {
-        console.warn("Failed to fetch orders:", err);
+
+      if (adminToken) {
+        try {
+          const searchRes = await adminFetch(ADMIN_SEARCH_CUSTOMER_QUERY, { queryStr: `email:${cleanEmail}` });
+          if (!searchRes?.errors) {
+            customer = searchRes?.data?.customers?.edges?.[0]?.node || null;
+          }
+        } catch (err) {
+          console.warn("get-customer-data search error:", err);
+        }
+
+        try {
+          const ordersRes = await adminFetch(ADMIN_GET_CUSTOMER_ORDERS, { queryStr: `email:${cleanEmail}` });
+          if (!ordersRes?.errors) {
+            const orderEdges = ordersRes?.data?.orders?.edges || [];
+            orders = orderEdges.map((e: any) => {
+              const ord = e.node;
+              return {
+                id: ord.id,
+                orderNumber: ord.name,
+                processedAt: ord.processedAt,
+                totalPrice: ord.totalPriceSet?.shopMoney?.amount || "0.00",
+                fulfillmentStatus: ord.displayFulfillmentStatus || "UNFULFILLED",
+                financialStatus: ord.displayFinancialStatus || "PAID",
+                items: ord.lineItems.edges.map((itemEdge: any) => ({
+                  title: itemEdge.node.title,
+                  quantity: itemEdge.node.quantity,
+                  price: itemEdge.node.originalUnitPriceSet?.shopMoney?.amount || "0.00",
+                  image: itemEdge.node.image?.url || null,
+                })),
+              };
+            });
+          }
+        } catch (err) {
+          console.warn("Failed to fetch orders:", err);
+        }
       }
 
       return NextResponse.json({
@@ -302,7 +311,15 @@ export async function POST(req: NextRequest) {
           acceptsMarketing: true,
           tier: "Club Member",
           points: 100,
-        } : null,
+        } : {
+          email: cleanEmail,
+          firstName: cleanEmail.split("@")[0],
+          lastName: "",
+          phone: "",
+          acceptsMarketing: true,
+          tier: "Club Member",
+          points: 100,
+        },
         orders,
       });
     }

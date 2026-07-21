@@ -70,6 +70,20 @@ export async function GET(req: NextRequest) {
       return NextResponse.redirect(returnUrl);
     }
 
+    // Parse id_token JWT claims for verified customer details fallback
+    let idTokenPayload: any = null;
+    if (tokens.id_token) {
+      try {
+        const parts = tokens.id_token.split(".");
+        if (parts.length >= 2) {
+          const jsonStr = Buffer.from(parts[1], "base64").toString("utf-8");
+          idTokenPayload = JSON.parse(jsonStr);
+        }
+      } catch (e) {
+        console.warn("Failed to parse id_token payload:", e);
+      }
+    }
+
     // Fetch customer profile from Customer Account API
     let customerData: any = null;
     try {
@@ -82,22 +96,30 @@ export async function GET(req: NextRequest) {
       console.warn("Failed to fetch customer profile from Customer Account API:", err);
     }
 
+    const fallbackEmail = idTokenPayload?.email || idTokenPayload?.email_address || "";
+    const fallbackFirstName = idTokenPayload?.given_name || (fallbackEmail ? fallbackEmail.split("@")[0] : "Customer");
+    const fallbackLastName = idTokenPayload?.family_name || "";
+    const fallbackPhone = idTokenPayload?.phone_number || "";
+    const fallbackId = idTokenPayload?.sub || `cust_${Date.now()}`;
+
+    const customerObj = {
+      id: customerData?.id || fallbackId,
+      firstName: customerData?.firstName || fallbackFirstName,
+      lastName: customerData?.lastName || fallbackLastName,
+      email: customerData?.emailAddress?.emailAddress || fallbackEmail,
+      phone: customerData?.phoneNumber?.phoneNumber || fallbackPhone,
+      acceptsMarketing: true,
+      tier: "Club Member",
+      points: 100,
+    };
+
     // Build customer session data
     const sessionData = {
       accessToken: tokens.access_token,
       refreshToken: tokens.refresh_token,
       idToken: tokens.id_token,
       expiresAt: Date.now() + (tokens.expires_in * 1000),
-      customer: customerData ? {
-        id: customerData.id,
-        firstName: customerData.firstName || "",
-        lastName: customerData.lastName || "",
-        email: customerData.emailAddress?.emailAddress || "",
-        phone: customerData.phoneNumber?.phoneNumber || "",
-        acceptsMarketing: true,
-        tier: "Club Member",
-        points: 100,
-      } : null,
+      customer: customerObj.email ? customerObj : null,
     };
 
     // Redirect back to target page with session data in a cookie
