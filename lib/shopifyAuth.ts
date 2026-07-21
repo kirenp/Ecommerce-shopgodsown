@@ -187,7 +187,9 @@ export async function fetchCustomerProfile({
   accessToken: string;
   apiVersion?: string;
 }): Promise<any> {
-  const endpoint = `https://shopify.com/authentication/${shopId}/api/${apiVersion}/graphql`;
+  // Official Shopify Customer Account API GraphQL Endpoint URL format
+  const primaryEndpoint = `https://shopify.com/${shopId}/account/customer/api/${apiVersion}/graphql`;
+  const fallbackEndpoint = `https://shopify.com/authentication/${shopId}/api/${apiVersion}/graphql`;
   
   const query = `
     query {
@@ -216,19 +218,39 @@ export async function fetchCustomerProfile({
     }
   `;
 
-  const res = await fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${accessToken}`,
-    },
-    body: JSON.stringify({ query }),
-  });
+  // Format Authorization header (Customer Account API handles token directly or Bearer)
+  const authHeader = accessToken.startsWith('Bearer ') ? accessToken : (accessToken.startsWith('shcat_') ? accessToken : `Bearer ${accessToken}`);
 
-  if (!res.ok) {
-    console.error('Customer Account API request failed:', res.status);
+  try {
+    let res = await fetch(primaryEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': authHeader,
+      },
+      body: JSON.stringify({ query }),
+    });
+
+    if (!res.ok && res.status === 404) {
+      // Try fallback endpoint
+      res = await fetch(fallbackEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': authHeader,
+        },
+        body: JSON.stringify({ query }),
+      });
+    }
+
+    if (!res.ok) {
+      console.error('Customer Account API request failed:', res.status);
+      return null;
+    }
+
+    return await res.json();
+  } catch (e) {
+    console.error('Customer Account API request exception:', e);
     return null;
   }
-
-  return res.json();
 }
