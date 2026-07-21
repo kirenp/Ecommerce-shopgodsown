@@ -133,7 +133,7 @@ export async function POST(req: NextRequest) {
     }
 
     // ─── ACTION: CHECK-EMAIL ──────────────────────────────────────────
-    // Check if a customer with this email exists in Shopify
+    // Check if a customer with this email exists in Shopify Admin (non-mutating)
     if (action === "check-email") {
       if (!email?.trim()) {
         return NextResponse.json({ error: "Email address is required." }, { status: 400 });
@@ -144,53 +144,23 @@ export async function POST(req: NextRequest) {
       }
 
       let exists = false;
+      let checked = false;
 
-      // Method 1: Check via Admin API if token configured and has scope
       if (adminToken) {
         try {
           const searchRes = await adminFetch(ADMIN_SEARCH_CUSTOMER_QUERY, { queryStr: `email:${cleanEmail}` });
-          if (!searchRes?.errors && searchRes?.data?.customers?.edges?.[0]?.node) {
-            exists = true;
+          if (!searchRes?.errors) {
+            checked = true;
+            if (searchRes?.data?.customers?.edges?.[0]?.node) {
+              exists = true;
+            }
           }
         } catch (e) {}
       }
 
-      // Method 2: Real-time check via Storefront API customerCreate dry-run
-      if (!exists && storefrontToken) {
-        try {
-          const createMutation = `
-            mutation customerCreate($input: CustomerCreateInput!) {
-              customerCreate(input: $input) {
-                customer { id email }
-                customerUserErrors { code field message }
-              }
-            }
-          `;
-          const sfRes = await storefrontFetch(createMutation, {
-            input: { email: cleanEmail, password: "CheckExistDummyPassword123!" }
-          });
-          const errors = sfRes?.data?.customerCreate?.customerUserErrors || [];
-          const createdCust = sfRes?.data?.customerCreate?.customer;
-
-          if (!createdCust?.id) {
-            const isTaken = errors.some((e: any) =>
-              e.code === "TAKEN" ||
-              e.code === "CUSTOMER_DISABLED" ||
-              e.message?.toLowerCase().includes("taken") ||
-              e.message?.toLowerCase().includes("verify your email") ||
-              e.message?.toLowerCase().includes("already")
-            );
-            if (isTaken) {
-              exists = true;
-            }
-          }
-        } catch (e) {
-          console.warn("Storefront checkEmail notice:", e);
-        }
-      }
-
       return NextResponse.json({
         exists,
+        checked,
         email: cleanEmail,
       });
     }
