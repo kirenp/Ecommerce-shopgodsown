@@ -5,6 +5,7 @@ import {
   generateNonce,
   generateCodeChallenge,
   buildAuthorizationUrl,
+  buildLogoutUrl,
 } from "@/lib/shopifyAuth";
 
 export const dynamic = 'force-dynamic';
@@ -212,6 +213,7 @@ export async function POST(req: NextRequest) {
 
     // ─── ACTION: INITIATE-AUTH ────────────────────────────────────────
     // Generate PKCE challenge + Shopify OAuth URL for OTP verification
+    // Uses a logout-then-reauth chain to clear any cached Shopify session
     if (action === "initiate-auth") {
       if (!shopId || !clientId) {
         return NextResponse.json(
@@ -251,8 +253,16 @@ export async function POST(req: NextRequest) {
         loginHint: email?.trim(),
       });
 
+      // Build logout URL — Shopify will redirect to /api/auth/reauth after clearing session
+      const reauthUri = `${origin}/api/auth/reauth`;
+      const logoutUrl = buildLogoutUrl({
+        shopId,
+        postLogoutRedirectUri: reauthUri,
+      });
+
       return NextResponse.json({
         authorizationUrl,
+        logoutUrl,
         codeVerifier,
         state,
         nonce,

@@ -76,6 +76,25 @@ export function buildAuthorizationUrl({
   return authUrl.toString();
 }
 
+// Build Shopify Customer Account API logout URL (end_session_endpoint)
+// This clears the cached Shopify browser session so a different email can be used
+export function buildLogoutUrl({
+  shopId,
+  idTokenHint,
+  postLogoutRedirectUri,
+}: {
+  shopId: string;
+  idTokenHint?: string;
+  postLogoutRedirectUri: string;
+}): string {
+  const logoutUrl = new URL(`https://shopify.com/authentication/${shopId}/logout`);
+  if (idTokenHint) {
+    logoutUrl.searchParams.set('id_token_hint', idTokenHint);
+  }
+  logoutUrl.searchParams.set('post_logout_redirect_uri', postLogoutRedirectUri);
+  return logoutUrl.toString();
+}
+
 // Exchange authorization code for access/refresh tokens
 export async function exchangeCodeForTokens({
   shopId,

@@ -16,6 +16,7 @@ export default function AccountSidebar() {
   const { customer, isLoggedIn, initiateAuth, logout, savedAddresses, orderHistory, addAddress, removeAddress } = useCustomer();
   // Sign In View Toggle State
   const [showLoginForm, setShowLoginForm] = useState(false);
+  const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
 
   // Auth Form State — email only
   const [loginEmail, setLoginEmail] = useState("");
@@ -225,13 +226,37 @@ export default function AccountSidebar() {
                   ← Back to Options
                 </button>
 
+                {/* Auth Mode Toggle Tabs */}
+                <div className="grid grid-cols-2 gap-1 bg-gray-200/70 p-1 rounded-xl text-center">
+                  <button
+                    type="button"
+                    onClick={() => { setAuthMode("signin"); setAuthError(""); }}
+                    className={`py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all ${
+                      authMode === "signin" ? "bg-white text-black shadow-xs" : "text-black/50 hover:text-black"
+                    }`}
+                  >
+                    Sign In
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setAuthMode("signup"); setAuthError(""); }}
+                    className={`py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all ${
+                      authMode === "signup" ? "bg-white text-black shadow-xs" : "text-black/50 hover:text-black"
+                    }`}
+                  >
+                    Sign Up
+                  </button>
+                </div>
+
                 {/* Banner */}
-                <div className="text-center space-y-1">
+                <div className="text-center space-y-1 mt-4">
                   <h3 className="text-base font-bold text-black uppercase tracking-[0.12em] font-sans">
-                    Sign In or Create Account
+                    {authMode === "signup" ? "Create Account" : "Sign In To Account"}
                   </h3>
                   <p className="text-xs text-black/50 tracking-wide font-medium">
-                    Enter your email to receive a verification code
+                    {authMode === "signup"
+                      ? "Enter your email to create a new account"
+                      : "Enter your email to receive a verification code"}
                   </p>
                 </div>
 
@@ -273,7 +298,7 @@ export default function AccountSidebar() {
                         <span>Connecting to Shopify...</span>
                       </>
                     ) : (
-                      <span>Continue with Email</span>
+                      <span>{authMode === "signup" ? "Create Account & Verify" : "Continue with Email"}</span>
                     )}
                   </button>
                 </form>
