@@ -113,6 +113,26 @@ export async function GET(req: NextRequest) {
       points: 100,
     };
 
+    // Validate that the authenticated email matches what the user typed
+    const intendedEmail = req.cookies.get("goc_auth_intended_email")?.value?.toLowerCase();
+    const authenticatedEmail = customerObj.email?.toLowerCase();
+    
+    if (intendedEmail && authenticatedEmail && intendedEmail !== authenticatedEmail) {
+      // Shopify authenticated a different email (from a cached browser session)
+      // Reject this and send the user back with an error
+      returnUrl.searchParams.set("auth_error", 
+        `Shopify authenticated as ${authenticatedEmail} instead of ${intendedEmail}. Please clear your Shopify browser session or use the correct email.`
+      );
+      const mismatchResponse = NextResponse.redirect(returnUrl);
+      mismatchResponse.cookies.delete("goc_pkce_verifier");
+      mismatchResponse.cookies.delete("goc_pkce_state");
+      mismatchResponse.cookies.delete("goc_auth_return_url");
+      mismatchResponse.cookies.delete("goc_auth_origin");
+      mismatchResponse.cookies.delete("goc_auth_intended_email");
+      mismatchResponse.cookies.delete("goc_auth_session");
+      return mismatchResponse;
+    }
+
     // Build customer session data
     const sessionData = {
       accessToken: tokens.access_token,
@@ -141,6 +161,7 @@ export async function GET(req: NextRequest) {
     response.cookies.delete("goc_pkce_state");
     response.cookies.delete("goc_auth_return_url");
     response.cookies.delete("goc_auth_origin");
+    response.cookies.delete("goc_auth_intended_email");
 
     return response;
   } catch (error: any) {

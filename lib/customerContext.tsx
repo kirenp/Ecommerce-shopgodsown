@@ -148,7 +148,10 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
         }
         
         if (params.get("auth_error")) {
-          console.error("Auth error:", params.get("auth_error"));
+          const authErr = params.get("auth_error") || "Authentication failed.";
+          console.error("Auth error:", authErr);
+          // Dispatch event so AccountSidebar can display the error
+          window.dispatchEvent(new CustomEvent("goc_auth_error", { detail: authErr }));
           window.history.replaceState({}, '', window.location.pathname);
         }
       }
@@ -258,6 +261,10 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
       }
       if (json.returnPath || clientPath) {
         setCookie("goc_auth_return_url", json.returnPath || clientPath, 600);
+      }
+      // Store the email the user typed so callback can verify it matches
+      if (email) {
+        setCookie("goc_auth_intended_email", email.toLowerCase(), 600);
       }
 
       return { authorizationUrl: json.authorizationUrl };

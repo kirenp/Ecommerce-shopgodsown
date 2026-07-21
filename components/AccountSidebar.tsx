@@ -26,9 +26,23 @@ export default function AccountSidebar() {
   useEffect(() => {
     const handleAuthSuccess = () => {
       openAccountSidebar();
+      setShowLoginForm(false);
+      setAuthError("");
+    };
+    const handleAuthError = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail) {
+        setAuthError(detail);
+        setShowLoginForm(true);
+      }
+      openAccountSidebar();
     };
     window.addEventListener("goc_auth_success", handleAuthSuccess);
-    return () => window.removeEventListener("goc_auth_success", handleAuthSuccess);
+    window.addEventListener("goc_auth_error", handleAuthError);
+    return () => {
+      window.removeEventListener("goc_auth_success", handleAuthSuccess);
+      window.removeEventListener("goc_auth_error", handleAuthError);
+    };
   }, [openAccountSidebar]);
 
   const handleCustomerSubmit = async (e: React.FormEvent) => {

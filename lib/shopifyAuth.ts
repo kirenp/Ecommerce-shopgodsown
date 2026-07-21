@@ -66,6 +66,9 @@ export function buildAuthorizationUrl({
   authUrl.searchParams.set('nonce', nonce);
   authUrl.searchParams.set('code_challenge', codeChallenge);
   authUrl.searchParams.set('code_challenge_method', 'S256');
+  // Force fresh login — prevents Shopify from auto-authenticating with a
+  // previously cached session (which causes wrong-email dashboard issues)
+  authUrl.searchParams.set('prompt', 'login');
   if (loginHint) {
     authUrl.searchParams.set('login_hint', loginHint);
   }
