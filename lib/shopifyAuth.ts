@@ -56,7 +56,7 @@ export function buildAuthorizationUrl({
   codeChallenge: string;
   loginHint?: string;
 }): string {
-  const authUrl = new URL(`https://shopify.com/${shopId}/auth/oauth/authorize`);
+  const authUrl = new URL(`https://shopify.com/authentication/${shopId}/oauth/authorize`);
   
   authUrl.searchParams.set('client_id', clientId);
   authUrl.searchParams.set('scope', 'openid email https://api.customers.com/auth/customer.graphql');
@@ -66,9 +66,6 @@ export function buildAuthorizationUrl({
   authUrl.searchParams.set('nonce', nonce);
   authUrl.searchParams.set('code_challenge', codeChallenge);
   authUrl.searchParams.set('code_challenge_method', 'S256');
-  // Force fresh login — prevents Shopify from auto-authenticating with a
-  // previously cached session (which causes wrong-email dashboard issues)
-  authUrl.searchParams.set('prompt', 'login');
   if (loginHint) {
     authUrl.searchParams.set('login_hint', loginHint);
   }
@@ -77,7 +74,7 @@ export function buildAuthorizationUrl({
 }
 
 // Build Shopify Customer Account API logout URL (end_session_endpoint)
-// This clears the cached Shopify browser session so a different email can be used
+// Note: id_token_hint is required by Shopify for valid logout
 export function buildLogoutUrl({
   shopId,
   idTokenHint,
@@ -91,7 +88,9 @@ export function buildLogoutUrl({
   if (idTokenHint) {
     logoutUrl.searchParams.set('id_token_hint', idTokenHint);
   }
-  logoutUrl.searchParams.set('post_logout_redirect_uri', postLogoutRedirectUri);
+  if (postLogoutRedirectUri) {
+    logoutUrl.searchParams.set('post_logout_redirect_uri', postLogoutRedirectUri);
+  }
   return logoutUrl.toString();
 }
 
@@ -115,7 +114,7 @@ export async function exchangeCodeForTokens({
   expires_in: number;
   token_type: string;
 } | null> {
-  const tokenUrl = `https://shopify.com/${shopId}/auth/oauth/token`;
+  const tokenUrl = `https://shopify.com/authentication/${shopId}/oauth/token`;
   
   const body = new URLSearchParams({
     grant_type: 'authorization_code',
@@ -155,7 +154,7 @@ export async function refreshAccessToken({
   id_token: string;
   expires_in: number;
 } | null> {
-  const tokenUrl = `https://shopify.com/${shopId}/auth/oauth/token`;
+  const tokenUrl = `https://shopify.com/authentication/${shopId}/oauth/token`;
   
   const body = new URLSearchParams({
     grant_type: 'refresh_token',
@@ -187,7 +186,7 @@ export async function fetchCustomerProfile({
   accessToken: string;
   apiVersion?: string;
 }): Promise<any> {
-  const endpoint = `https://shopify.com/${shopId}/account/customer/api/${apiVersion}/graphql`;
+  const endpoint = `https://shopify.com/authentication/${shopId}/api/${apiVersion}/graphql`;
   
   const query = `
     query {

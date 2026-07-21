@@ -118,10 +118,10 @@ export async function GET(req: NextRequest) {
     const authenticatedEmail = customerObj.email?.toLowerCase();
     
     if (intendedEmail && authenticatedEmail && intendedEmail !== authenticatedEmail) {
-      // Shopify authenticated a different email (from a cached browser session)
-      // Reject this and send the user back with an error
+      // Shopify authenticated a different email (due to Shopify's active browser SSO session)
+      // Reject session according to Headless Shopify standard pattern
       returnUrl.searchParams.set("auth_error", 
-        `Shopify authenticated as ${authenticatedEmail} instead of ${intendedEmail}. Please clear your Shopify browser session or use the correct email.`
+        `Shopify authenticated as ${authenticatedEmail} instead of ${intendedEmail}. Please log out from your Shopify Customer Account or switch accounts on Shopify.`
       );
       const mismatchResponse = NextResponse.redirect(returnUrl);
       mismatchResponse.cookies.delete("goc_pkce_verifier");

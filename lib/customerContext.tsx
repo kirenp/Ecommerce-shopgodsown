@@ -267,21 +267,6 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
         setCookie("goc_auth_intended_email", email.toLowerCase(), 600);
       }
 
-      // Store the authorization URL in a cookie so /api/auth/reauth can redirect to it
-      // after Shopify clears the cached session via its logout endpoint
-      if (json.authorizationUrl) {
-        setCookie("goc_pending_auth_url", json.authorizationUrl, 600);
-      }
-
-      // Use the logout-then-reauth chain:
-      // 1. Redirect to Shopify's logout endpoint (clears cached browser session)
-      // 2. Shopify redirects to /api/auth/reauth
-      // 3. /api/auth/reauth reads the stored auth URL cookie and redirects to it
-      // This ensures a fresh OTP screen for the correct email every time
-      if (json.logoutUrl) {
-        return { authorizationUrl: json.logoutUrl };
-      }
-
       return { authorizationUrl: json.authorizationUrl };
     } catch (err: any) {
       return { error: err.message || "Network error." };
