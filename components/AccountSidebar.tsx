@@ -81,6 +81,25 @@ export default function AccountSidebar() {
       setIsSubmitting(false);
     }
   };
+
+  const handleShopSignIn = async () => {
+    setAuthError("");
+    setIsSubmitting(true);
+    try {
+      const authResult = await initiateAuth();
+      if (authResult.error) {
+        setAuthError(authResult.error);
+        return;
+      }
+      if (authResult.authorizationUrl) {
+        window.location.href = authResult.authorizationUrl;
+      }
+    } catch (err: any) {
+      setAuthError(err.message || "An unexpected error occurred.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
   const { items: recentlyViewedItems } = useRecentlyViewed();
   const { wishlistItems, removeFromWishlist } = useWishlist();
   const { addToCart } = useCart();
@@ -200,11 +219,17 @@ export default function AccountSidebar() {
                   </p>
                 </div>
 
+                {authError && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl p-3.5 font-medium space-y-2.5">
+                    <div>{authError}</div>
+                  </div>
+                )}
+
                 {/* Action Buttons */}
                 <div className="space-y-3">
                   {/* Black Button: Click to open Sign In / Sign Up Form */}
                   <button
-                    onClick={() => setShowLoginForm(true)}
+                    onClick={() => { setAuthError(""); setShowLoginForm(true); }}
                     className="w-full bg-[#111] hover:bg-black text-white text-xs font-bold uppercase tracking-[0.2em] py-4 rounded-xl shadow-[0_4px_14px_rgba(0,0,0,0.12)] transition-all duration-300 transform hover:-translate-y-0.5"
                   >
                     Sign In or Sign Up
@@ -212,11 +237,21 @@ export default function AccountSidebar() {
 
                   {/* Purple Button: Sign In with Shop */}
                   <button
-                    onClick={() => setShowLoginForm(true)}
-                    className="w-full bg-[#5a31f4] hover:bg-[#4820dc] text-white text-xs font-bold uppercase tracking-[0.2em] py-4 rounded-xl flex items-center justify-center gap-2 shadow-[0_4px_14px_rgba(90,49,244,0.18)] transition-all duration-300 transform hover:-translate-y-0.5"
+                    onClick={handleShopSignIn}
+                    disabled={isSubmitting}
+                    className="w-full bg-[#5a31f4] hover:bg-[#4820dc] disabled:bg-[#5a31f4]/60 text-white text-xs font-bold uppercase tracking-[0.2em] py-4 rounded-xl flex items-center justify-center gap-2 shadow-[0_4px_14px_rgba(90,49,244,0.18)] transition-all duration-300 transform hover:-translate-y-0.5"
                   >
-                    <span>Sign In With</span>
-                    <span className="font-sans font-black tracking-normal lowercase text-[15px] italic">shop</span>
+                    {isSubmitting ? (
+                      <>
+                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        <span>Connecting to Shopify...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Sign In With</span>
+                        <span className="font-sans font-black tracking-normal lowercase text-[15px] italic">shop</span>
+                      </>
+                    )}
                   </button>
                 </div>
 

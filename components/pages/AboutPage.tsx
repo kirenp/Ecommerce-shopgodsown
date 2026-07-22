@@ -10,8 +10,8 @@ export default function AboutPageContent() {
       {/* Hero */}
       <section className="pt-48 pb-28 px-6 md:px-12 border-b border-white/5">
         <div className="max-w-7xl mx-auto">
-          <p className="text-[10px] text-white/30 tracking-[0.4em] uppercase mb-6">About Us</p>
-          <h1 className="font-pickyside text-6xl md:text-[9rem] font-light tracking-[0.08em] uppercase leading-none">
+          <p className="text-[10px] text-white tracking-[0.4em] uppercase mb-6">OUR Story</p>
+          <h1 className="font-sans font-bold text-6xl md:text-[9rem] tracking-[0.25em] uppercase leading-none">
             <span className="text-[#C81E1E]">GODS</span> <span className="text-white">OWN</span>
           </h1>
           <p className="mt-10 text-white/50 text-lg md:text-xl font-light leading-relaxed max-w-2xl tracking-wide">

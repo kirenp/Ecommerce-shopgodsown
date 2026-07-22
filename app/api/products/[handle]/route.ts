@@ -20,6 +20,8 @@ export async function GET(
       price: product.price,
       images: product.images.filter((img: any) => img.type === 'IMAGE').slice(0, 4),
       colors: product.colors || [],
+      sizes: product.sizes || [],
+      variants: product.variants || [],
     });
   } catch (error) {
     console.error('Error fetching product:', error);

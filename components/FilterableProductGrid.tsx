@@ -106,7 +106,19 @@ export default function FilterableProductGrid({ products }: FilterableProductGri
 
   const allSizes = useMemo(() => {
     const rawSizes = Array.from(new Set(products.flatMap(p => p.sizes).filter(Boolean)));
-    const sizeOrder: Record<string, number> = { XS: 0, S: 1, M: 2, L: 3, XL: 4, XXL: 5 };
+    const sizeOrder: Record<string, number> = {
+      XXS: 0,
+      XS: 1,
+      S: 2,
+      M: 3,
+      L: 4,
+      XL: 5,
+      XXL: 6,
+      "2XL": 6,
+      XXXL: 7,
+      "3XL": 7,
+      "4XL": 8
+    };
     return rawSizes.sort(
       (a, b) => (sizeOrder[a.toUpperCase()] ?? 99) - (sizeOrder[b.toUpperCase()] ?? 99)
     );

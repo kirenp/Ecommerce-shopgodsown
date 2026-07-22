@@ -118,26 +118,9 @@ export default function Footer() {
           href="https://www.instagram.com/webdevtrack/"
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 relative overflow-hidden group"
-          style={{
-            padding: '5px 18px',
-            borderRadius: '999px',
-            background: 'linear-gradient(160deg, rgba(255,255,255,0.72) 0%, rgba(240,240,245,0.4) 50%, rgba(220,220,230,0.25) 100%)',
-            backdropFilter: 'blur(10px) saturate(150%)',
-            WebkitBackdropFilter: 'blur(10px) saturate(150%)',
-            border: '1px solid rgba(0,0,0,0.22)',
-            boxShadow: '0 1px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.85)',
-          }}
+          className="text-[10px] tracking-widest font-bold text-black/60 hover:text-black transition-colors"
         >
-          {/* top glass glare streak */}
-          <span className="absolute top-0 left-[10%] right-[10%] h-[1px]"
-            style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,1) 35%, rgba(255,255,255,0.9) 65%, transparent)' }} />
-          {/* hover shine sweep */}
-          <span className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-400"
-            style={{ background: 'linear-gradient(115deg, transparent 25%, rgba(255,255,255,0.55) 50%, transparent 75%)' }} />
-          <span className="relative text-[10px] tracking-widest font-bold text-black group-hover:text-black/70 transition-colors">
-            Powered by WEBDEVTRACK
-          </span>
+          Powered by WEBDEVTRACK
         </a>
       </div>
 

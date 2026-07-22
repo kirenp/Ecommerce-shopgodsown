@@ -13,6 +13,38 @@ interface ProductDetailProps {
   product: any;
 }
 
+const SIZE_ORDER: Record<string, number> = {
+  "XXS": 1,
+  "XS": 2,
+  "S": 3,
+  "M": 4,
+  "L": 5,
+  "XL": 6,
+  "XXL": 7,
+  "2XL": 7,
+  "XXXL": 8,
+  "3XL": 8,
+  "4XL": 9
+};
+
+function sortSizesList(sizes: any[]) {
+  if (!sizes) return [];
+  const getLabel = (s: any) => {
+    if (!s) return "";
+    if (typeof s === 'string') return s;
+    return s.label || s.value || s.name || "";
+  };
+
+  return [...sizes].sort((a, b) => {
+    const aLabel = getLabel(a).toUpperCase();
+    const bLabel = getLabel(b).toUpperCase();
+    const aVal = SIZE_ORDER[aLabel] ?? 99;
+    const bVal = SIZE_ORDER[bLabel] ?? 99;
+    if (aVal !== bVal) return aVal - bVal;
+    return aLabel.localeCompare(bLabel);
+  });
+}
+
 export default function ProductDetail({ product }: ProductDetailProps) {
   const { items, addToCart } = useCart();
   const { addRecentlyViewed } = useRecentlyViewed();
@@ -55,7 +87,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
 
   // Sizes available for selected color
   const availableSizesForColor = useMemo(() => {
-    if (!selectedColor) return product.sizes || [];
+    if (!selectedColor) return sortSizesList(product.sizes || []);
     const sizes = product.variants
       .filter((v: any) => v.options.some((opt: any) => opt.name.toLowerCase() === "color" && opt.value === selectedColor))
       .map((v: any) => {
@@ -63,7 +95,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
         return sizeOpt ? sizeOpt.value : null;
       })
       .filter(Boolean);
-    return Array.from(new Set(sizes)).map((s) => ({ label: s }));
+    return sortSizesList(Array.from(new Set(sizes)).map((s) => ({ label: s })));
   }, [selectedColor, product.variants, product.sizes]);
 
   const currentVariant = useMemo(() => {
@@ -162,15 +194,15 @@ export default function ProductDetail({ product }: ProductDetailProps) {
           <h1 className="font-brand text-5xl md:text-7xl font-light text-white tracking-tight uppercase leading-none mb-5">
             {product.title}
           </h1>
-          <p className="text-xl font-light text-white/70 tracking-widest">
+          <p className="text-xl font-light text-white tracking-widest">
             ₹{parseFloat(currentVariant?.price || product.price).toLocaleString("en-IN")} {product.currencyCode || "INR"}
           </p>
         </div>
 
         {/* Description */}
         <div className="space-y-3 border-t border-white/5 pt-8">
-          <h3 className="text-[10px] text-white/30 uppercase tracking-[0.3em]">About This Piece</h3>
-          <p className="text-white/50 leading-relaxed font-light">
+          <h3 className="text-[10px] text-white uppercase tracking-[0.3em]">About This Piece</h3>
+          <p className="text-white leading-relaxed font-light">
             {product.description || "A luxury piece designed to disrupt. Precision-tailored for the modern presence."}
           </p>
         </div>
@@ -179,19 +211,19 @@ export default function ProductDetail({ product }: ProductDetailProps) {
         <div className="space-y-8">
           {availableColors.length > 0 && (
             <div className="space-y-4">
-              <h4 className="text-[10px] text-white/70 uppercase tracking-[0.3em]">
+              <h4 className="text-[10px] text-white uppercase tracking-[0.3em]">
                 Color
-                {selectedColor && <span className="text-white/75 ml-3 font-medium tracking-widest">— {selectedColor}</span>}
+                {selectedColor && <span className="text-white ml-3 font-medium tracking-widest">— {selectedColor}</span>}
               </h4>
               <div className="flex flex-wrap gap-4">
                 {availableColors.map((c: any, i: number) => (
                   <div key={i} className="group relative" onClick={() => { setSelectedColor(c.label); setSelectedSize(null); }}>
                     <div
-                      className={`w-10 h-10 rounded-full border-2 transition-all duration-300 cursor-pointer ${selectedColor === c.label ? "border-white scale-110 shadow-[0_0_16px_rgba(255,255,255,0.2)]" : "border-white/15 hover:scale-110 hover:border-white/40"}`}
+                      className={`w-10 h-10 rounded-full border-2 transition-all duration-300 cursor-pointer ${selectedColor === c.label ? "border-white scale-110 shadow-[0_0_16px_rgba(255,255,255,0.2)]" : "border-white/40 hover:scale-110 hover:border-white/80"}`}
                       style={{ backgroundColor: c.color.toLowerCase() }}
                       title={c.label}
                     />
-                    <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[8px] text-white/0 group-hover:text-white/50 uppercase tracking-widest whitespace-nowrap transition-all duration-300">
+                    <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[8px] text-white/0 group-hover:text-white uppercase tracking-widest whitespace-nowrap transition-all duration-300">
                       {c.label}
                     </span>
                   </div>
@@ -204,18 +236,18 @@ export default function ProductDetail({ product }: ProductDetailProps) {
           {(availableSizesForColor.length > 0 || (availableColors.length === 0 && (product.sizes?.length > 0))) && (
             <div className="space-y-4">
               <div className="flex justify-between items-center">
-                <h4 className="text-[10px] text-white/70 uppercase tracking-[0.3em]">
+                <h4 className="text-[10px] text-white uppercase tracking-[0.3em]">
                   Size
-                  {selectedSize && <span className="text-white/75 ml-3 font-medium tracking-widest">— {selectedSize}</span>}
+                  {selectedSize && <span className="text-white ml-3 font-medium tracking-widest">— {selectedSize}</span>}
                 </h4>
-                <button onClick={() => setShowSizeGuide(true)} className="text-[10px] text-white/80 hover:text-white uppercase tracking-wider underline underline-offset-4 font-medium transition-colors">Size Guide</button>
+                <button onClick={() => setShowSizeGuide(true)} className="text-[10px] text-white hover:text-white uppercase tracking-wider underline underline-offset-4 font-medium transition-colors">Size Guide</button>
               </div>
               <div className="flex flex-wrap gap-3">
-                {(availableSizesForColor.length > 0 ? availableSizesForColor : product.sizes || []).map((s: any, i: number) => (
+                {sortSizesList(availableSizesForColor.length > 0 ? availableSizesForColor : product.sizes || []).map((s: any, i: number) => (
                   <button
                     key={i}
                     onClick={() => setSelectedSize(s.label)}
-                    className={`w-14 h-14 border text-[11px] font-medium uppercase tracking-wider rounded-xl transition-all duration-300 ${selectedSize === s.label ? "bg-white text-black border-white" : "border-white/10 text-white/50 hover:border-white/30 hover:text-white"}`}
+                    className={`w-14 h-14 border text-[11px] font-medium uppercase tracking-wider rounded-xl transition-all duration-300 ${selectedSize === s.label ? "bg-white text-black border-white" : "border-white/40 text-white hover:border-white/80"}`}
                   >
                     {s.label}
                   </button>
@@ -235,7 +267,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
         {/* Stock Status Indicator */}
         <div className="flex items-center space-x-3">
           <div className={`w-1.5 h-1.5 rounded-full ${!isAvailable || availableStock <= 0 ? "bg-red-400" : "bg-green-400"}`} />
-          <span className="text-[10px] text-white/60 uppercase tracking-widest font-medium">
+          <span className="text-[10px] text-white uppercase tracking-widest font-medium">
             {!isAvailable || availableStock <= 0
               ? "Out of Stock"
               : "In Stock — Ready to ship"}
@@ -366,12 +398,12 @@ export default function ProductDetail({ product }: ProductDetailProps) {
         {/* Shipping Info */}
         <div className="grid grid-cols-2 gap-6 pt-4 border-t border-white/5">
           <div className="space-y-1">
-            <h4 className="text-[10px] text-white/60 font-medium uppercase tracking-widest">Heritage Shipping</h4>
-            <p className="text-[10px] text-white/30 uppercase tracking-widest leading-loose">Kerala to Worldwide<br />5–7 Business Days</p>
+            <h4 className="text-[10px] text-white font-medium uppercase tracking-widest">Heritage Shipping</h4>
+            <p className="text-[10px] text-white uppercase tracking-widest leading-loose">Kerala to Worldwide<br />5–7 Business Days</p>
           </div>
           <div className="space-y-1">
-            <h4 className="text-[10px] text-white/60 font-medium uppercase tracking-widest">Luxury Packaging</h4>
-            <p className="text-[10px] text-white/30 uppercase tracking-widest leading-loose">Eco-Friendly<br />Premium Branding</p>
+            <h4 className="text-[10px] text-white font-medium uppercase tracking-widest">Luxury Packaging</h4>
+            <p className="text-[10px] text-white uppercase tracking-widest leading-loose">Eco-Friendly<br />Premium Branding</p>
           </div>
         </div>
       </div>

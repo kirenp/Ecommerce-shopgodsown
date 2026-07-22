@@ -8,10 +8,43 @@ import { useState, useEffect } from "react";
 import { getRecommendedProducts } from "@/app/actions";
 import { usePreview } from "@/lib/preview";
 
+const SIZE_ORDER: Record<string, number> = {
+  "XXS": 1,
+  "XS": 2,
+  "S": 3,
+  "M": 4,
+  "L": 5,
+  "XL": 6,
+  "XXL": 7,
+  "2XL": 7,
+  "XXXL": 8,
+  "3XL": 8,
+  "4XL": 9
+};
+
+function sortSizesList(sizes: any[]) {
+  if (!sizes) return [];
+  const getLabel = (s: any) => {
+    if (!s) return "";
+    if (typeof s === 'string') return s;
+    return s.label || s.value || s.name || "";
+  };
+
+  return [...sizes].sort((a, b) => {
+    const aLabel = getLabel(a).toUpperCase();
+    const bLabel = getLabel(b).toUpperCase();
+    const aVal = SIZE_ORDER[aLabel] ?? 99;
+    const bVal = SIZE_ORDER[bLabel] ?? 99;
+    if (aVal !== bVal) return aVal - bVal;
+    return aLabel.localeCompare(bLabel);
+  });
+}
+
 export default function CartSidebar() {
     const { isCartSidebarOpen, closeCartSidebar } = useUI();
     const { items, removeFromCart, updateQuantity, subtotal, itemCount, addToCart } = useCart();
     const [recommended, setRecommended] = useState<any[]>([]);
+    const [productsDetails, setProductsDetails] = useState<Record<string, any>>({});
     const { getPreviewPath } = usePreview();
 
     useEffect(() => {
@@ -24,6 +57,91 @@ export default function CartSidebar() {
         };
         fetchRecommended();
     }, [isCartSidebarOpen]);
+
+    // Fetch product details for cart items to populate available sizes dropdown
+    useEffect(() => {
+        if (!isCartSidebarOpen || items.length === 0) return;
+        
+        const fetchDetails = async () => {
+            const missingHandles = items
+                .map(item => item.handle)
+                .filter(handle => handle && !productsDetails[handle]);
+                
+            if (missingHandles.length === 0) return;
+            
+            const fetched: Record<string, any> = {};
+            await Promise.all(
+                missingHandles.map(async (handle) => {
+                    try {
+                        const res = await fetch(`/api/products/${handle}`);
+                        if (res.ok) {
+                            const data = await res.json();
+                            fetched[handle] = data;
+                        }
+                    } catch (e) {
+                        console.error(`Failed to fetch product details for ${handle}:`, e);
+                    }
+                })
+            );
+            
+            if (Object.keys(fetched).length > 0) {
+                setProductsDetails(prev => ({ ...prev, ...fetched }));
+            }
+        };
+        
+        fetchDetails();
+    }, [isCartSidebarOpen, items]);
+
+    const getAvailableSizes = (item: CartItem) => {
+        const details = productsDetails[item.handle];
+        if (!details) return [];
+        
+        let sizesList: any[] = [];
+        if (!item.color) {
+            sizesList = details.sizes || [];
+        } else {
+            const sizes = details.variants
+                .filter((v: any) => v.options.some((opt: any) => opt.name.toLowerCase() === "color" && opt.value.toLowerCase() === item.color.toLowerCase()))
+                .map((v: any) => {
+                    const sizeOpt = v.options.find((opt: any) => opt.name.toLowerCase() === "size");
+                    return sizeOpt ? sizeOpt.value : null;
+                })
+                .filter(Boolean);
+            sizesList = Array.from(new Set(sizes)).map(s => ({ label: s }));
+        }
+        
+        return sortSizesList(sizesList);
+    };
+
+    const handleSizeChange = (item: CartItem, newSize: string) => {
+        const details = productsDetails[item.handle];
+        if (!details) return;
+        
+        const matchingVariant = details.variants.find((v: any) => {
+            const sizeOpt = v.options.find((opt: any) => opt.name.toLowerCase() === 'size');
+            const colorOpt = v.options.find((opt: any) => opt.name.toLowerCase() === 'color');
+            const sizeMatch = sizeOpt && sizeOpt.value.toUpperCase() === newSize.toUpperCase();
+            const colorMatch = !colorOpt || !item.color || colorOpt.value.toLowerCase() === item.color.toLowerCase();
+            return sizeMatch && colorMatch;
+        });
+        
+        if (matchingVariant) {
+            removeFromCart(item.variantId);
+            addToCart({
+                id: item.id,
+                variantId: matchingVariant.id,
+                handle: item.handle,
+                title: item.title,
+                image: matchingVariant.image || item.image,
+                color: item.color,
+                size: newSize,
+                price: matchingVariant.price,
+                currencyCode: item.currencyCode,
+                quantityAvailable: matchingVariant.quantityAvailable,
+                quantity: item.quantity
+            });
+        }
+    };
 
     if (!isCartSidebarOpen) return null;
 
@@ -92,12 +210,51 @@ export default function CartSidebar() {
                                         </div>
 
                                         <div className="flex gap-2">
-                                            <div className="border border-gray-200 rounded px-2 py-1 text-[10px] font-medium text-black bg-white flex items-center gap-1">
-                                                SIZE: {item.size}
+                                            {/* Size select dropdown */}
+                                            <div className="relative border border-gray-200 rounded text-[10px] font-medium text-black bg-white flex items-center">
+                                                <span className="pl-2 pointer-events-none select-none uppercase">SIZE:</span>
+                                                <select
+                                                    value={item.size}
+                                                    onChange={(e) => handleSizeChange(item, e.target.value)}
+                                                    className="bg-transparent pl-1 pr-6 py-1 text-[10px] font-medium text-black outline-none cursor-pointer appearance-none uppercase"
+                                                >
+                                                    {(() => {
+                                                        const sizes = getAvailableSizes(item);
+                                                        if (sizes.length === 0) {
+                                                            return <option value={item.size}>{item.size}</option>;
+                                                        }
+                                                        return sizes.map((s: any) => {
+                                                            const label = typeof s === 'string' ? s : s.label;
+                                                            return (
+                                                                <option key={label} value={label}>
+                                                                    {label}
+                                                                </option>
+                                                            );
+                                                        });
+                                                    })()}
+                                                </select>
+                                                <svg viewBox="0 0 24 24" className="w-2.5 h-2.5 text-black/50 absolute right-1.5 pointer-events-none" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                                    <path d="M6 9l6 6 6-6" />
+                                                </svg>
                                             </div>
-                                            <div className="border border-gray-200 rounded px-2 py-1 text-[10px] font-medium text-black bg-white flex items-center gap-1 cursor-pointer">
-                                                QTY: {item.quantity}
-                                                <svg viewBox="0 0 24 24" className="w-3 h-3 text-black/50" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6" /></svg>
+
+                                            {/* Quantity select dropdown */}
+                                            <div className="relative border border-gray-200 rounded text-[10px] font-medium text-black bg-white flex items-center">
+                                                <span className="pl-2 pointer-events-none select-none uppercase">QTY:</span>
+                                                <select
+                                                    value={item.quantity}
+                                                    onChange={(e) => updateQuantity(item.variantId, parseInt(e.target.value))}
+                                                    className="bg-transparent pl-1 pr-6 py-1 text-[10px] font-medium text-black outline-none cursor-pointer appearance-none"
+                                                >
+                                                    {Array.from({ length: Math.max(item.quantity, Math.min(10, item.quantityAvailable ?? 10)) }, (_, i) => i + 1).map((q) => (
+                                                        <option key={q} value={q}>
+                                                            {q}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                <svg viewBox="0 0 24 24" className="w-2.5 h-2.5 text-black/50 absolute right-1.5 pointer-events-none" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                                    <path d="M6 9l6 6 6-6" />
+                                                </svg>
                                             </div>
                                         </div>
                                     </div>

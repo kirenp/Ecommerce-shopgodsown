@@ -5,6 +5,38 @@ import Image from "next/image";
 import { useCart } from "@/lib/cartContext";
 import { useUI } from "@/lib/uiContext";
 
+const SIZE_ORDER: Record<string, number> = {
+  "XXS": 1,
+  "XS": 2,
+  "S": 3,
+  "M": 4,
+  "L": 5,
+  "XL": 6,
+  "XXL": 7,
+  "2XL": 7,
+  "XXXL": 8,
+  "3XL": 8,
+  "4XL": 9
+};
+
+function sortSizesList(sizes: any[]) {
+  if (!sizes) return [];
+  const getLabel = (s: any) => {
+    if (!s) return "";
+    if (typeof s === 'string') return s;
+    return s.label || s.value || s.name || "";
+  };
+
+  return [...sizes].sort((a, b) => {
+    const aLabel = getLabel(a).toUpperCase();
+    const bLabel = getLabel(b).toUpperCase();
+    const aVal = SIZE_ORDER[aLabel] ?? 99;
+    const bVal = SIZE_ORDER[bLabel] ?? 99;
+    if (aVal !== bVal) return aVal - bVal;
+    return aLabel.localeCompare(bLabel);
+  });
+}
+
 export default function QuickViewModal() {
     const { isQuickViewOpen, closeQuickView, quickViewProduct, openCartSidebar } = useUI();
     const { addToCart } = useCart();
@@ -37,7 +69,7 @@ export default function QuickViewModal() {
 
     const availableSizesForColor = useMemo(() => {
         if (!quickViewProduct) return [];
-        if (!selectedColor) return quickViewProduct.sizes || [];
+        if (!selectedColor) return sortSizesList(quickViewProduct.sizes || []);
         const sizes = quickViewProduct.variants
             .filter((v: any) => v.options.some((opt: any) => opt.name.toLowerCase() === "color" && opt.value === selectedColor))
             .map((v: any) => {
@@ -45,7 +77,7 @@ export default function QuickViewModal() {
                 return sizeOpt ? sizeOpt.value : null;
             })
             .filter(Boolean);
-        return Array.from(new Set(sizes)).map((s) => ({ label: s }));
+        return sortSizesList(Array.from(new Set(sizes)).map((s) => ({ label: s })));
     }, [selectedColor, quickViewProduct]);
 
     const currentVariant = useMemo(() => {
@@ -172,7 +204,7 @@ export default function QuickViewModal() {
                                     <button onClick={() => setShowSizeGuide(true)} className="text-[10px] text-gray-500 hover:text-black uppercase tracking-wider underline underline-offset-4 transition-colors">Size Guide</button>
                                 </div>
                                 <div className="flex flex-wrap gap-2">
-                                    {(availableSizesForColor.length > 0 ? availableSizesForColor : quickViewProduct.sizes || []).map((s: any, i: number) => (
+                                    {sortSizesList(availableSizesForColor.length > 0 ? availableSizesForColor : quickViewProduct.sizes || []).map((s: any, i: number) => (
                                         <button
                                             key={i}
                                             onClick={() => setSelectedSize(s.label)}
