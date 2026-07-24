@@ -46,29 +46,32 @@ export default function Hero() {
           <div className="absolute inset-0 bg-black/20 pointer-events-none" />
         </div>
 
-        {/* ── CENTERED FLOATING BUTTON (Positioned precisely in the EXCLUSIVE DROP gap) ── */}
+        {/* ── BOTTOM RIGHT FLOATING BUTTON ── */}
         <div 
-          className={`absolute left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 transition-all duration-[1200ms] ease-out ${
+          className={`absolute z-10 transition-all duration-[1200ms] ease-out ${
             buttonVisible 
-              ? 'opacity-100 scale-100 top-[50.5%] md:top-[44%]' 
-              : 'opacity-0 scale-90 top-[52.5%] md:top-[46%]'
+              ? 'opacity-100 scale-100 bottom-6 right-6 md:bottom-12 md:right-12' 
+              : 'opacity-0 scale-90 bottom-2 right-2 md:bottom-8 md:right-8'
           }`}
         >
-          <button 
-            className="w-20 h-20 md:w-28 md:h-28 rounded-full border border-white/40 bg-white/10 backdrop-blur-md flex flex-col items-center justify-center text-center p-2 hover:bg-black/20 hover:rotate-12 transition-all duration-500 shadow-md hover:shadow-lg group"
-            onClick={() => {
-              const element = document.getElementById("collections");
-              if (element) {
-                element.scrollIntoView({ behavior: 'smooth' });
-              } else {
-                window.location.href = getPreviewPath("/catalog");
-              }
-            }}
-          >
-            <span className="text-[8px] md:text-[10px] font-semibold tracking-[0.2em] uppercase text-white leading-normal transition-transform duration-300 group-hover:scale-105">
-              DISCOVER<br/>MORE
-            </span>
-          </button>
+          <div className="relative rounded-full p-[2px] overflow-hidden flex items-center justify-center group shadow-[0_0_15px_rgba(255,0,0,0.3)]">
+            <div className="absolute inset-0 bg-[conic-gradient(from_0deg,transparent_0_300deg,rgba(255,0,0,1)_360deg)] animate-[spin_2s_linear_infinite]" />
+            <button 
+              className="relative w-20 h-20 md:w-28 md:h-28 rounded-full border border-white/20 bg-black/40 backdrop-blur-md flex flex-col items-center justify-center text-center p-2 hover:bg-black/60 transition-all duration-500 shadow-md group-hover:shadow-[0_0_20px_rgba(255,0,0,0.6)]"
+              onClick={() => {
+                const element = document.getElementById("collections");
+                if (element) {
+                  element.scrollIntoView({ behavior: 'smooth' });
+                } else {
+                  window.location.href = getPreviewPath("/catalog");
+                }
+              }}
+            >
+              <span className="text-[8px] md:text-[10px] font-semibold tracking-[0.2em] uppercase text-white leading-normal transition-transform duration-300 group-hover:scale-105">
+                DISCOVER<br/>MORE
+              </span>
+            </button>
+          </div>
         </div>
       </div>
     </section>
