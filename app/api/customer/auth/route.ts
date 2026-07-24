@@ -12,6 +12,7 @@ import {
   saveServerCustomerAddress,
   removeServerCustomerAddress,
 } from "@/lib/serverCustomerStore";
+import { getServerCustomerOrders } from "@/lib/serverOrderStore";
 
 export const dynamic = 'force-dynamic';
 
@@ -380,6 +381,14 @@ export async function POST(req: NextRequest) {
           }
         } catch (err) {
           console.warn("Failed to fetch orders:", err);
+        }
+      }
+
+      // Merge local server store orders (fail-safe for missing API permissions or local orders)
+      const serverOrders = getServerCustomerOrders(cleanEmail);
+      for (const so of serverOrders) {
+        if (!orders.some(o => o.orderNumber === so.orderNumber || o.id === so.id)) {
+          orders.push(so);
         }
       }
 

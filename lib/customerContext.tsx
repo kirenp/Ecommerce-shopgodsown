@@ -208,20 +208,20 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
           setOrderHistory(json.orders);
         }
         
-        // Combine stored addresses with Admin API returned addresses
+        // Combine stored addresses with Admin API & server returned addresses
         const localAddrs = loadStoredAddresses(email);
         const apiAddrs: CustomerAddress[] = json.addresses || [];
         
         const combined = [...apiAddrs];
         for (const loc of localAddrs) {
-          if (!combined.some(a => a.id === loc.id || (a.address === loc.address && a.pinCode === loc.pinCode))) {
+          if (!combined.some(a => a.id === loc.id || (a.address.toLowerCase() === loc.address.toLowerCase() && a.pinCode === loc.pinCode))) {
             combined.push(loc);
+            // Auto sync unsynced local address to server DB
+            syncAddressToApi(email, loc);
           }
         }
-        if (combined.length > 0) {
-          setSavedAddresses(combined);
-          persistStoredAddresses(email, combined);
-        }
+        setSavedAddresses(combined);
+        persistStoredAddresses(email, combined);
       }
     } catch (err) {
       console.warn("Failed to fetch customer data:", err);
@@ -386,49 +386,47 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
       id: `addr_${Date.now()}`,
       isDefault: savedAddresses.length === 0
     };
-    setSavedAddresses(prev => {
-      const next = [addrWithId, ...prev];
-      if (customer?.email) {
-        persistStoredAddresses(customer.email, next);
-        syncAddressToApi(customer.email, addrWithId);
-      }
-      return next;
-    });
+    const nextAddrs = [addrWithId, ...savedAddresses];
+    setSavedAddresses(nextAddrs);
+    
+    const activeEmail = customer?.email || (typeof window !== 'undefined' ? (getCookie("goc_auth_session") ? JSON.parse(getCookie("goc_auth_session")!).customer?.email : null) : null);
+    if (activeEmail) {
+      persistStoredAddresses(activeEmail, nextAddrs);
+      syncAddressToApi(activeEmail, addrWithId);
+    }
   };
 
   const updateAddress = (id: string, updatedAddr: Partial<CustomerAddress>) => {
-    setSavedAddresses(prev => {
-      const next = prev.map(a => a.id === id ? { ...a, ...updatedAddr } : a);
-      if (customer?.email) {
-        persistStoredAddresses(customer.email, next);
-        const fullAddr = next.find(a => a.id === id);
-        if (fullAddr) syncAddressToApi(customer.email, fullAddr);
-      }
-      return next;
-    });
+    const nextAddrs = savedAddresses.map(a => a.id === id ? { ...a, ...updatedAddr } : a);
+    setSavedAddresses(nextAddrs);
+    const activeEmail = customer?.email || (typeof window !== 'undefined' ? (getCookie("goc_auth_session") ? JSON.parse(getCookie("goc_auth_session")!).customer?.email : null) : null);
+    if (activeEmail) {
+      persistStoredAddresses(activeEmail, nextAddrs);
+      const fullAddr = nextAddrs.find(a => a.id === id);
+      if (fullAddr) syncAddressToApi(activeEmail, fullAddr);
+    }
   };
 
   const removeAddress = (id: string) => {
-    setSavedAddresses(prev => {
-      const next = prev.filter(a => a.id !== id);
-      if (customer?.email) {
-        persistStoredAddresses(customer.email, next);
-        fetch("/api/customer/auth", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "remove-address", email: customer.email, addressId: id }),
+    const nextAddrs = savedAddresses.filter(a => a.id !== id);
+    setSavedAddresses(nextAddrs);
+    const activeEmail = customer?.email || (typeof window !== 'undefined' ? (getCookie("goc_auth_session") ? JSON.parse(getCookie("goc_auth_session")!).customer?.email : null) : null);
+    if (activeEmail) {
+      persistStoredAddresses(activeEmail, nextAddrs);
+      fetch("/api/customer/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "remove-address", email: activeEmail, addressId: id }),
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.addresses) {
+            setSavedAddresses(data.addresses);
+            persistStoredAddresses(activeEmail, data.addresses);
+          }
         })
-          .then(res => res.json())
-          .then(data => {
-            if (data.success && data.addresses) {
-              setSavedAddresses(data.addresses);
-              persistStoredAddresses(customer.email, data.addresses);
-            }
-          })
-          .catch(() => {});
-      }
-      return next;
-    });
+        .catch(() => {});
+    }
   };
 
   return (

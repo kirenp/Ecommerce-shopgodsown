@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { saveServerCustomerAddress } from "@/lib/serverCustomerStore";
+import { saveServerCustomerOrder } from "@/lib/serverOrderStore";
 
 export const dynamic = "force-dynamic";
 
@@ -61,9 +63,29 @@ export async function POST(req: NextRequest) {
     const formattedShipping = formatAddress(shippingAddress);
     const formattedBilling = formatAddress(billingAddress || shippingAddress);
 
-    let shopifyOrderResult: any = null;
+    // 1. Save shipping address persistently to server store for customer account
+    if (email && shippingAddress) {
+      try {
+        saveServerCustomerAddress(email, {
+          id: `addr_checkout_${Date.now()}`,
+          firstName: shippingAddress.firstName || "",
+          lastName: shippingAddress.lastName || "",
+          address: [shippingAddress.address, shippingAddress.apartment].filter(Boolean).join(", "),
+          city: shippingAddress.city || "",
+          state: shippingAddress.state || "Kerala",
+          pinCode: shippingAddress.pinCode || "",
+          phone: shippingAddress.phone || phone || "",
+          isDefault: true,
+        });
+      } catch (e) {
+        console.warn("Failed to auto-save address to server store:", e);
+      }
+    }
 
-    // Call Shopify Admin REST API to create order if token exists
+    let shopifyOrderResult: any = null;
+    let shopifyApiError: string | null = null;
+
+    // 2. Call Shopify Admin REST API to create order if token exists
     if (adminToken) {
       try {
         const endpoint = `https://${domain}/admin/api/${apiVersion}/orders.json`;
@@ -92,7 +114,7 @@ export async function POST(req: NextRequest) {
 
         if (!shopifyRes.ok) {
           const errText = await shopifyRes.text();
-          console.warn("Primary Shopify Order Creation response failed:", errText);
+          console.warn("Primary Shopify Order Creation failed:", shopifyRes.status, errText);
 
           // Fallback: Try without variant_id in case variant ID mismatched in Shopify catalog
           const fallbackLineItems = lineItems.map((li: any) => ({
@@ -130,20 +152,52 @@ export async function POST(req: NextRequest) {
           shopifyOrderResult = shopifyData.order;
         } else {
           const errText2 = await shopifyRes.text();
-          console.error("Fallback Shopify Order Creation error:", errText2);
+          shopifyApiError = errText2;
+          console.error("Shopify Order Creation Error:", shopifyRes.status, errText2);
         }
-      } catch (err) {
+      } catch (err: any) {
+        shopifyApiError = err.message;
         console.error("Shopify Admin Order creation error:", err);
       }
     }
 
     const orderNumber = shopifyOrderResult?.name || `#GOC-${Math.floor(100000 + Math.random() * 900000)}`;
 
+    // 3. Save order to server store as fail-safe fallback for Customer Account Dashboard & tracking
+    if (email) {
+      try {
+        saveServerCustomerOrder({
+          id: shopifyOrderResult?.id || `local_${Date.now()}`,
+          email,
+          orderNumber,
+          processedAt: new Date().toISOString(),
+          totalPrice: parseFloat(amount || "0").toFixed(2),
+          fulfillmentStatus: "UNFULFILLED",
+          financialStatus: "PAID",
+          items: items.map((i: any) => ({
+            title: i.title,
+            quantity: i.quantity || 1,
+            price: parseFloat(i.price || "0").toFixed(2),
+            image: i.image || "",
+            size: i.size || "",
+            color: i.color || "",
+          })),
+          shippingAddress: formattedShipping,
+          paymentId: paymentId || "",
+        });
+      } catch (e) {
+        console.warn("Failed to save order to server order store:", e);
+      }
+    }
+
     return NextResponse.json({
       success: true,
       orderId: shopifyOrderResult?.id || `local_${Date.now()}`,
       orderNumber: orderNumber,
-      message: "Order placed and recorded in Shopify successfully.",
+      shopifyError: shopifyApiError,
+      message: shopifyOrderResult
+        ? "Order placed and recorded in Shopify successfully."
+        : "Order saved to local server store. Note: Shopify API requires write_orders permission.",
     });
 
   } catch (error: any) {
