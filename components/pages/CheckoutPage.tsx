@@ -65,7 +65,7 @@ const loadRazorpayScript = () => {
 };
 
 export default function CheckoutPageContent() {
-  const { items, removeFromCart, updateQuantity, subtotal } = useCart();
+  const { items, removeFromCart, updateQuantity, subtotal, clearCart } = useCart();
   const { openAccountSidebar } = useUI();
   const { customer, isLoggedIn, savedAddresses } = useCustomer();
   const { getPreviewPath } = usePreview();
@@ -99,6 +99,8 @@ export default function CheckoutPageContent() {
   const [discountError, setDiscountError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [confirmedOrderNumber, setConfirmedOrderNumber] = useState("");
+  const [finalPaidAmount, setFinalPaidAmount] = useState(0);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
   // Pre-fill logged in customer email & default saved address
@@ -247,6 +249,16 @@ export default function CheckoutPageContent() {
 
     // Collect order details, including selected shipping/billing addresses to send to the backend order/Shopify sync logs
     const orderPayload = {
+      items: items.map(item => ({
+        id: item.id,
+        variantId: item.variantId,
+        title: item.title,
+        price: item.price,
+        quantity: item.quantity,
+        color: item.color,
+        size: item.size,
+        image: item.image,
+      })),
       amount: totalAmount,
       contact: emailOrPhone,
       shippingAddress: {
@@ -318,10 +330,30 @@ export default function CheckoutPageContent() {
         name: "Gods Own Culture",
         description: "Streetwear Order Checkout",
         order_id: orderData.id,
-        handler: function (response: any) {
+        handler: async function (response: any) {
           // Payment Success Callback
-          setIsSubmitting(false);
-          setIsSuccess(true);
+          setFinalPaidAmount(totalAmount);
+          try {
+            const completeRes = await fetch("/api/checkout/complete", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                ...orderPayload,
+                paymentId: response.razorpay_payment_id,
+                orderId: response.razorpay_order_id,
+              }),
+            });
+            const completeData = await completeRes.json();
+            if (completeData.orderNumber) {
+              setConfirmedOrderNumber(completeData.orderNumber);
+            }
+          } catch (err) {
+            console.error("Order complete sync error:", err);
+          } finally {
+            clearCart();
+            setIsSubmitting(false);
+            setIsSuccess(true);
+          }
         },
         prefill: {
           name: `${firstName} ${lastName}`.trim(),
@@ -365,8 +397,11 @@ export default function CheckoutPageContent() {
             <CheckCircle2 size={64} className="text-[#00C853] animate-bounce" />
           </div>
           <h2 className="text-3xl font-brand font-light tracking-tight text-black">Order Confirmed!</h2>
+          {confirmedOrderNumber && (
+            <p className="text-xs font-bold uppercase tracking-widest text-[#C81E1E]">Order {confirmedOrderNumber}</p>
+          )}
           <p className="text-sm text-black/60 leading-relaxed max-w-sm mx-auto font-medium">
-            Thank you for shopping with us. Your payment via Razorpay has been processed successfully. We've sent confirmation details to <strong className="text-black">{emailOrPhone}</strong>.
+            Thank you for shopping with us. Your payment via Razorpay has been processed successfully and your order has been placed. We've sent confirmation details to <strong className="text-black">{emailOrPhone}</strong>.
           </p>
           
           <div className="pt-4 border-t border-gray-100 space-y-2 text-left font-medium">
@@ -376,7 +411,7 @@ export default function CheckoutPageContent() {
             </div>
             <div className="flex justify-between text-xs text-black/40 uppercase tracking-widest">
               <span>Amount Paid</span>
-              <span className="text-black font-bold">₹{totalAmount.toLocaleString("en-IN")}</span>
+              <span className="text-black font-bold">₹{(finalPaidAmount || totalAmount).toLocaleString("en-IN")}</span>
             </div>
           </div>
 
