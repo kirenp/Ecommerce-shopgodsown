@@ -13,7 +13,7 @@ import { usePreview } from "@/lib/preview";
 
 export default function AccountSidebar() {
   const { isAccountSidebarOpen, openAccountSidebar, closeAccountSidebar } = useUI();
-  const { customer, isLoggedIn, initiateAuth, logout, savedAddresses, orderHistory, addAddress, updateAddress, removeAddress } = useCustomer();
+  const { customer, isLoggedIn, initiateAuth, logout, savedAddresses, orderHistory, addAddress, updateAddress, removeAddress, refreshCustomerData } = useCustomer();
   // Sign In View Toggle State
   const [showLoginForm, setShowLoginForm] = useState(false);
   const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
@@ -22,6 +22,13 @@ export default function AccountSidebar() {
   const [loginEmail, setLoginEmail] = useState("");
   const [authError, setAuthError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Refresh order history and customer data whenever drawer opens
+  useEffect(() => {
+    if (isAccountSidebarOpen) {
+      refreshCustomerData();
+    }
+  }, [isAccountSidebarOpen, refreshCustomerData]);
 
   // Auto-open sidebar when auth callback succeeds
   useEffect(() => {

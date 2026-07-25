@@ -61,6 +61,7 @@ interface CustomerContextType {
   addAddress: (address: Omit<CustomerAddress, 'id'>) => void;
   updateAddress: (id: string, address: Partial<CustomerAddress>) => void;
   removeAddress: (id: string) => void;
+  refreshCustomerData: (email?: string) => Promise<void>;
 }
 
 const CustomerContext = createContext<CustomerContextType | undefined>(undefined);
@@ -192,24 +193,40 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
 
   // Fetch orders/addresses from Admin API
   const fetchCustomerData = async (email: string) => {
+    if (!email) return;
+    const cleanEmail = email.trim().toLowerCase();
+    if (typeof window !== 'undefined') {
+      try { localStorage.setItem("goc_last_email", cleanEmail); } catch (e) {}
+    }
     try {
       const res = await fetch("/api/customer/auth", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "get-customer-data", email }),
+        body: JSON.stringify({ action: "get-customer-data", email: cleanEmail }),
       });
       const json = await res.json();
       if (json.success) {
         if (json.customer) {
           setCustomer(prev => ({ ...(prev || {}), ...json.customer }));
           persistLocalCustomer(json.customer);
+        } else {
+          setCustomer(prev => prev || {
+            id: `local_${Date.now()}`,
+            firstName: cleanEmail.split("@")[0],
+            lastName: "",
+            email: cleanEmail,
+            phone: "",
+            acceptsMarketing: true,
+            tier: "Club Member",
+            points: 100,
+          });
         }
         if (json.orders) {
           setOrderHistory(json.orders);
         }
         
         // Combine stored addresses with Admin API & server returned addresses
-        const localAddrs = loadStoredAddresses(email);
+        const localAddrs = loadStoredAddresses(cleanEmail);
         const apiAddrs: CustomerAddress[] = json.addresses || [];
         
         const combined = [...apiAddrs];
@@ -217,14 +234,21 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
           if (!combined.some(a => a.id === loc.id || (a.address.toLowerCase() === loc.address.toLowerCase() && a.pinCode === loc.pinCode))) {
             combined.push(loc);
             // Auto sync unsynced local address to server DB
-            syncAddressToApi(email, loc);
+            syncAddressToApi(cleanEmail, loc);
           }
         }
         setSavedAddresses(combined);
-        persistStoredAddresses(email, combined);
+        persistStoredAddresses(cleanEmail, combined);
       }
     } catch (err) {
       console.warn("Failed to fetch customer data:", err);
+    }
+  };
+
+  const refreshCustomerData = async (emailParam?: string) => {
+    const activeEmail = emailParam || customer?.email || (typeof window !== 'undefined' ? localStorage.getItem("goc_last_email") || "" : "");
+    if (activeEmail) {
+      await fetchCustomerData(activeEmail);
     }
   };
 
@@ -444,6 +468,7 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
         addAddress,
         updateAddress,
         removeAddress,
+        refreshCustomerData,
       }}
     >
       {children}

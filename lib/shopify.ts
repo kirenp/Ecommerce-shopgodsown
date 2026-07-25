@@ -474,14 +474,18 @@ export async function getProduct(handle: string) {
     vendor: product.vendor,
     price: product.priceRange.minVariantPrice.amount,
     currencyCode: product.priceRange.minVariantPrice.currencyCode,
-    variants: product.variants.edges.map((edge: any) => ({
-      id: edge.node.id,
-      title: edge.node.title,
-      available: edge.node.availableForSale,
-      quantityAvailable: edge.node.quantityAvailable ?? 999, // default to 999 if null/scope denied, so it doesn't hard-restrict to 1
-      price: edge.node.price.amount,
-      options: edge.node.selectedOptions,
-      image: edge.node.image?.url || null
-    }))
+    variants: product.variants.edges.map((edge: any) => {
+      const isAvailable = edge.node.availableForSale && (edge.node.quantityAvailable === undefined || edge.node.quantityAvailable === null || edge.node.quantityAvailable > 0);
+      const qtyAvailable = isAvailable ? (edge.node.quantityAvailable ?? 999) : 0;
+      return {
+        id: edge.node.id,
+        title: edge.node.title,
+        available: isAvailable,
+        quantityAvailable: qtyAvailable,
+        price: edge.node.price.amount,
+        options: edge.node.selectedOptions,
+        image: edge.node.image?.url || null
+      };
+    })
   };
 }

@@ -67,7 +67,7 @@ const loadRazorpayScript = () => {
 export default function CheckoutPageContent() {
   const { items, removeFromCart, updateQuantity, subtotal, clearCart } = useCart();
   const { openAccountSidebar } = useUI();
-  const { customer, isLoggedIn, savedAddresses } = useCustomer();
+  const { customer, isLoggedIn, savedAddresses, refreshCustomerData } = useCustomer();
   const { getPreviewPath } = usePreview();
 
   // Shipping Form State
@@ -346,6 +346,10 @@ export default function CheckoutPageContent() {
             const completeData = await completeRes.json();
             if (completeData.orderNumber) {
               setConfirmedOrderNumber(completeData.orderNumber);
+            }
+            const userEmail = emailOrPhone.includes("@") ? emailOrPhone.trim().toLowerCase() : (customer?.email || "");
+            if (userEmail) {
+              refreshCustomerData(userEmail);
             }
           } catch (err) {
             console.error("Order complete sync error:", err);
