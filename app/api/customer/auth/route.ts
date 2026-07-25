@@ -370,6 +370,7 @@ export async function POST(req: NextRequest) {
                 totalPrice: ord.totalPriceSet?.shopMoney?.amount || "0.00",
                 fulfillmentStatus: ord.displayFulfillmentStatus || "UNFULFILLED",
                 financialStatus: ord.displayFinancialStatus || "PAID",
+                shippingAddress: ord.shippingAddress || null,
                 items: ord.lineItems.edges.map((itemEdge: any) => ({
                   title: itemEdge.node.title,
                   quantity: itemEdge.node.quantity,

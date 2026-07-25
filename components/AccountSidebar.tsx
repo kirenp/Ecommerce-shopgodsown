@@ -535,15 +535,15 @@ export default function AccountSidebar() {
                           ))}
                         </div>
 
-                        {/* One-Click Track Button */}
+                        {/* One-Click Orders Link */}
                         <div className="pt-2 border-t border-gray-100 flex justify-between items-center">
                           <span className="text-xs font-bold text-black font-sans">Total: ₹{ord.totalPrice}</span>
                           <Link
-                            href={getPreviewPath(`/track-order?orderId=${encodeURIComponent(ord.orderNumber)}&contact=${encodeURIComponent(customer?.phone || "")}`)}
+                            href={getPreviewPath(`/orders?orderId=${encodeURIComponent(ord.orderNumber)}`)}
                             onClick={closeAccountSidebar}
                             className="bg-black hover:bg-black/90 text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-lg flex items-center gap-1"
                           >
-                            <span>Track Package</span>
+                            <span>YOUR ORDERS</span>
                             <ArrowRight size={10} />
                           </Link>
                         </div>

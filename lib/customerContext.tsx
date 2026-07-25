@@ -35,6 +35,7 @@ export interface CustomerOrder {
   trackingNumber?: string;
   trackingCompany?: string;
   trackingUrl?: string;
+  shippingAddress?: any;
 }
 
 export interface CustomerProfile {
