@@ -5,7 +5,7 @@ import { saveServerCustomerOrder } from "@/lib/serverOrderStore";
 export const dynamic = "force-dynamic";
 
 const domain = process.env.SHOPIFY_STORE_DOMAIN || "godsown-9751.myshopify.com";
-const adminToken = process.env.SHOPIFY_PRIVATE_ACCESS_TOKEN;
+const adminToken = process.env.SHOPIFY_ADMIN_ACCESS_TOKEN || (process.env.SHOPIFY_PRIVATE_ACCESS_TOKEN?.startsWith("shpat_") ? process.env.SHOPIFY_PRIVATE_ACCESS_TOKEN : undefined);
 const apiVersion = process.env.SHOPIFY_API_VERSION || "2026-01";
 
 export async function POST(req: NextRequest) {

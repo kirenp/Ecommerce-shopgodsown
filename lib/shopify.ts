@@ -1,6 +1,6 @@
 const domain = process.env.SHOPIFY_STORE_DOMAIN;
 const publicAccessToken = process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN;
-const privateAccessToken = process.env.SHOPIFY_PRIVATE_ACCESS_TOKEN;
+const storefrontPrivateToken = process.env.SHOPIFY_STOREFRONT_PRIVATE_TOKEN;
 const apiVersion = process.env.SHOPIFY_API_VERSION || '2026-01';
 
 export async function shopifyFetch<T>({
@@ -16,10 +16,12 @@ export async function shopifyFetch<T>({
       "Content-Type": "application/json",
     };
 
-    if (privateAccessToken) {
-      headers["Shopify-Storefront-Private-Token"] = privateAccessToken;
+    if (storefrontPrivateToken) {
+      headers["Shopify-Storefront-Private-Token"] = storefrontPrivateToken;
     } else if (publicAccessToken) {
       headers["X-Shopify-Storefront-Access-Token"] = publicAccessToken;
+    } else if (process.env.SHOPIFY_PRIVATE_ACCESS_TOKEN?.startsWith("shpss_")) {
+      headers["Shopify-Storefront-Private-Token"] = process.env.SHOPIFY_PRIVATE_ACCESS_TOKEN;
     }
 
     const res = await fetch(endpoint, {

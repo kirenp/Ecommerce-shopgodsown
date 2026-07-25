@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     const cleanContact = emailOrPhone.trim().toLowerCase();
 
     const domain = process.env.SHOPIFY_STORE_DOMAIN || "godsown-9751.myshopify.com";
-    const adminToken = process.env.SHOPIFY_PRIVATE_ACCESS_TOKEN;
+    const adminToken = process.env.SHOPIFY_ADMIN_ACCESS_TOKEN || (process.env.SHOPIFY_PRIVATE_ACCESS_TOKEN?.startsWith("shpat_") ? process.env.SHOPIFY_PRIVATE_ACCESS_TOKEN : undefined);
 
     // If private token is set, query Shopify GraphQL Admin API server-side securely
     if (adminToken && domain) {

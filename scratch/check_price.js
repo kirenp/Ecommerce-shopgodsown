@@ -1,5 +1,21 @@
-const domain = 'godsown-9751.myshopify.com';
-const token = '015b0ffcb5edb0548a642245e0401bb4';
+const fs = require('fs');
+const path = require('path');
+
+// Load .env.local dynamically
+const envPath = path.join(__dirname, '..', '.env.local');
+if (fs.existsSync(envPath)) {
+  const envContent = fs.readFileSync(envPath, 'utf8');
+  envContent.split('\n').forEach(line => {
+    const trimmed = line.trim();
+    if (trimmed && !trimmed.startsWith('#')) {
+      const [key, ...rest] = trimmed.split('=');
+      process.env[key.trim()] = rest.join('=').trim();
+    }
+  });
+}
+
+const domain = process.env.SHOPIFY_STORE_DOMAIN || 'godsown-9751.myshopify.com';
+const token = process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN;
 const query = `
   query getProduct {
     product(handle: "gods-own-limited-edition-tees") {
@@ -26,7 +42,7 @@ const query = `
   }
 `;
 
-fetch(`https://${domain}/api/2026-01/graphql.json`, {
+fetch(`https://${domain}/api/2026-07/graphql.json`, {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
