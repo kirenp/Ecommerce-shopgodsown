@@ -11,79 +11,32 @@ interface InstagramPost {
   mediaType?: string;
 }
 
-const FALLBACK_POSTS: InstagramPost[] = [
-  {
-    id: "fb_1",
-    mediaUrl: "/images/IMG_9026.JPG.jpeg",
-    permalink: "https://www.instagram.com/godsownculture/",
-    caption: "GODS OWN Limited Edition Tees — Street ready fits with Kerala roots.",
-  },
-  {
-    id: "fb_2",
-    mediaUrl: "/images/IMG_9025.JPG (1).jpeg",
-    permalink: "https://www.instagram.com/godsownculture/",
-    caption: "Quality details. Engineered for maximum presence.",
-  },
-  {
-    id: "fb_3",
-    mediaUrl: "/images/productnavig-2.png",
-    permalink: "https://www.instagram.com/godsownculture/",
-    caption: "Malayali Dept. Oversized Tank Top.",
-  },
-  {
-    id: "fb_4",
-    mediaUrl: "/images/Full sleeve minimal front embroidery.png",
-    permalink: "https://www.instagram.com/godsownculture/",
-    caption: "Full sleeve minimal front embroidery.",
-  },
-  {
-    id: "fb_5",
-    mediaUrl: "/images/d686abb82ae9c13e81987c7572fcb386.jpg",
-    permalink: "https://www.instagram.com/godsownculture/",
-    caption: "The new standard of streetwear drop.",
-  },
-  {
-    id: "fb_6",
-    mediaUrl: "/images/ff1780bf6880821ffda706f87413ec8f.jpg",
-    permalink: "https://www.instagram.com/godsownculture/",
-    caption: "Culture meets streetwear.",
-  },
-];
-
 export default function InstagramFeed() {
-  const [posts, setPosts] = useState<InstagramPost[]>(FALLBACK_POSTS);
+  const [posts, setPosts] = useState<InstagramPost[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Developers can define the Behold.so endpoint or public Instagram API proxy in environment variables
-    const feedUrl = process.env.NEXT_PUBLIC_INSTAGRAM_FEED_URL;
-    
-    if (feedUrl) {
-      fetch(feedUrl)
-        .then((res) => {
-          if (!res.ok) throw new Error("Feed fetch failed");
-          return res.json();
-        })
-        .then((data) => {
-          // Normalize behold.so or generic JSON feed data to matching format
-          const normalized = (Array.isArray(data) ? data : data.data || [])
-            .slice(0, 6)
-            .map((post: any) => ({
-              id: post.id || Math.random().toString(),
-              mediaUrl: post.media_url || post.mediaUrl,
-              permalink: post.permalink || post.link || "https://www.instagram.com/godsownculture/",
-              caption: post.caption || "",
-              mediaType: post.media_type || post.mediaType,
-            }));
-          
-          if (normalized.length > 0) {
-            setPosts(normalized);
-          }
-        })
-        .catch((err) => {
-          console.warn("Instagram dynamic feed error, using local high-quality posts fallback:", err);
-        });
-    }
+    fetch("/api/instagram")
+      .then((res) => {
+        if (!res.ok) throw new Error("Instagram API fetch failed");
+        return res.json();
+      })
+      .then((data) => {
+        if (data.success && Array.isArray(data.posts)) {
+          setPosts(data.posts);
+        }
+      })
+      .catch((err) => {
+        console.warn("Instagram dynamic feed error:", err);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }, []);
+
+  if (!loading && posts.length === 0) {
+    return null; // Don't render the section if there are no live posts
+  }
 
   return (
     <section className="w-full bg-black py-20 border-t border-white/5 overflow-hidden">
@@ -115,7 +68,7 @@ export default function InstagramFeed() {
         </div>
       </div>
 
-      {/* Grid of Posts */}
+      {/* Grid of Live Posts */}
       <div className="px-6 md:px-12 lg:px-16">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {posts.map((post) => (
