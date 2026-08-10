@@ -140,7 +140,7 @@ export default function Navbar() {
           ` }} />
         </div>
         {/* Main Header */}
-        <div className={`w-full ${isHomePage ? 'bg-[#F7F4EF]/95' : 'bg-white/95'} backdrop-blur-md px-6 md:px-12 flex items-center justify-between h-20 relative`}>
+        <div className={`w-full ${isHomePage ? 'bg-[#F7F4EF]/95' : 'bg-white/95'} backdrop-blur-md px-4 sm:px-6 md:px-12 flex items-center justify-between h-16 sm:h-20 relative`}>
           {/* Left Links (desktop, restored as before) */}
           <div className="hidden md:flex items-center space-x-10 h-full z-10">
             {navLinks.map((item) => {
@@ -161,7 +161,7 @@ export default function Navbar() {
 
           {/* Mobile Menu Button */}
           <button
-            className="md:hidden flex flex-col gap-1.5 p-1 z-10"
+            className="md:hidden flex flex-col gap-1.5 p-1.5 z-10 shrink-0"
             onClick={() => setMenuOpen(!menuOpen)}
             aria-label="Menu"
           >
@@ -171,17 +171,17 @@ export default function Navbar() {
           </button>
 
           {/* Logo (centered inside the header bar) */}
-          <div className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 mt-1.5 md:mt-2 z-30">
-            <Link href={getPreviewPath("/")} className="font-sans font-bold text-2xl sm:text-3xl md:text-[34px] tracking-[0.25em] uppercase whitespace-nowrap select-none">
+          <div className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 mt-1 sm:mt-1.5 md:mt-2 z-30 pointer-events-auto">
+            <Link href={getPreviewPath("/")} className="font-sans font-bold text-lg sm:text-2xl md:text-[34px] tracking-[0.12em] sm:tracking-[0.2em] md:tracking-[0.25em] uppercase whitespace-nowrap select-none">
               <span className="text-[#C81E1E]">GODS</span> <span className="text-[#111111]">OWN</span>
             </Link>
           </div>
 
           {/* Decorative Notch dipping below the header under the logo */}
-          <div className={`absolute left-1/2 -translate-x-1/2 bottom-0 translate-y-full ${isHomePage ? 'bg-[#F7F4EF]/95' : 'bg-white/95'} backdrop-blur-md w-56 md:w-64 h-4.5 rounded-b-xl z-20 shadow-md shadow-black/5 pointer-events-none`} />
+          <div className={`absolute left-1/2 -translate-x-1/2 bottom-0 translate-y-full ${isHomePage ? 'bg-[#F7F4EF]/95' : 'bg-white/95'} backdrop-blur-md w-36 sm:w-56 md:w-64 h-3.5 sm:h-4.5 rounded-b-xl z-20 shadow-md shadow-black/5 pointer-events-none`} />
 
           {/* Right Icons & Search Bar (Search placed on the right side) */}
-          <div className="flex items-center space-x-6 md:space-x-8 text-black/60 z-10">
+          <div className="flex items-center space-x-3 sm:space-x-5 md:space-x-8 text-black/60 z-10 shrink-0">
             {/* Search Input Box (desktop only, on the right side) */}
             <div className="hidden md:flex relative items-center bg-black/5 rounded-full px-4 py-2 w-60">
               <Search size={13} className="text-black/40 mr-2.5" />
@@ -202,7 +202,7 @@ export default function Navbar() {
             {/* Mobile-only standalone Search icon */}
             <button
               onClick={() => setSearchOpen(true)}
-              className="hover:text-[#C9A45C] transition-colors md:hidden"
+              className="hover:text-[#C9A45C] transition-colors md:hidden p-0.5"
               aria-label="Search"
             >
               <Search size={18} />
@@ -210,12 +210,12 @@ export default function Navbar() {
 
             <button
               onClick={openAccountSidebar}
-              className="hover:text-[#C9A45C] transition-colors"
+              className="hover:text-[#C9A45C] transition-colors p-0.5"
               aria-label="Account"
             >
               <User size={18} />
             </button>
-            <Link href={getPreviewPath("/cart")} className="hover:text-[#C9A45C] transition-colors relative" aria-label="Cart">
+            <Link href={getPreviewPath("/cart")} className="hover:text-[#C9A45C] transition-colors relative p-0.5" aria-label="Cart">
               <ShoppingBag size={18} />
               {itemCount > 0 && (
                 <span className="absolute -top-1.5 -right-1.5 bg-[#C81E1E] text-white text-[8px] font-bold w-4 h-4 flex items-center justify-center rounded-full leading-none">
