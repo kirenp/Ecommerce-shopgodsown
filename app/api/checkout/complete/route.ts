@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHmac } from "crypto";
+import nodemailer from "nodemailer";
 import { saveServerCustomerAddress } from "@/lib/serverCustomerStore";
 import { saveServerCustomerOrder } from "@/lib/serverOrderStore";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rateLimit";
+import { escapeHtml } from "@/lib/security";
 
 export const dynamic = "force-dynamic";
 
@@ -236,6 +238,17 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // 4. Send order confirmation email to customer & admin notification
+    sendOrderEmailAlerts({
+      orderNumber,
+      email,
+      contact,
+      amount,
+      paymentId,
+      items,
+      shippingAddress: formattedShipping,
+    }).catch((err) => console.error("Async order email send error:", err));
+
     return NextResponse.json({
       success: true,
       orderId: shopifyOrderResult?.id || `local_${Date.now()}`,
@@ -252,4 +265,125 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+/**
+ * Helper function to send HTML email receipt to customer & alert to admin via Nodemailer
+ */
+async function sendOrderEmailAlerts({
+  orderNumber,
+  email,
+  contact,
+  amount,
+  paymentId,
+  items,
+  shippingAddress,
+}: {
+  orderNumber: string;
+  email: string;
+  contact: string;
+  amount: any;
+  paymentId: string;
+  items: any[];
+  shippingAddress: any;
+}) {
+  const adminEmail = process.env.CONTACT_RECEIVER_EMAIL || "godsownculture@gmail.com";
+  const smtpHost = process.env.SMTP_HOST || "smtp.gmail.com";
+  const smtpPort = parseInt(process.env.SMTP_PORT || "465", 10);
+  const smtpUser = process.env.SMTP_USER || process.env.EMAIL_USER;
+  const smtpPass = process.env.SMTP_PASS || process.env.EMAIL_PASS;
+
+  const targetEmail = email || (contact?.includes("@") ? contact.trim() : null);
+  if (!smtpUser || !smtpPass || !smtpPass.trim()) {
+    console.log("[Order Email] SMTP credentials missing. Skipping automated email delivery.");
+    return;
+  }
+
+  const transporter = nodemailer.createTransport({
+    host: smtpHost,
+    port: smtpPort,
+    secure: smtpPort === 465,
+    auth: {
+      user: smtpUser,
+      pass: smtpPass,
+    },
+  });
+
+  const formattedAmount = parseFloat(amount || "0").toLocaleString("en-IN");
+  const itemsHtml = items.map((i: any) => `
+    <tr style="border-bottom: 1px solid #1f1f1f;">
+      <td style="padding: 12px 0; color: #ffffff; font-weight: 600;">
+        ${escapeHtml(i.title)} ${i.size ? `<span style="color: #888888;">(${escapeHtml(i.size)})</span>` : ""}
+      </td>
+      <td style="padding: 12px 0; text-align: center; color: #aaaaaa;">x${i.quantity || 1}</td>
+      <td style="padding: 12px 0; text-align: right; color: #ffffff; font-weight: 700;">₹${parseFloat(i.price || "0").toLocaleString("en-IN")}</td>
+    </tr>
+  `).join("");
+
+  const customerHtml = `
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"></head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #000000; color: #ffffff; margin: 0; padding: 20px 0;">
+      <div style="max-width: 600px; margin: 0 auto; padding: 32px 24px; background-color: #0a0a0a; border: 1px solid #222222; border-radius: 16px;">
+        <div style="text-align: center; padding-bottom: 20px; border-bottom: 1px solid #1f1f1f;">
+          <h1 style="font-size: 22px; font-weight: 800; letter-spacing: 0.2em; text-transform: uppercase; margin: 0;"><span style="color: #C81E1E;">GODS</span> OWN CULTURE</h1>
+          <p style="color: #22c55e; font-size: 11px; font-weight: 700; uppercase; letter-spacing: 0.15em; margin-top: 10px;">✔ Order Confirmed & Paid</p>
+        </div>
+
+        <div style="padding: 24px 0;">
+          <h2 style="font-size: 18px; font-weight: 600; margin: 0 0 8px 0;">Thank you for your order!</h2>
+          <p style="font-size: 13px; color: #aaaaaa; margin: 0 0 20px 0;">Order <strong>${escapeHtml(orderNumber)}</strong> has been received and is being processed.</p>
+
+          <table style="width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 24px;">
+            <thead>
+              <tr style="border-bottom: 1px solid #333333; text-align: left; color: #666666; font-size: 10px; text-transform: uppercase; letter-spacing: 0.15em;">
+                <th style="padding-bottom: 8px;">Item</th>
+                <th style="padding-bottom: 8px; text-align: center;">Qty</th>
+                <th style="padding-bottom: 8px; text-align: right;">Price</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemsHtml}
+            </tbody>
+          </table>
+
+          <div style="background-color: #141414; padding: 16px; border-radius: 8px; font-size: 13px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+              <span style="color: #888888;">Total Amount Paid:</span>
+              <span style="font-weight: 800; color: #ffffff;">₹${formattedAmount} INR</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span style="color: #888888;">Payment ID:</span>
+              <span style="color: #aaaaaa; font-family: monospace;">${escapeHtml(paymentId || "N/A")}</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="text-align: center; padding-top: 20px; border-top: 1px solid #1f1f1f; font-size: 11px; color: #666666;">
+          GODS OWN CULTURE &bull; Streetwear Born from Kerala Heritage
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  if (targetEmail) {
+    await transporter.sendMail({
+      from: `"GODS OWN CULTURE" <${smtpUser}>`,
+      to: targetEmail,
+      subject: `Order Confirmation — ${orderNumber} (GODS OWN CULTURE)`,
+      html: customerHtml,
+    });
+    console.log(`[Order Email] Confirmation sent to customer: ${targetEmail}`);
+  }
+
+  // Also send alert copy to admin
+  await transporter.sendMail({
+    from: `"Store Checkout Alert" <${smtpUser}>`,
+    to: adminEmail,
+    subject: `🚨 New Paid Order: ${orderNumber} (₹${formattedAmount})`,
+    html: customerHtml,
+  });
+  console.log(`[Order Email] Admin alert sent to: ${adminEmail}`);
 }
