@@ -10,10 +10,10 @@ export default async function FeaturedProducts() {
   }
 
   return (
-    <section className="relative py-24 bg-[#f7f5f2] overflow-hidden">
+    <section className="relative pt-4 md:pt-8 pb-8 md:pb-12 bg-[#f7f5f2] overflow-hidden">
 
       {/* Section Header — Minimal, editorial (same format as Shop The Look) */}
-      <div className="px-6 md:px-12 lg:px-16 pb-12">
+      <div className="px-6 md:px-12 lg:px-16 pb-6 md:pb-8">
         <p className="text-[9px] text-gray-500 tracking-[0.5em] uppercase mb-2">
           Collection
         </p>

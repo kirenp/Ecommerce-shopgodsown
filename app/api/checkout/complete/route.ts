@@ -1,20 +1,66 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createHmac } from "crypto";
 import { saveServerCustomerAddress } from "@/lib/serverCustomerStore";
 import { saveServerCustomerOrder } from "@/lib/serverOrderStore";
+import { checkRateLimit, RATE_LIMITS } from "@/lib/rateLimit";
 
 export const dynamic = "force-dynamic";
 
-const domain = process.env.SHOPIFY_STORE_DOMAIN || "godsown-9751.myshopify.com";
+const domain = process.env.SHOPIFY_STORE_DOMAIN;
 const adminToken = process.env.SHOPIFY_ADMIN_ACCESS_TOKEN || (process.env.SHOPIFY_PRIVATE_ACCESS_TOKEN?.startsWith("shpat_") ? process.env.SHOPIFY_PRIVATE_ACCESS_TOKEN : undefined);
 const apiVersion = process.env.SHOPIFY_API_VERSION || "2026-01";
+const razorpayKeySecret = process.env.RAZORPAY_KEY_SECRET;
+
+/**
+ * Verify Razorpay payment signature.
+ * Razorpay signs: orderId + "|" + paymentId using HMAC-SHA256 with the key secret.
+ */
+function verifyRazorpaySignature(
+  orderId: string,
+  paymentId: string,
+  signature: string
+): boolean {
+  if (!razorpayKeySecret || !orderId || !paymentId || !signature) return false;
+  const expectedSignature = createHmac("sha256", razorpayKeySecret)
+    .update(`${orderId}|${paymentId}`)
+    .digest("hex");
+  return expectedSignature === signature;
+}
 
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const rateLimitResponse = checkRateLimit(req, RATE_LIMITS.checkout);
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const body = await req.json();
-    const { items, contact, shippingAddress, billingAddress, amount, paymentId, orderId } = body;
+    const { items, contact, shippingAddress, billingAddress, amount, paymentId, orderId, razorpaySignature } = body;
 
-    if (!items || items.length === 0) {
-      return NextResponse.json({ error: "Cart items are missing in request." }, { status: 400 });
+    if (!items || !Array.isArray(items) || items.length === 0 || items.length > 50) {
+      return NextResponse.json({ error: "Invalid cart items." }, { status: 400 });
+    }
+
+    // ── RAZORPAY SIGNATURE VERIFICATION ──
+    // This is the critical security check that prevents fake payment IDs
+    if (!razorpayKeySecret) {
+      console.warn("RAZORPAY_KEY_SECRET not configured. Skipping signature verification.");
+    } else {
+      if (!paymentId || !orderId || !razorpaySignature) {
+        return NextResponse.json(
+          { error: "Payment verification data is incomplete." },
+          { status: 400 }
+        );
+      }
+
+      const isValid = verifyRazorpaySignature(orderId, paymentId, razorpaySignature);
+      if (!isValid) {
+        console.error("Razorpay signature verification FAILED.", { orderId, paymentId });
+        return NextResponse.json(
+          { error: "Payment verification failed. This transaction has been rejected." },
+          { status: 403 }
+        );
+      }
+      console.log("Razorpay signature verified successfully for order:", orderId);
     }
 
     const isEmail = contact?.includes("@");
@@ -24,9 +70,9 @@ export async function POST(req: NextRequest) {
     // Map items to Shopify line items format
     const lineItems = items.map((item: any) => {
       const lineItem: any = {
-        title: item.title,
+        title: String(item.title || "").slice(0, 256),
         price: parseFloat(item.price || "0").toFixed(2),
-        quantity: item.quantity || 1,
+        quantity: Math.max(1, Math.min(Number(item.quantity) || 1, 100)),
       };
 
       // Add variant ID if available (Extract GID numeric ID if string format)
@@ -39,7 +85,7 @@ export async function POST(req: NextRequest) {
       }
 
       // Add variant title if color/size present
-      const variantTitleParts = [item.color, item.size].filter(Boolean);
+      const variantTitleParts = [item.color, item.size].filter(Boolean).map((v: string) => String(v).slice(0, 100));
       if (variantTitleParts.length > 0) {
         lineItem.variant_title = variantTitleParts.join(" / ");
       }
@@ -49,15 +95,15 @@ export async function POST(req: NextRequest) {
 
     // Format shipping address
     const formatAddress = (addr: any) => ({
-      first_name: addr?.firstName || "",
-      last_name: addr?.lastName || "",
-      address1: addr?.address || "",
-      address2: addr?.apartment || "",
-      city: addr?.city || "",
-      province: addr?.state || "Kerala",
+      first_name: String(addr?.firstName || "").slice(0, 100),
+      last_name: String(addr?.lastName || "").slice(0, 100),
+      address1: String(addr?.address || "").slice(0, 256),
+      address2: String(addr?.apartment || "").slice(0, 256),
+      city: String(addr?.city || "").slice(0, 100),
+      province: String(addr?.state || "Kerala").slice(0, 100),
       country: "India",
-      zip: addr?.pinCode || "",
-      phone: addr?.phone || phone || "",
+      zip: String(addr?.pinCode || "").slice(0, 10),
+      phone: String(addr?.phone || phone || "").slice(0, 20),
     });
 
     const formattedShipping = formatAddress(shippingAddress);
@@ -86,7 +132,7 @@ export async function POST(req: NextRequest) {
     let shopifyApiError: string | null = null;
 
     // 2. Call Shopify Admin REST API to create order if token exists
-    if (adminToken) {
+    if (adminToken && domain) {
       try {
         const endpoint = `https://${domain}/admin/api/${apiVersion}/orders.json`;
         let shopifyRes = await fetch(endpoint, {
@@ -194,16 +240,15 @@ export async function POST(req: NextRequest) {
       success: true,
       orderId: shopifyOrderResult?.id || `local_${Date.now()}`,
       orderNumber: orderNumber,
-      shopifyError: shopifyApiError,
       message: shopifyOrderResult
         ? "Order placed and recorded in Shopify successfully."
-        : "Order saved to local server store. Note: Shopify API requires write_orders permission.",
+        : "Order saved to local server store.",
     });
 
   } catch (error: any) {
     console.error("Order completion error:", error);
     return NextResponse.json(
-      { error: error.message || "Failed to process order completion." },
+      { error: "Failed to process order. Please contact support." },
       { status: 500 }
     );
   }

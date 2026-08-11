@@ -11,6 +11,45 @@ interface InstagramPost {
   mediaType?: string;
 }
 
+const FALLBACK_POSTS: InstagramPost[] = [
+  {
+    id: "fb-1",
+    mediaUrl: "/images/productnavig-2.png",
+    permalink: "https://www.instagram.com/godsownculture/",
+    caption: "GODS OWN CULTURE — Luxury redefined.",
+  },
+  {
+    id: "fb-2",
+    mediaUrl: "/images/IMG_9026.JPG.jpeg",
+    permalink: "https://www.instagram.com/godsownculture/",
+    caption: "Designed in Kerala. Delivered worldwide.",
+  },
+  {
+    id: "fb-3",
+    mediaUrl: "/images/IMG_9025.JPG (1).jpeg",
+    permalink: "https://www.instagram.com/godsownculture/",
+    caption: "Our Drops — Limited Edition.",
+  },
+  {
+    id: "fb-4",
+    mediaUrl: "/images/bannerimageseason.png",
+    permalink: "https://www.instagram.com/godsownculture/",
+    caption: "Malayali Dept. Collection.",
+  },
+  {
+    id: "fb-5",
+    mediaUrl: "/images/banner-mobile-newseason.png",
+    permalink: "https://www.instagram.com/godsownculture/",
+    caption: "Wear the heritage. Own the culture.",
+  },
+  {
+    id: "fb-6",
+    mediaUrl: "/images/ChatGPT Image Jul 8, 2026, 02_49_03 PM (2).png",
+    permalink: "https://www.instagram.com/godsownculture/",
+    caption: "Follow @godsownculture on Instagram.",
+  },
+];
+
 export default function InstagramFeed() {
   const [posts, setPosts] = useState<InstagramPost[]>([]);
   const [loading, setLoading] = useState(true);
@@ -22,7 +61,7 @@ export default function InstagramFeed() {
         return res.json();
       })
       .then((data) => {
-        if (data.success && Array.isArray(data.posts)) {
+        if (data.success && Array.isArray(data.posts) && data.posts.length > 0) {
           setPosts(data.posts);
         }
       })
@@ -34,9 +73,7 @@ export default function InstagramFeed() {
       });
   }, []);
 
-  if (!loading && posts.length === 0) {
-    return null; // Don't render the section if there are no live posts
-  }
+  const displayPosts = posts.length > 0 ? posts : FALLBACK_POSTS;
 
   return (
     <section className="w-full bg-black py-20 border-t border-white/5 overflow-hidden">
@@ -71,7 +108,7 @@ export default function InstagramFeed() {
       {/* Grid of Live Posts */}
       <div className="px-6 md:px-12 lg:px-16">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          {posts.map((post) => (
+          {displayPosts.map((post) => (
             <a
               key={post.id}
               href={post.permalink}

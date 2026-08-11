@@ -176,16 +176,32 @@ export default function CheckoutPageContent() {
     if (!firstName.trim()) errors.firstName = "First name is required";
     if (!address.trim()) errors.address = "Address is required";
     if (!city.trim()) errors.city = "City is required";
-    if (!pinCode.trim()) errors.pinCode = "PIN code is required";
-    if (!phone.trim()) errors.phone = "Phone number is required";
+    if (!pinCode.trim()) {
+      errors.pinCode = "PIN code is required";
+    } else if (pinCode.trim().length !== 6) {
+      errors.pinCode = "PIN code must be 6 digits";
+    }
+    if (!phone.trim()) {
+      errors.phone = "Phone number is required";
+    } else if (phone.trim().length !== 10) {
+      errors.phone = "Phone number must be 10 digits";
+    }
 
     // Validate Billing details conditionally
     if (!billingSame) {
       if (!billingFirstName.trim()) errors.billingFirstName = "Billing first name is required";
       if (!billingAddress.trim()) errors.billingAddress = "Billing address is required";
       if (!billingCity.trim()) errors.billingCity = "Billing city is required";
-      if (!billingPinCode.trim()) errors.billingPinCode = "Billing PIN code is required";
-      if (!billingPhone.trim()) errors.billingPhone = "Billing phone number is required";
+      if (!billingPinCode.trim()) {
+        errors.billingPinCode = "Billing PIN code is required";
+      } else if (billingPinCode.trim().length !== 6) {
+        errors.billingPinCode = "Billing PIN code must be 6 digits";
+      }
+      if (!billingPhone.trim()) {
+        errors.billingPhone = "Billing phone number is required";
+      } else if (billingPhone.trim().length !== 10) {
+        errors.billingPhone = "Billing phone number must be 10 digits";
+      }
     }
 
     setValidationErrors(errors);
@@ -341,6 +357,7 @@ export default function CheckoutPageContent() {
                 ...orderPayload,
                 paymentId: response.razorpay_payment_id,
                 orderId: response.razorpay_order_id,
+                razorpaySignature: response.razorpay_signature,
               }),
             });
             const completeData = await completeRes.json();
@@ -601,10 +618,14 @@ export default function CheckoutPageContent() {
                   <div>
                     <input
                       type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={6}
                       placeholder="PIN code"
                       value={pinCode}
                       onChange={(e) => {
-                        setPinCode(e.target.value);
+                        const val = e.target.value.replace(/\D/g, "").slice(0, 6);
+                        setPinCode(val);
                         if (validationErrors.pinCode) {
                           setValidationErrors(prev => ({ ...prev, pinCode: "" }));
                         }
@@ -622,11 +643,15 @@ export default function CheckoutPageContent() {
                 {/* Phone (Mandatory) */}
                 <div>
                   <input
-                    type="text"
+                    type="tel"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={10}
                     placeholder="Phone"
                     value={phone}
                     onChange={(e) => {
-                      setPhone(e.target.value);
+                      const val = e.target.value.replace(/\D/g, "").slice(0, 10);
+                      setPhone(val);
                       if (validationErrors.phone) {
                         setValidationErrors(prev => ({ ...prev, phone: "" }));
                       }
@@ -858,10 +883,14 @@ export default function CheckoutPageContent() {
                     <div>
                       <input
                         type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        maxLength={6}
                         placeholder="PIN code"
                         value={billingPinCode}
                         onChange={(e) => {
-                          setBillingPinCode(e.target.value);
+                          const val = e.target.value.replace(/\D/g, "").slice(0, 6);
+                          setBillingPinCode(val);
                           if (validationErrors.billingPinCode) {
                             setValidationErrors(prev => ({ ...prev, billingPinCode: "" }));
                           }
@@ -879,11 +908,15 @@ export default function CheckoutPageContent() {
                   {/* Billing Phone */}
                   <div>
                     <input
-                      type="text"
+                      type="tel"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={10}
                       placeholder="Phone"
                       value={billingPhone}
                       onChange={(e) => {
-                        setBillingPhone(e.target.value);
+                        const val = e.target.value.replace(/\D/g, "").slice(0, 10);
+                        setBillingPhone(val);
                         if (validationErrors.billingPhone) {
                           setValidationErrors(prev => ({ ...prev, billingPhone: "" }));
                         }

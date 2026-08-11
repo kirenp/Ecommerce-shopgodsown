@@ -177,8 +177,6 @@ export default function Navbar() {
             </Link>
           </div>
 
-          {/* Decorative Notch dipping below the header under the logo */}
-          <div className={`absolute left-1/2 -translate-x-1/2 bottom-0 translate-y-full ${isHomePage ? 'bg-[#F7F4EF]/95' : 'bg-white/95'} backdrop-blur-md w-36 sm:w-56 md:w-64 h-3.5 sm:h-4.5 rounded-b-xl z-20 shadow-md shadow-black/5 pointer-events-none`} />
 
           {/* Right Icons & Search Bar (Search placed on the right side) */}
           <div className="flex items-center space-x-3 sm:space-x-5 md:space-x-8 text-black/60 z-10 shrink-0">

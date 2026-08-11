@@ -121,7 +121,7 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       let restoredCust: CustomerProfile | null = null;
-      const sessionCookie = getCookie("goc_auth_session");
+      const sessionCookie = getCookie("goc_auth_customer");
       if (sessionCookie) {
         const session = JSON.parse(sessionCookie);
         if (session.customer && session.customer.email) {
@@ -153,7 +153,7 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
         const params = new URLSearchParams(window.location.search);
         
         if (params.get("auth_success") === "true") {
-          const freshSession = getCookie("goc_auth_session");
+          const freshSession = getCookie("goc_auth_customer");
           let succCust = restoredCust;
           if (freshSession) {
             const session = JSON.parse(freshSession);
@@ -298,6 +298,7 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
       setOrderHistory([]);
       setSavedAddresses([]);
       deleteCookie("goc_auth_session");
+      deleteCookie("goc_auth_customer");
       deleteCookie("goc_pkce_verifier");
       deleteCookie("goc_pkce_state");
       if (typeof window !== 'undefined') {
@@ -343,19 +344,15 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
 
   // ─── Logout ────────────────────────────────────────────────────────
   const logout = useCallback((clearShopifySession = false) => {
+    // idToken is now in httpOnly cookie (not accessible from JS)
+    // Logout via API endpoint which has access to it
     let idToken: string | undefined = undefined;
-    const sessionCookie = getCookie("goc_auth_session");
-    if (sessionCookie) {
-      try {
-        const session = JSON.parse(sessionCookie);
-        idToken = session.idToken;
-      } catch (e) {}
-    }
 
     setCustomer(null);
     setOrderHistory([]);
     setSavedAddresses([]);
     deleteCookie("goc_auth_session");
+    deleteCookie("goc_auth_customer");
     deleteCookie("goc_pkce_verifier");
     deleteCookie("goc_pkce_state");
     deleteCookie("goc_auth_origin");
@@ -414,7 +411,7 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
     const nextAddrs = [addrWithId, ...savedAddresses];
     setSavedAddresses(nextAddrs);
     
-    const activeEmail = customer?.email || (typeof window !== 'undefined' ? (getCookie("goc_auth_session") ? JSON.parse(getCookie("goc_auth_session")!).customer?.email : null) : null);
+    const activeEmail = customer?.email || (typeof window !== 'undefined' ? (getCookie("goc_auth_customer") ? JSON.parse(getCookie("goc_auth_customer")!).customer?.email : null) : null);
     if (activeEmail) {
       persistStoredAddresses(activeEmail, nextAddrs);
       syncAddressToApi(activeEmail, addrWithId);
@@ -424,7 +421,7 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
   const updateAddress = (id: string, updatedAddr: Partial<CustomerAddress>) => {
     const nextAddrs = savedAddresses.map(a => a.id === id ? { ...a, ...updatedAddr } : a);
     setSavedAddresses(nextAddrs);
-    const activeEmail = customer?.email || (typeof window !== 'undefined' ? (getCookie("goc_auth_session") ? JSON.parse(getCookie("goc_auth_session")!).customer?.email : null) : null);
+    const activeEmail = customer?.email || (typeof window !== 'undefined' ? (getCookie("goc_auth_customer") ? JSON.parse(getCookie("goc_auth_customer")!).customer?.email : null) : null);
     if (activeEmail) {
       persistStoredAddresses(activeEmail, nextAddrs);
       const fullAddr = nextAddrs.find(a => a.id === id);
@@ -435,7 +432,7 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
   const removeAddress = (id: string) => {
     const nextAddrs = savedAddresses.filter(a => a.id !== id);
     setSavedAddresses(nextAddrs);
-    const activeEmail = customer?.email || (typeof window !== 'undefined' ? (getCookie("goc_auth_session") ? JSON.parse(getCookie("goc_auth_session")!).customer?.email : null) : null);
+    const activeEmail = customer?.email || (typeof window !== 'undefined' ? (getCookie("goc_auth_customer") ? JSON.parse(getCookie("goc_auth_customer")!).customer?.email : null) : null);
     if (activeEmail) {
       persistStoredAddresses(activeEmail, nextAddrs);
       fetch("/api/customer/auth", {

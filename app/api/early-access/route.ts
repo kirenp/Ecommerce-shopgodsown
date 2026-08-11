@@ -1,12 +1,17 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createOrUpdateProfile, subscribeProfileToList } from '@/lib/klaviyo';
+import { checkRateLimit, RATE_LIMITS } from '@/lib/rateLimit';
 
 interface SignupData {
   email: string;
   phone?: string;
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  // Rate limiting
+  const rateLimitResponse = checkRateLimit(request, RATE_LIMITS.earlyAccess);
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const body = await request.json();
     const { action } = body;
@@ -94,7 +99,7 @@ export async function POST(request: Request) {
   } catch (error: any) {
     console.error('Klaviyo Signup Route Error:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Something went wrong. Please try again later.' },
       { status: 500 }
     );
   }

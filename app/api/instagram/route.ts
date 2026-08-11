@@ -1,8 +1,13 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { checkRateLimit, RATE_LIMITS } from "@/lib/rateLimit";
 
 export const revalidate = 3600; // Cache for 1 hour
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  // Rate limiting
+  const rateLimitResponse = checkRateLimit(req, RATE_LIMITS.instagram);
+  if (rateLimitResponse) return rateLimitResponse;
+
   const accessToken =
     process.env.INSTAGRAM_ACCESS_TOKEN ||
     process.env.NEXT_PUBLIC_INSTAGRAM_ACCESS_TOKEN;
@@ -59,7 +64,7 @@ export async function GET() {
   } catch (error: any) {
     console.error("Instagram fetch error:", error);
     return NextResponse.json(
-      { success: false, error: error?.message || "Internal server error", posts: [] },
+      { success: false, error: "Failed to load Instagram feed.", posts: [] },
       { status: 500 }
     );
   }

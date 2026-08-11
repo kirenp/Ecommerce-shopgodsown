@@ -54,6 +54,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
 
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const [selectedQty, setSelectedQty] = useState<number>(1);
   const [displayImage, setDisplayImage] = useState(product.images[0]?.url || "/images/placeholder.png");
   const [cartFeedback, setCartFeedback] = useState(false);
   const [showSizeGuide, setShowSizeGuide] = useState(false);
@@ -113,6 +114,14 @@ export default function ProductDetail({ product }: ProductDetailProps) {
   const inCartQty = inCartItem ? inCartItem.quantity : 0;
   const isMaxStockReached = isVariantSelected && inCartQty >= availableStock;
 
+  // Auto-clamp selected quantity if stock changes or size is selected
+  useEffect(() => {
+    const maxVal = Math.max(1, Math.min(10, availableStock));
+    if (selectedQty > maxVal) {
+      setSelectedQty(maxVal);
+    }
+  }, [selectedSize, selectedColor, availableStock]);
+
   const handleAddToCart = () => {
     if (!isVariantSelected || !isAvailable) return;
     addToCart({
@@ -125,7 +134,8 @@ export default function ProductDetail({ product }: ProductDetailProps) {
       size: selectedSize || "",
       price: currentVariant?.price || product.price,
       currencyCode: product.currencyCode || "INR",
-      quantityAvailable: currentVariant?.quantityAvailable
+      quantityAvailable: currentVariant?.quantityAvailable,
+      quantity: selectedQty
     });
     setCartFeedback(true);
     setTimeout(() => setCartFeedback(false), 2000);
@@ -143,9 +153,9 @@ export default function ProductDetail({ product }: ProductDetailProps) {
       size: selectedSize || "",
       price: currentVariant?.price || product.price,
       currencyCode: product.currencyCode || "INR",
-      quantityAvailable: currentVariant?.quantityAvailable
+      quantityAvailable: currentVariant?.quantityAvailable,
+      quantity: selectedQty
     });
-    // Navigate to checkout using Next.js client-side push
     router.push(getPreviewPath("/checkout"));
   };
 
@@ -273,6 +283,29 @@ export default function ProductDetail({ product }: ProductDetailProps) {
               : "In Stock — Ready to ship"}
           </span>
         </div>
+
+        {/* Quantity Selection */}
+        {isVariantSelected && isAvailable && availableStock > 0 && (
+          <div className="flex items-center gap-3">
+            <span className="text-[10px] text-white uppercase tracking-[0.3em]">Quantity</span>
+            <div className="relative border border-white/20 rounded-xl bg-white/5 text-white flex items-center">
+              <select
+                value={selectedQty}
+                onChange={(e) => setSelectedQty(parseInt(e.target.value))}
+                className="bg-transparent pl-3 pr-8 py-2 text-xs font-bold outline-none cursor-pointer appearance-none text-white"
+              >
+                {Array.from({ length: Math.max(1, Math.min(10, availableStock)) }, (_, i) => i + 1).map((q) => (
+                  <option key={q} value={q} className="bg-black text-white">
+                    {q}
+                  </option>
+                ))}
+              </select>
+              <svg viewBox="0 0 24 24" className="w-3 h-3 text-white/60 absolute right-2.5 pointer-events-none" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </div>
+          </div>
+        )}
 
         {/* CTA Buttons */}
         <div className="space-y-3">

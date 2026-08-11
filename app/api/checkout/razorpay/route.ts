@@ -1,8 +1,70 @@
 import { NextRequest, NextResponse } from "next/server";
+import { checkRateLimit, RATE_LIMITS } from "@/lib/rateLimit";
+
+const domain = process.env.SHOPIFY_STORE_DOMAIN;
+const storefrontToken = process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN;
+const apiVersion = process.env.SHOPIFY_API_VERSION || "2026-01";
+
+/**
+ * Look up variant prices from Shopify Storefront API (server-side, trusted).
+ * Returns a Map of variantId -> price (as number).
+ */
+async function getVariantPrices(variantIds: string[]): Promise<Map<string, number>> {
+  const prices = new Map<string, number>();
+  if (!domain || !storefrontToken || variantIds.length === 0) return prices;
+
+  // Build a GraphQL query that fetches each variant node by ID
+  const nodeIds = variantIds.map((id) => `"${id}"`).join(", ");
+  const query = `
+    query getVariantPrices {
+      nodes(ids: [${nodeIds}]) {
+        ... on ProductVariant {
+          id
+          price {
+            amount
+            currencyCode
+          }
+        }
+      }
+    }
+  `;
+
+  try {
+    const endpoint = `https://${domain}/api/${apiVersion}/graphql.json`;
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Shopify-Storefront-Access-Token": storefrontToken,
+      },
+      body: JSON.stringify({ query }),
+      cache: "no-store",
+    });
+
+    if (res.ok) {
+      const json = await res.json();
+      const nodes = json?.data?.nodes || [];
+      for (const node of nodes) {
+        if (node?.id && node?.price?.amount) {
+          prices.set(node.id, parseFloat(node.price.amount));
+        }
+      }
+    }
+  } catch (err) {
+    console.error("Failed to fetch variant prices from Shopify:", err);
+  }
+
+  return prices;
+}
 
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const rateLimitResponse = checkRateLimit(req, RATE_LIMITS.checkout);
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
-    const { amount } = await req.json();
+    const body = await req.json();
+    const { items } = body;
 
     const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
     const keySecret = process.env.RAZORPAY_KEY_SECRET;
@@ -16,15 +78,50 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    if (!amount || amount <= 0) {
+    // Validate items array
+    if (!Array.isArray(items) || items.length === 0 || items.length > 50) {
       return NextResponse.json(
-        { error: "Cart is empty or order total is ₹0. Cannot initialize payment." },
+        { error: "Invalid cart items." },
+        { status: 400 }
+      );
+    }
+
+    // Extract variant IDs from items for server-side price lookup
+    const variantIds: string[] = items
+      .map((item: any) => item.variantId)
+      .filter((id: any) => typeof id === "string" && id.length > 0);
+
+    // Look up trusted prices from Shopify
+    const variantPrices = await getVariantPrices(variantIds);
+
+    // Calculate total server-side
+    let serverTotal = 0;
+    for (const item of items) {
+      const quantity = Math.max(1, Math.min(Number(item.quantity) || 1, 100));
+      const trustedPrice = variantPrices.get(item.variantId);
+
+      if (trustedPrice !== undefined) {
+        // Use server-verified price
+        serverTotal += trustedPrice * quantity;
+      } else {
+        // Fallback: if variant not found in Shopify (rare), reject
+        console.warn(`Variant ${item.variantId} not found in Shopify. Rejecting order.`);
+        return NextResponse.json(
+          { error: "One or more items could not be verified. Please refresh and try again." },
+          { status: 400 }
+        );
+      }
+    }
+
+    if (serverTotal <= 0) {
+      return NextResponse.json(
+        { error: "Order total must be greater than ₹0." },
         { status: 400 }
       );
     }
 
     // Razorpay expects amount in paise (Rupees * 100)
-    const amountInPaise = Math.round(amount * 100);
+    const amountInPaise = Math.round(serverTotal * 100);
 
     // Basic Auth header for Razorpay API
     const authHeader = `Basic ${Buffer.from(`${keyId}:${keySecret}`).toString("base64")}`;
@@ -44,7 +141,11 @@ export async function POST(req: NextRequest) {
 
     if (!response.ok) {
       const errText = await response.text();
-      throw new Error(`Razorpay API error: ${errText}`);
+      console.error("Razorpay API error:", errText);
+      return NextResponse.json(
+        { error: "Payment gateway error. Please try again." },
+        { status: 502 }
+      );
     }
 
     const orderData = await response.json();
@@ -55,12 +156,13 @@ export async function POST(req: NextRequest) {
       amount: orderData.amount,
       currency: orderData.currency,
       keyId: keyId,
+      serverTotal: serverTotal, // Return so client can verify display matches
     });
 
   } catch (error: any) {
     console.error("Razorpay order creation error:", error);
     return NextResponse.json(
-      { error: error.message || "Failed to create order" },
+      { error: "Failed to create payment order. Please try again." },
       { status: 500 }
     );
   }

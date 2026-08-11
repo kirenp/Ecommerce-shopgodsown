@@ -43,6 +43,7 @@ export default function QuickViewModal() {
 
     const [selectedColor, setSelectedColor] = useState<string | null>(null);
     const [selectedSize, setSelectedSize] = useState<string | null>(null);
+    const [selectedQty, setSelectedQty] = useState<number>(1);
     const [displayImage, setDisplayImage] = useState("/images/placeholder.png");
     const [showSizeGuide, setShowSizeGuide] = useState(false);
 
@@ -51,6 +52,7 @@ export default function QuickViewModal() {
         if (quickViewProduct) {
             setSelectedColor(null);
             setSelectedSize(null);
+            setSelectedQty(1);
             setDisplayImage(quickViewProduct.images[0]?.url || "/images/placeholder.png");
         }
     }, [quickViewProduct]);
@@ -92,6 +94,15 @@ export default function QuickViewModal() {
     const isVariantSelected = (availableColors.length === 0 || selectedColor !== null) &&
         ((availableSizesForColor.length === 0 && !quickViewProduct?.sizes?.length) || selectedSize !== null);
     const isAvailable = currentVariant ? currentVariant.available : quickViewProduct?.available;
+    const availableStock = currentVariant?.quantityAvailable ?? 999;
+
+    // Auto-clamp selected quantity when stock changes
+    useEffect(() => {
+        const maxVal = Math.max(1, Math.min(10, availableStock));
+        if (selectedQty > maxVal) {
+            setSelectedQty(maxVal);
+        }
+    }, [selectedSize, selectedColor, availableStock]);
 
     const handleAddToCart = () => {
         if (!quickViewProduct || !isVariantSelected || !isAvailable) return;
@@ -106,6 +117,8 @@ export default function QuickViewModal() {
             size: selectedSize || "",
             price: currentVariant?.price || quickViewProduct.price,
             currencyCode: quickViewProduct.currencyCode || "INR",
+            quantityAvailable: currentVariant?.quantityAvailable,
+            quantity: selectedQty
         });
 
         closeQuickView();
@@ -216,6 +229,30 @@ export default function QuickViewModal() {
                                             {s.label}
                                         </button>
                                     ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {isVariantSelected && isAvailable && availableStock > 0 && (
+                            <div className="space-y-3">
+                                <h4 className="text-xs font-bold text-black uppercase tracking-wider">
+                                    Quantity
+                                </h4>
+                                <div className="relative border border-gray-200 rounded text-xs font-medium text-black bg-white inline-flex items-center">
+                                    <select
+                                        value={selectedQty}
+                                        onChange={(e) => setSelectedQty(parseInt(e.target.value))}
+                                        className="bg-transparent pl-3 pr-8 py-2 text-xs font-bold text-black outline-none cursor-pointer appearance-none"
+                                    >
+                                        {Array.from({ length: Math.max(1, Math.min(10, availableStock)) }, (_, i) => i + 1).map((q) => (
+                                            <option key={q} value={q}>
+                                                {q}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <svg viewBox="0 0 24 24" className="w-3 h-3 text-black/50 absolute right-2.5 pointer-events-none" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                        <path d="M6 9l6 6 6-6" />
+                                    </svg>
                                 </div>
                             </div>
                         )}

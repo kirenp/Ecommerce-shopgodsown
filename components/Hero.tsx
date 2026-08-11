@@ -20,7 +20,7 @@ export default function Hero() {
   }, []);
 
   return (
-    <section className={`w-full px-4 md:px-8 pt-[128px] md:pt-[132px] pb-8 bg-[#F7F4EF] ${mounted ? 'animate-fade-in' : 'opacity-0'}`}>
+    <section className={`w-full px-4 md:px-8 pt-[128px] md:pt-[132px] pb-4 md:pb-6 bg-[#F7F4EF] ${mounted ? 'animate-fade-in' : 'opacity-0'}`}>
       <div 
         className="w-full aspect-[1086/1448] md:aspect-[1693/929] h-auto rounded-[32px] relative overflow-hidden flex flex-col justify-between p-6 md:p-12 shadow-lg shadow-black/5"
       >

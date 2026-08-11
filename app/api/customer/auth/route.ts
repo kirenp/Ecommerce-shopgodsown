@@ -13,14 +13,33 @@ import {
   removeServerCustomerAddress,
 } from "@/lib/serverCustomerStore";
 import { getServerCustomerOrders } from "@/lib/serverOrderStore";
+import { checkRateLimit, RATE_LIMITS } from "@/lib/rateLimit";
 
 export const dynamic = 'force-dynamic';
 
-const domain = process.env.SHOPIFY_STORE_DOMAIN || "godsown-9751.myshopify.com";
+const domain = process.env.SHOPIFY_STORE_DOMAIN;
 const adminToken = process.env.SHOPIFY_ADMIN_ACCESS_TOKEN || (process.env.SHOPIFY_PRIVATE_ACCESS_TOKEN?.startsWith("shpat_") ? process.env.SHOPIFY_PRIVATE_ACCESS_TOKEN : undefined);
 const apiVersion = process.env.SHOPIFY_API_VERSION || "2026-01";
 const shopId = process.env.SHOPIFY_SHOP_ID || "";
 const clientId = process.env.SHOPIFY_CUSTOMER_ACCOUNT_CLIENT_ID || "";
+
+/**
+ * Extract and validate auth session from cookie.
+ * Returns the session email if valid, or null if missing/expired.
+ */
+function getSessionEmail(req: NextRequest): string | null {
+  try {
+    const sessionCookie = req.cookies.get("goc_auth_session")?.value;
+    if (!sessionCookie) return null;
+    const session = JSON.parse(sessionCookie);
+    if (!session?.customer?.email) return null;
+    // Check expiration
+    if (session.expiresAt && Date.now() > session.expiresAt) return null;
+    return session.customer.email.toLowerCase();
+  } catch {
+    return null;
+  }
+}
 
 // Admin API helper
 async function adminFetch(query: string, variables = {}) {
@@ -181,6 +200,10 @@ async function storefrontFetch(query: string, variables = {}) {
 }
 
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const rateLimitResponse = checkRateLimit(req, RATE_LIMITS.auth);
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const body = await req.json();
     const { action, email } = body;
@@ -343,6 +366,15 @@ export async function POST(req: NextRequest) {
       }
       const cleanEmail = email.trim().toLowerCase();
 
+      // ── AUTH CHECK: Require valid session matching the requested email ──
+      const sessionEmail = getSessionEmail(req);
+      if (!sessionEmail || sessionEmail !== cleanEmail) {
+        return NextResponse.json(
+          { error: "Authentication required. Please sign in." },
+          { status: 401 }
+        );
+      }
+
       let customer: any = null;
       let orders: any[] = [];
 
@@ -475,6 +507,12 @@ export async function POST(req: NextRequest) {
       }
       const cleanEmail = email.trim().toLowerCase();
 
+      // ── AUTH CHECK ──
+      const sessionEmail = getSessionEmail(req);
+      if (!sessionEmail || sessionEmail !== cleanEmail) {
+        return NextResponse.json({ error: "Authentication required." }, { status: 401 });
+      }
+
       // Save persistently to server customer store
       const updatedAddrs = saveServerCustomerAddress(cleanEmail, address);
 
@@ -518,6 +556,13 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Email and addressId are required." }, { status: 400 });
       }
       const cleanEmail = email.trim().toLowerCase();
+
+      // ── AUTH CHECK ──
+      const sessionEmail = getSessionEmail(req);
+      if (!sessionEmail || sessionEmail !== cleanEmail) {
+        return NextResponse.json({ error: "Authentication required." }, { status: 401 });
+      }
+
       const updatedAddrs = removeServerCustomerAddress(cleanEmail, addressId);
       return NextResponse.json({ success: true, addresses: updatedAddrs });
     }
@@ -525,6 +570,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
   } catch (error: any) {
     console.error("Customer Auth API error:", error);
-    return NextResponse.json({ error: error.message || "Authentication failed." }, { status: 500 });
+    return NextResponse.json({ error: "An unexpected error occurred. Please try again." }, { status: 500 });
   }
 }

@@ -31,6 +31,7 @@ export async function GET(req: NextRequest) {
 
     // Delete all auth session cookies
     response.cookies.delete("goc_auth_session");
+    response.cookies.delete("goc_auth_customer");
     response.cookies.delete("goc_pkce_verifier");
     response.cookies.delete("goc_pkce_state");
     response.cookies.delete("goc_auth_return_url");

@@ -21,6 +21,7 @@ interface CartContextType {
   addToCart: (item: Omit<CartItem, 'quantity'> & { quantity?: number }) => void;
   removeFromCart: (variantId: string) => void;
   updateQuantity: (variantId: string, qty: number) => void;
+  updateItemStock: (variantId: string, stock: number) => void;
   clearCart: () => void;
   itemCount: number;
   subtotal: string;
@@ -59,10 +60,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const qtyToAdd = item.quantity || 1;
 
       if (existing) {
-        const newQty = existing.quantity + qtyToAdd;
-        if (newQty > maxStock) {
+        const newQty = Math.min(existing.quantity + qtyToAdd, maxStock);
+        if (existing.quantity + qtyToAdd > maxStock) {
           alert(`Not enough stock available. You can only add up to ${maxStock} item${maxStock === 1 ? '' : 's'} for this variant (${item.color ? item.color + ' / ' : ''}${item.size || ''}).`);
-          return prev;
         }
         nextItems = prev.map(i => i.variantId === item.variantId ? { ...i, quantity: newQty, quantityAvailable: maxStock } : i);
       } else {
@@ -70,11 +70,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
           alert(`This item (${item.color ? item.color + ' / ' : ''}${item.size || ''}) is currently out of stock.`);
           return prev;
         }
+        const initialQty = Math.min(qtyToAdd, maxStock);
         if (qtyToAdd > maxStock) {
           alert(`Not enough stock available. You can only add up to ${maxStock} item${maxStock === 1 ? '' : 's'} for this variant.`);
-          return prev;
         }
-        nextItems = [...prev, { ...item, quantity: qtyToAdd, quantityAvailable: maxStock }];
+        nextItems = [...prev, { ...item, quantity: initialQty, quantityAvailable: maxStock }];
       }
       try {
         localStorage.setItem("goc_cart", JSON.stringify(nextItems));
@@ -104,13 +104,23 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }));
   };
 
+  const updateItemStock = (variantId: string, stock: number) => {
+    setItems(prev => prev.map(i => {
+      if (i.variantId === variantId) {
+        const clampedQty = Math.min(i.quantity, Math.max(1, stock));
+        return { ...i, quantityAvailable: stock, quantity: clampedQty };
+      }
+      return i;
+    }));
+  };
+
   const clearCart = () => setItems([]);
 
   const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
   const subtotal = items.reduce((sum, i) => sum + parseFloat(i.price) * i.quantity, 0).toFixed(2);
 
   return (
-    <CartContext.Provider value={{ items, addToCart, removeFromCart, updateQuantity, clearCart, itemCount, subtotal }}>
+    <CartContext.Provider value={{ items, addToCart, removeFromCart, updateQuantity, updateItemStock, clearCart, itemCount, subtotal }}>
       {children}
     </CartContext.Provider>
   );

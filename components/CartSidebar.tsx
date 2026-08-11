@@ -42,7 +42,7 @@ function sortSizesList(sizes: any[]) {
 
 export default function CartSidebar() {
     const { isCartSidebarOpen, closeCartSidebar } = useUI();
-    const { items, removeFromCart, updateQuantity, subtotal, itemCount, addToCart } = useCart();
+    const { items, removeFromCart, updateQuantity, updateItemStock, subtotal, itemCount, addToCart } = useCart();
     const [recommended, setRecommended] = useState<any[]>([]);
     const [productsDetails, setProductsDetails] = useState<Record<string, any>>({});
     const { getPreviewPath } = usePreview();
@@ -58,7 +58,7 @@ export default function CartSidebar() {
         fetchRecommended();
     }, [isCartSidebarOpen]);
 
-    // Fetch product details for cart items to populate available sizes dropdown
+    // Fetch product details for cart items to populate available sizes dropdown and sync stock
     useEffect(() => {
         if (!isCartSidebarOpen || items.length === 0) return;
         
@@ -91,6 +91,22 @@ export default function CartSidebar() {
         
         fetchDetails();
     }, [isCartSidebarOpen, items]);
+
+    // Sync item stock availability & auto-clamp quantity whenever productsDetails updates
+    useEffect(() => {
+        if (items.length === 0 || Object.keys(productsDetails).length === 0) return;
+        items.forEach((item) => {
+            const details = productsDetails[item.handle];
+            if (details && details.variants) {
+                const variant = details.variants.find((v: any) => v.id === item.variantId);
+                if (variant && variant.quantityAvailable !== undefined) {
+                    if (item.quantityAvailable !== variant.quantityAvailable || item.quantity > variant.quantityAvailable) {
+                        updateItemStock(item.variantId, variant.quantityAvailable);
+                    }
+                }
+            }
+        });
+    }, [productsDetails]);
 
     const getAvailableSizes = (item: CartItem) => {
         const details = productsDetails[item.handle];
@@ -126,6 +142,8 @@ export default function CartSidebar() {
         });
         
         if (matchingVariant) {
+            const maxAvailable = matchingVariant.quantityAvailable ?? 10;
+            const clampedQty = Math.min(item.quantity, Math.max(1, maxAvailable));
             removeFromCart(item.variantId);
             addToCart({
                 id: item.id,
@@ -138,7 +156,7 @@ export default function CartSidebar() {
                 price: matchingVariant.price,
                 currencyCode: item.currencyCode,
                 quantityAvailable: matchingVariant.quantityAvailable,
-                quantity: item.quantity
+                quantity: clampedQty
             });
         }
     };
@@ -246,11 +264,14 @@ export default function CartSidebar() {
                                                     onChange={(e) => updateQuantity(item.variantId, parseInt(e.target.value))}
                                                     className="bg-transparent pl-1 pr-6 py-1 text-[10px] font-medium text-black outline-none cursor-pointer appearance-none"
                                                 >
-                                                    {Array.from({ length: Math.max(item.quantity, Math.min(10, item.quantityAvailable ?? 10)) }, (_, i) => i + 1).map((q) => (
-                                                        <option key={q} value={q}>
-                                                            {q}
-                                                        </option>
-                                                    ))}
+                                                    {(() => {
+                                                        const maxStock = Math.max(1, Math.min(10, item.quantityAvailable ?? 10));
+                                                        return Array.from({ length: maxStock }, (_, i) => i + 1).map((q) => (
+                                                            <option key={q} value={q}>
+                                                                {q}
+                                                            </option>
+                                                        ));
+                                                    })()}
                                                 </select>
                                                 <svg viewBox="0 0 24 24" className="w-2.5 h-2.5 text-black/50 absolute right-1.5 pointer-events-none" fill="none" stroke="currentColor" strokeWidth="2.5">
                                                     <path d="M6 9l6 6 6-6" />

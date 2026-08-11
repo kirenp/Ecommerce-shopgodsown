@@ -140,6 +140,7 @@ export async function GET(req: NextRequest) {
       mismatchResponse.cookies.delete("goc_auth_origin");
       mismatchResponse.cookies.delete("goc_auth_intended_email");
       mismatchResponse.cookies.delete("goc_auth_session");
+      mismatchResponse.cookies.delete("goc_auth_customer");
       return mismatchResponse;
     }
 
@@ -157,12 +158,25 @@ export async function GET(req: NextRequest) {
 
     const response = NextResponse.redirect(returnUrl);
 
-    // Store session in a secure cookie
+    // Store sensitive tokens in httpOnly cookie (inaccessible to JavaScript / XSS)
     response.cookies.set("goc_auth_session", JSON.stringify(sessionData), {
-      httpOnly: false, // Need JS access for client-side context
+      httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: tokens.expires_in || 7200, // 2 hours default
+      maxAge: tokens.expires_in || 7200,
+      path: "/",
+    });
+
+    // Store non-sensitive display data in a JS-accessible cookie for client UI
+    const displayData = {
+      customer: sessionData.customer,
+      expiresAt: sessionData.expiresAt,
+    };
+    response.cookies.set("goc_auth_customer", JSON.stringify(displayData), {
+      httpOnly: false,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: tokens.expires_in || 7200,
       path: "/",
     });
 

@@ -87,7 +87,7 @@ export default function ShopTheLookClient({ slides }: ShopTheLookClientProps) {
       onClick={handleSectionClick}
     >
       {/* Section Header — Minimal, editorial */}
-      <div className="px-6 md:px-12 lg:px-16 pt-16 md:pt-20 pb-6 md:pb-8">
+      <div className="px-6 md:px-12 lg:px-16 pt-4 md:pt-6 pb-6 md:pb-8">
         <p className="text-[9px] text-gray-500 tracking-[0.5em] uppercase mb-2">
           Editorial
         </p>
@@ -211,7 +211,7 @@ export default function ShopTheLookClient({ slides }: ShopTheLookClientProps) {
                             {product.title}
                           </p>
                           {product.price && product.price !== '0.0' && (
-                            <p className="text-[11px] text-gray-500 font-medium mb-2">
+                            <p className="text-xs text-black font-bold mb-2">
                               ₹{parseFloat(product.price).toLocaleString('en-IN')}
                             </p>
                           )}
@@ -254,7 +254,7 @@ export default function ShopTheLookClient({ slides }: ShopTheLookClientProps) {
                           {product.title}
                         </p>
                         {product.price && product.price !== '0.0' && (
-                          <p className="text-xs text-gray-500 mt-1 font-medium">
+                          <p className="text-xs text-black font-bold mt-1">
                             ₹{parseFloat(product.price).toLocaleString('en-IN')}
                           </p>
                         )}

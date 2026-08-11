@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { checkRateLimit, RATE_LIMITS } from "@/lib/rateLimit";
 
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const rateLimitResponse = checkRateLimit(req, RATE_LIMITS.trackOrder);
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const { orderNumber, emailOrPhone } = await req.json();
 
@@ -11,10 +16,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const cleanOrderNumber = orderNumber.trim().replace(/^#/, "");
-    const cleanContact = emailOrPhone.trim().toLowerCase();
+    // Input length validation
+    if (String(orderNumber).length > 50 || String(emailOrPhone).length > 320) {
+      return NextResponse.json(
+        { error: "Invalid input length." },
+        { status: 400 }
+      );
+    }
 
-    const domain = process.env.SHOPIFY_STORE_DOMAIN || "godsown-9751.myshopify.com";
+    const cleanOrderNumber = String(orderNumber).trim().replace(/^#/, "");
+    const cleanContact = String(emailOrPhone).trim().toLowerCase();
+
+    const domain = process.env.SHOPIFY_STORE_DOMAIN;
     const adminToken = process.env.SHOPIFY_ADMIN_ACCESS_TOKEN || (process.env.SHOPIFY_PRIVATE_ACCESS_TOKEN?.startsWith("shpat_") ? process.env.SHOPIFY_PRIVATE_ACCESS_TOKEN : undefined);
 
     // If private token is set, query Shopify GraphQL Admin API server-side securely
@@ -30,6 +43,8 @@ export async function POST(req: NextRequest) {
                   processedAt
                   displayFulfillmentStatus
                   displayFinancialStatus
+                  email
+                  phone
                   totalPriceSet {
                     shopMoney {
                       amount
@@ -75,7 +90,7 @@ export async function POST(req: NextRequest) {
           }
         `;
 
-        const shopifyRes = await fetch(`https://${domain}/admin/api/2026-01/graphql.json`, {
+        const shopifyRes = await fetch(`https://${domain}/admin/api/${process.env.SHOPIFY_API_VERSION || "2026-01"}/graphql.json`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -92,6 +107,23 @@ export async function POST(req: NextRequest) {
           const orderNode = shopifyData.data?.orders?.edges?.[0]?.node;
 
           if (orderNode) {
+            // ── VERIFY EMAIL/PHONE MATCHES ORDER ──
+            // Prevent order enumeration by requiring the contact info to match
+            const orderEmail = (orderNode.email || "").toLowerCase();
+            const orderPhone = (orderNode.phone || "").replace(/\D/g, "");
+            const inputPhone = cleanContact.replace(/\D/g, "");
+            
+            const isEmailMatch = orderEmail && orderEmail === cleanContact;
+            const isPhoneMatch = orderPhone && inputPhone && orderPhone.endsWith(inputPhone.slice(-10));
+            
+            if (!isEmailMatch && !isPhoneMatch) {
+              // Return generic "not found" to prevent enumeration
+              return NextResponse.json(
+                { error: `No matching order found for #${cleanOrderNumber}. Please check your order number and contact details.` },
+                { status: 404 }
+              );
+            }
+
             const fulfillment = orderNode.fulfillments?.[0];
             const tracking = fulfillment?.trackingInfo?.[0];
 
@@ -143,7 +175,7 @@ export async function POST(req: NextRequest) {
   } catch (error: any) {
     console.error("Track order API error:", error);
     return NextResponse.json(
-      { error: error.message || "Failed to process tracking request." },
+      { error: "Failed to process tracking request. Please try again." },
       { status: 500 }
     );
   }
