@@ -3,9 +3,8 @@
 import { useCart } from "@/lib/cartContext";
 import { useUI } from "@/lib/uiContext";
 import { useCustomer } from "@/lib/customerContext";
-import Image from "next/image";
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { usePreview } from "@/lib/preview";
 import { ArrowLeft, CreditCard, ShieldCheck, CheckCircle2, Trash2, Plus, Minus } from "lucide-react";
 import Script from "next/script";
@@ -102,6 +101,40 @@ export default function CheckoutPageContent() {
   const [confirmedOrderNumber, setConfirmedOrderNumber] = useState("");
   const [finalPaidAmount, setFinalPaidAmount] = useState(0);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+
+  // Receipt Printer States
+  const [isPrinting, setIsPrinting] = useState(false);
+  const [receiptVisible, setReceiptVisible] = useState(false);
+  const [hoveredPreview, setHoveredPreview] = useState<{
+    image: string;
+    title: string;
+    variant?: string;
+    x: number;
+    y: number;
+  } | null>(null);
+  const hasAutoPrinted = useRef(false);
+
+  // Auto-print receipt on first mount
+  useEffect(() => {
+    if (!hasAutoPrinted.current && items.length > 0) {
+      hasAutoPrinted.current = true;
+      const timer = setTimeout(() => {
+        triggerPrint();
+      }, 600);
+      return () => clearTimeout(timer);
+    }
+  }, [items.length]);
+
+  const triggerPrint = useCallback(() => {
+    if (isPrinting) return;
+    setReceiptVisible(false);
+    setIsPrinting(true);
+    // After the print animation finishes (~1.5s), mark receipt as fully visible
+    setTimeout(() => {
+      setReceiptVisible(true);
+      setIsPrinting(false);
+    }, 1800);
+  }, [isPrinting]);
 
   // Pre-fill logged in customer email & default saved address
   useEffect(() => {
@@ -412,39 +445,171 @@ export default function CheckoutPageContent() {
 
   if (isSuccess) {
     return (
-      <main className="min-h-screen bg-[#fafafa] text-black flex items-center justify-center p-6">
-        <div className="max-w-md w-full bg-white border border-gray-200 rounded-3xl p-8 md:p-12 text-center space-y-6 relative overflow-hidden shadow-xl">
-          <div className="flex justify-center">
-            <CheckCircle2 size={64} className="text-[#00C853] animate-bounce" />
-          </div>
-          <h2 className="text-3xl font-brand font-light tracking-tight text-black">Order Confirmed!</h2>
-          {confirmedOrderNumber && (
-            <p className="text-xs font-bold uppercase tracking-widest text-[#C81E1E]">Order {confirmedOrderNumber}</p>
-          )}
-          <p className="text-sm text-black/60 leading-relaxed max-w-sm mx-auto font-medium">
-            Thank you for shopping with us. Your payment via Razorpay has been processed successfully and your order has been placed. We've sent confirmation details to <strong className="text-black">{emailOrPhone}</strong>.
-          </p>
-          
-          <div className="pt-4 border-t border-gray-100 space-y-2 text-left font-medium">
-            <div className="flex justify-between text-xs text-black/40 uppercase tracking-widest">
-              <span>Payment Gateway</span>
-              <span className="text-[#00C853] font-bold">Razorpay Secure</span>
+      <main className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center p-6">
+        <div className="max-w-[380px] w-full">
+
+          {/* ── PRINTER MACHINE (Order Complete) ── */}
+          <div className="bg-[#1a1a1a] rounded-2xl border border-white/8 p-5 relative overflow-hidden shadow-2xl">
+            <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+            
+            {/* Machine Top Row */}
+            <div className="flex justify-between items-center mb-4">
+              <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 2L2 7l10 5 10-5-10-5z" fill="white" fillOpacity="0.9" />
+                  <path d="M2 17l10 5 10-5" stroke="white" strokeOpacity="0.5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M2 12l10 5 10-5" stroke="white" strokeOpacity="0.7" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </div>
+              <Link
+                href={getPreviewPath("/")}
+                className="flex items-center gap-1.5 bg-[#00C853]/15 hover:bg-[#00C853]/25 text-[#00C853] text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full transition-colors"
+              >
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+                Home
+              </Link>
             </div>
-            <div className="flex justify-between text-xs text-black/40 uppercase tracking-widest">
-              <span>Amount Paid</span>
-              <span className="text-black font-bold">₹{(finalPaidAmount || totalAmount).toLocaleString("en-IN")}</span>
+
+            {/* Order Summary in Machine */}
+            <div className="bg-white/5 border border-white/8 rounded-xl p-4 space-y-3">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="text-sm font-bold text-white">Order Placed!</h3>
+                  <p className="text-[10px] text-white/40 mt-0.5 font-medium">Thank you for shopping with us</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] text-white/40 uppercase tracking-wider font-bold">Total</p>
+                  <p className="text-lg font-black text-white font-sans leading-tight">
+                    ₹{(finalPaidAmount || totalAmount).toLocaleString("en-IN")}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 pt-1">
+                <CheckCircle2 size={14} className="text-[#00C853]" />
+                <span className="text-[10px] text-[#00C853] font-bold uppercase tracking-wider">Order complete</span>
+              </div>
+            </div>
+
+            <div className="mt-4 mx-auto w-[90%] h-[3px] bg-black/60 rounded-full shadow-inner" />
+          </div>
+
+          {/* ── RECEIPT PAPER ── */}
+          <div className="relative">
+            <div className="absolute left-3 right-3 top-0 bottom-2 bg-black/20 rounded-b-lg blur-md -z-10" />
+            <div className="receipt-tear-edge" />
+
+            <div className="bg-[#fafaf5] px-6 pb-6 pt-2 shadow-lg receipt-paper-body" style={{ animation: 'receiptSlideDown 0.8s ease-out forwards' }}>
+              {/* Brand Mark */}
+              <div className="flex justify-center pt-2 pb-4">
+                <div className="w-10 h-10 bg-black rounded-lg flex items-center justify-center shadow-md">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z" fill="white" fillOpacity="0.95" />
+                    <path d="M2 17l10 5 10-5" stroke="white" strokeOpacity="0.5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M2 12l10 5 10-5" stroke="white" strokeOpacity="0.7" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
+              </div>
+
+              {/* Confirmation Text */}
+              <div className="text-center mb-4" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+                <p className="text-xs font-bold text-black uppercase tracking-wider">GODS OWN CULTURE</p>
+                <p className="text-[9px] text-black/40 mt-1">Your order has been confirmed</p>
+              </div>
+
+              <div className="receipt-dashed-line" />
+
+              {/* Order Details */}
+              <div className="py-3 space-y-2" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+                {confirmedOrderNumber && (
+                  <div className="flex justify-between text-[11px]">
+                    <span className="text-black/50">Order</span>
+                    <span className="font-bold text-[#C81E1E]">{confirmedOrderNumber}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-[11px] text-black/50">
+                  <span>Sent to</span>
+                  <span className="text-black font-bold truncate ml-4 max-w-[180px]">{emailOrPhone}</span>
+                </div>
+              </div>
+
+              <div className="receipt-dashed-line" />
+
+              {/* Total */}
+              <div className="py-4 flex justify-between items-center" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+                <span className="text-xs font-bold text-black uppercase tracking-wider">TOTAL PAID</span>
+                <span className="text-2xl font-black text-black tabular-nums">₹{(finalPaidAmount || totalAmount).toLocaleString("en-IN")}</span>
+              </div>
+
+              <div className="receipt-dashed-line" />
+
+              {/* Payment Meta */}
+              <div className="pt-3 pb-4 space-y-1.5" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+                <div className="flex justify-between text-[9px] text-black/35">
+                  <span>Payment</span>
+                  <span className="text-[#00C853] font-bold">Razorpay Secure ✓</span>
+                </div>
+                <div className="flex justify-between text-[9px] text-black/35">
+                  <span>Date</span>
+                  <span suppressHydrationWarning>{new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} — {new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
+                </div>
+              </div>
+
+              {/* Barcode */}
+              <div className="flex flex-col items-center pt-2 pb-1">
+                <div className="receipt-barcode" />
+                <p className="text-[8px] text-black/25 mt-1.5 tracking-[0.3em] uppercase" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+                  <span suppressHydrationWarning>GOC {confirmedOrderNumber || Math.random().toString(36).substring(2, 6).toUpperCase()}</span>
+                </p>
+              </div>
+
+              {/* Continue Shopping */}
+              <div className="pt-4">
+                <Link
+                  href={getPreviewPath("/catalog")}
+                  className="block w-full py-3.5 bg-black hover:bg-black/90 text-white text-[10px] font-bold uppercase tracking-[0.25em] rounded-lg transition-all text-center"
+                >
+                  Continue Shopping
+                </Link>
+              </div>
             </div>
           </div>
 
-          <div className="pt-4">
-            <Link
-              href={getPreviewPath("/catalog")}
-              className="block w-full py-4 bg-black hover:bg-black/90 text-white text-xs font-bold uppercase tracking-[0.25em] rounded-xl transition-all duration-300"
-            >
-              Continue Shopping
-            </Link>
-          </div>
         </div>
+
+        {/* Receipt Printer CSS */}
+        <style dangerouslySetInnerHTML={{ __html: `
+          @keyframes receiptSlideDown {
+            0% { opacity: 0; transform: translateY(-40px); max-height: 0; }
+            30% { opacity: 1; }
+            100% { transform: translateY(0); max-height: 2000px; }
+          }
+          .receipt-tear-edge {
+            height: 12px;
+            background: #fafaf5;
+            clip-path: polygon(
+              0% 100%,
+              2% 60%, 4% 100%, 6% 55%, 8% 100%, 10% 65%, 12% 100%, 14% 50%,
+              16% 100%, 18% 70%, 20% 100%, 22% 55%, 24% 100%, 26% 60%, 28% 100%,
+              30% 50%, 32% 100%, 34% 65%, 36% 100%, 38% 55%, 40% 100%, 42% 70%,
+              44% 100%, 46% 50%, 48% 100%, 50% 60%, 52% 100%, 54% 55%, 56% 100%,
+              58% 65%, 60% 100%, 62% 50%, 64% 100%, 66% 70%, 68% 100%, 70% 55%,
+              72% 100%, 74% 60%, 76% 100%, 78% 50%, 80% 100%, 82% 65%, 84% 100%,
+              86% 55%, 88% 100%, 90% 70%, 92% 100%, 94% 50%, 96% 100%, 98% 60%,
+              100% 100%
+            );
+            position: relative; z-index: 1; margin-top: -1px;
+          }
+          .receipt-dashed-line { border: none; border-top: 1.5px dashed rgba(0,0,0,0.15); margin: 0; }
+          .receipt-barcode {
+            width: 140px; height: 32px;
+            background: repeating-linear-gradient(90deg, #000 0px, #000 1.5px, transparent 1.5px, transparent 3px, #000 3px, #000 4px, transparent 4px, transparent 7px, #000 7px, #000 8.5px, transparent 8.5px, transparent 10px, #000 10px, #000 11px, transparent 11px, transparent 14px, #000 14px, #000 16px, transparent 16px, transparent 18px, #000 18px, #000 19px, transparent 19px, transparent 21px);
+            opacity: 0.7; border-radius: 1px;
+          }
+          .receipt-paper-body {
+            background-image: linear-gradient(180deg, rgba(0,0,0,0.01) 0%, transparent 3%), linear-gradient(0deg, rgba(0,0,0,0.02) 0%, transparent 5%);
+            border-bottom-left-radius: 4px; border-bottom-right-radius: 4px;
+          }
+        ` }} />
       </main>
     );
   }
@@ -1012,155 +1177,332 @@ export default function CheckoutPageContent() {
           </footer>
         </div>
 
-        {/* Right Column: Checkout Cart Summary (Light Grey Background) */}
-        <div className="lg:col-span-5 bg-gray-50 border-l border-gray-200 px-6 md:px-12 py-12 md:py-16 space-y-8 lg:sticky lg:top-[73px] lg:h-[calc(100vh-73px)] overflow-y-auto">
+        {/* Right Column: Receipt Printer Machine */}
+        <div className="lg:col-span-5 bg-[#f0efe9] border-l border-black/5 px-4 md:px-8 pt-4 md:pt-6 pb-12 lg:sticky lg:top-[73px] lg:h-[calc(100vh-73px)] overflow-y-auto receipt-printer-col">
           
-          {/* Cart items list */}
-          <div className="space-y-4 max-h-[40vh] overflow-y-auto pr-1">
-            {items.length === 0 ? (
-              <p className="text-xs text-black/35 text-center py-6 font-medium">No items in cart</p>
-            ) : (
-              items.map((item, idx) => (
-                <div key={`${item.variantId}-${idx}`} className="flex items-center gap-4 py-3 border-b border-gray-200/60 last:border-b-0">
-                  
-                  {/* Image */}
-                  <div className="relative w-16 h-20 bg-white border border-gray-200 rounded-xl flex-shrink-0">
-                    <Image
-                      src={item.image}
-                      alt={item.title}
-                      fill
-                      className="object-cover rounded-xl"
-                    />
-                  </div>
+          <div className="max-w-[440px] mx-auto printer-wrapper">
 
-                  {/* Details & Interactive Quantity Controls */}
-                  <div className="flex-1 min-w-0 space-y-1.5">
-                    <h3 className="text-xs font-bold text-black uppercase tracking-wider truncate pl-0.5">
-                      {item.title}
-                    </h3>
-                    <p className="text-[10px] text-black/50 uppercase tracking-widest pl-0.5 font-bold">
-                      Size: {item.size} / Color: {item.color}
-                    </p>
+            {/* ── PRINTER HEAD (EXACT DESIGN MATCH) ── */}
+            <div className="bg-[#202226] rounded-[28px] border border-white/[0.08] p-6 relative overflow-hidden shadow-[0_30px_60px_-15px_rgba(0,0,0,0.45),inset_0_1px_1px_rgba(255,255,255,0.12)] z-20">
+              
+              {/* Top Control Bar: Status Pill (Left) + PRINT Button (Right) */}
+              <div className="flex justify-between items-center mb-5">
+                {/* Status Pill */}
+                <div className="bg-[#121316] border border-white/[0.06] rounded-full px-3.5 py-2 flex items-center gap-2.5 shadow-[inset_0_2px_4px_rgba(0,0,0,0.6)]">
+                  <span className={`w-2 h-2 rounded-full ${isPrinting ? 'bg-[#22c55e] animate-ping' : 'bg-[#5a5d66] shadow-inner'}`} />
+                  <svg className="w-3.5 h-3.5 text-white/80" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                  </svg>
+                  <span className="text-[11.5px] font-medium text-white/85 font-sans tracking-tight">
+                    {isPrinting ? "Printing..." : "Click to print"}
+                  </span>
+                </div>
 
-                    {/* Quantity Edit & Remove Buttons */}
-                    <div className="flex items-center gap-3 pt-1">
-                      <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden bg-white shadow-xs">
-                        <button
-                          type="button"
-                          onClick={() => updateQuantity(item.variantId, item.quantity - 1)}
-                          className="px-2 py-1 text-black/60 hover:text-black hover:bg-gray-100 transition-colors"
-                          aria-label="Decrease quantity"
+                {/* Neumorphic PRINT Button */}
+                <button
+                  type="button"
+                  onClick={triggerPrint}
+                  disabled={isPrinting || items.length === 0}
+                  className="bg-gradient-to-b from-[#2d2e35] to-[#1c1d22] border border-white/10 rounded-2xl px-4 py-2 flex items-center gap-2 shadow-[0_4px_8px_rgba(0,0,0,0.4),inset_0_1px_1px_rgba(255,255,255,0.15)] active:scale-95 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                  aria-label="Print receipt"
+                >
+                  <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                  </svg>
+                  <span className="text-[11px] font-bold text-white font-sans tracking-wider uppercase">
+                    PRINT
+                  </span>
+                </button>
+              </div>
+
+              {/* Inset Main Screen Card */}
+              <div className="bg-[#131417] border border-white/[0.06] rounded-[22px] p-5 shadow-[inset_0_2px_6px_rgba(0,0,0,0.5)]">
+                {items.length === 0 ? (
+                  <p className="text-xs text-white/30 text-center py-4 font-medium font-sans">No items in cart</p>
+                ) : (
+                  <>
+                    {/* Top half: Product info + Total */}
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-3.5 min-w-0 flex-1 pr-2">
+                        {/* Circular embossed badge with T-shirt icon / product image */}
+                        <div
+                          className="w-12 h-12 rounded-full bg-gradient-to-b from-[#24262d] to-[#17181c] border border-white/[0.08] overflow-hidden flex items-center justify-center shrink-0 shadow-[0_4px_6px_rgba(0,0,0,0.35),inset_0_1px_1px_rgba(255,255,255,0.12)] cursor-zoom-in transition-transform hover:scale-105"
+                          onMouseEnter={(e) => {
+                            if (!items[0]?.image) return;
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            setHoveredPreview({
+                              image: items[0].image,
+                              title: items[0].title,
+                              variant: `${items[0].color ? items[0].color : ''}${items[0].size ? (items[0].color ? ' / ' : '') + items[0].size : ''}`,
+                              x: rect.left,
+                              y: rect.top,
+                            });
+                          }}
+                          onMouseLeave={() => setHoveredPreview(null)}
                         >
-                          <Minus size={10} />
-                        </button>
-                        <span className="px-2.5 py-1 text-black text-[11px] font-bold border-x border-gray-200 font-sans">
-                          {item.quantity}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => updateQuantity(item.variantId, item.quantity + 1)}
-                          disabled={item.quantity >= (item.quantityAvailable ?? 999)}
-                          className={`px-2 py-1 transition-colors ${
-                            item.quantity >= (item.quantityAvailable ?? 999)
-                              ? "text-black/20 cursor-not-allowed bg-gray-50"
-                              : "text-black/60 hover:text-black hover:bg-gray-100"
-                          }`}
-                          aria-label="Increase quantity"
-                        >
-                          <Plus size={10} />
-                        </button>
+                          {items[0].image ? (
+                            <img src={items[0].image} alt={items[0].title} className="w-full h-full object-cover" />
+                          ) : (
+                            <svg className="w-6 h-6 text-white/90" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M6 3l3 2c1.5 1 4.5 1 6 0l3-2 3 5-3 2v11H6V10L3 8l3-5z" />
+                            </svg>
+                          )}
+                        </div>
+                        
+                        <div className="min-w-0">
+                          <h3 className="text-[15px] font-bold text-white truncate font-sans tracking-tight leading-snug">
+                            {items.length === 1 ? items[0].title : `${items[0].title} +${items.length - 1} more`}
+                          </h3>
+                          <p className="text-[12px] font-medium text-white/45 mt-0.5 font-sans">
+                            {items.length === 1
+                              ? `${items[0].color ? items[0].color + ' / ' : ''}${items[0].size || ''}`
+                              : `${items.reduce((sum, i) => sum + i.quantity, 0)} items total`
+                            }
+                          </p>
+                        </div>
                       </div>
 
-                      {/* Remove Button */}
-                      <button
-                        type="button"
-                        onClick={() => removeFromCart(item.variantId)}
-                        className="text-black/30 hover:text-red-500 transition-colors p-1"
-                        aria-label="Remove item"
-                        title="Remove item from checkout"
-                      >
-                        <Trash2 size={13} />
-                      </button>
+                      <div className="text-right shrink-0 pl-2">
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 font-sans">TOTAL</p>
+                        <p className="text-[26px] font-black text-white font-sans leading-none mt-1 tabular-nums">
+                          ₹{totalAmount.toLocaleString("en-IN")}
+                        </p>
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Price Calculation for Line Item */}
-                  <div className="text-right shrink-0">
-                    <span className="text-xs font-bold text-black font-sans block">
-                      ₹{(parseFloat(item.price || "0") * item.quantity).toLocaleString("en-IN")}
-                    </span>
-                    {item.quantity > 1 && (
-                      <span className="text-[9px] text-black/40 font-medium font-sans block mt-0.5">
-                        ₹{parseFloat(item.price || "0").toLocaleString("en-IN")} each
-                      </span>
-                    )}
-                  </div>
+                    {/* Divider */}
+                    <div className="border-t border-white/[0.06] my-4" />
 
+                    {/* Bottom half: Status Badge */}
+                    <div className="flex items-center gap-2.5">
+                      {isPrinting ? (
+                        <>
+                          <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin shrink-0" />
+                          <span className="text-[11px] text-white/60 font-bold uppercase tracking-wider font-sans">
+                            PROCESSING YOUR ORDER
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <div className="w-5 h-5 rounded-full bg-[#163824] border border-[#22c55e]/30 flex items-center justify-center shrink-0">
+                            <svg className="w-3 h-3 text-[#22c55e]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          </div>
+                          <span className="text-[11px] text-[#22c55e] font-bold uppercase tracking-wider font-sans">
+                            ORDER READY FOR CHECKOUT
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Bottom Perforated Dot Grid */}
+              <div className="mt-5 flex flex-col gap-1.5 items-center justify-center opacity-60">
+                <div className="flex gap-1.5">
+                  {Array.from({ length: 22 }).map((_, i) => (
+                    <div key={`d1-${i}`} className="w-1.5 h-1.5 rounded-full bg-[#0d0e10] shadow-[inset_0_1px_1px_rgba(0,0,0,0.9)]" />
+                  ))}
                 </div>
-              ))
-            )}
-          </div>
-
-          <hr className="border-gray-200" />
-
-          {/* Promo code box */}
-          <div className="space-y-2">
-            <div className="flex gap-2">
-              <input
-                type="text"
-                placeholder="Discount code"
-                value={discountCode}
-                onChange={(e) => setDiscountCode(e.target.value)}
-                className="flex-1 bg-white border border-gray-200 rounded-xl px-4 py-3.5 text-xs text-black uppercase tracking-widest placeholder:text-black/30 outline-none focus:border-black transition-all font-medium"
-              />
-              <button
-                type="button"
-                onClick={handleApplyDiscount}
-                className="bg-black/5 hover:bg-black/10 border border-gray-300 text-black text-[10px] font-bold uppercase tracking-widest px-5 py-3.5 rounded-xl transition-all"
-              >
-                Apply
-              </button>
-            </div>
-            {discountError && <p className="text-xs text-[#C81E1E] pl-1 font-medium">{discountError}</p>}
-            {appliedDiscount > 0 && <p className="text-xs text-[#00C853] pl-1 font-bold">✓ Coupon Applied: {appliedDiscount}% Discount!</p>}
-          </div>
-
-          <hr className="border-gray-200" />
-
-          {/* Checkout Totals details */}
-          <div className="space-y-4 font-medium">
-            <div className="flex justify-between text-xs text-black/50 uppercase tracking-widest">
-              <span>Subtotal</span>
-              <span className="text-black/80 font-bold font-sans">₹{subTotalNum.toLocaleString("en-IN")}</span>
-            </div>
-            
-            {appliedDiscount > 0 && (
-              <div className="flex justify-between text-xs text-[#00C853] uppercase tracking-widest font-bold">
-                <span>Discount ({appliedDiscount}%)</span>
-                <span className="font-sans">-₹{discountAmount.toLocaleString("en-IN")}</span>
+                <div className="flex gap-1.5">
+                  {Array.from({ length: 22 }).map((_, i) => (
+                    <div key={`d2-${i}`} className="w-1.5 h-1.5 rounded-full bg-[#0d0e10] shadow-[inset_0_1px_1px_rgba(0,0,0,0.9)]" />
+                  ))}
+                </div>
+                <div className="flex gap-1.5">
+                  {Array.from({ length: 22 }).map((_, i) => (
+                    <div key={`d3-${i}`} className="w-1.5 h-1.5 rounded-full bg-[#0d0e10] shadow-[inset_0_1px_1px_rgba(0,0,0,0.9)]" />
+                  ))}
+                </div>
               </div>
-            )}
 
-            <div className="flex justify-between text-xs text-black/50 uppercase tracking-widest">
-              <span>Shipping</span>
-              <span className="text-[#00C853] font-bold text-right">Free</span>
             </div>
 
-            <hr className="border-gray-200 pt-2" />
+            {/* ── RECEIPT PAPER (slides out from behind printer head) ── */}
+            <div className={`receipt-wrapper ${isPrinting ? 'is-printing' : ''} ${receiptVisible ? 'is-visible' : ''}`}>
+              <div className="receipt-paper">
+                {/* Receipt content */}
+                <div className="receipt-content">
+                  {/* Shop Header */}
+                  <div className="receipt-header">
+                    <div>
+                      <span className="receipt-shop-name">GODS OWN CULTURE</span><br />
+                      <span className="receipt-shop-sub">Luxury Streetwear</span>
+                    </div>
+                    <div className="receipt-logo">👕</div>
+                  </div>
 
-            <div className="flex justify-between items-baseline text-black">
-              <span className="text-sm font-bold uppercase tracking-wider">Total</span>
-              <div className="text-right">
-                <span className="text-2xl font-black font-sans leading-none">₹{totalAmount.toLocaleString("en-IN")}</span>
+                  <div className="receipt-sub-header" suppressHydrationWarning>
+                    {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} — {new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+
+                  {/* Product Table */}
+                  <table className="receipt-table">
+                    <thead>
+                      <tr>
+                        <th>Item</th>
+                        <th>Qty</th>
+                        <th>Price</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {items.map((item, idx) => (
+                        <tr key={`rcpt-${item.variantId}-${idx}`}>
+                          <td>
+                            <div className="flex items-start gap-3">
+                              {item.image ? (
+                                <div
+                                  className="w-14 h-14 rounded-lg overflow-hidden bg-white border border-black/10 shadow-sm shrink-0 mt-0.5 cursor-zoom-in transition-all hover:scale-105 hover:border-black/30 hover:shadow-md"
+                                  onMouseEnter={(e) => {
+                                    const rect = e.currentTarget.getBoundingClientRect();
+                                    setHoveredPreview({
+                                      image: item.image,
+                                      title: item.title,
+                                      variant: `${item.color ? item.color : ''}${item.size ? (item.color ? ' / ' : '') + item.size : ''}`,
+                                      x: rect.left,
+                                      y: rect.top,
+                                    });
+                                  }}
+                                  onMouseLeave={() => setHoveredPreview(null)}
+                                >
+                                  <img
+                                    src={item.image}
+                                    alt={item.title}
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                              ) : (
+                                <div className="w-14 h-14 rounded-lg bg-gray-100 border border-black/10 flex items-center justify-center shrink-0 mt-0.5 text-base text-gray-400">
+                                  👕
+                                </div>
+                              )}
+                              <div className="min-w-0 flex-1">
+                                <span className="receipt-item-name">{item.title}</span>
+                                <span className="receipt-item-variant">
+                                  {item.color && `${item.color}`}{item.size ? ` / ${item.size}` : ''}
+                                </span>
+                                <div className="receipt-item-actions">
+                                  <div className="receipt-qty-ctrl">
+                                    <button type="button" onClick={() => updateQuantity(item.variantId, item.quantity - 1)} aria-label="Decrease">−</button>
+                                    <span>{item.quantity}</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => updateQuantity(item.variantId, item.quantity + 1)}
+                                      disabled={item.quantity >= (item.quantityAvailable ?? 999)}
+                                      aria-label="Increase"
+                                    >+</button>
+                                  </div>
+                                  <button type="button" onClick={() => removeFromCart(item.variantId)} className="receipt-remove-btn" aria-label="Remove">
+                                    <Trash2 size={10} />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td>{item.quantity} x</td>
+                          <td>₹{(parseFloat(item.price || "0") * item.quantity).toLocaleString("en-IN")}</td>
+                        </tr>
+                      ))}
+
+                      {/* Coupon code row */}
+                      <tr className="receipt-coupon-row">
+                        <td colSpan={3}>
+                          <div className="receipt-coupon-input">
+                            <input
+                              type="text"
+                              placeholder="COUPON CODE"
+                              value={discountCode}
+                              onChange={(e) => setDiscountCode(e.target.value)}
+                            />
+                            <button type="button" onClick={handleApplyDiscount}>Apply</button>
+                          </div>
+                          {discountError && <p className="receipt-coupon-err">{discountError}</p>}
+                          {appliedDiscount > 0 && <p className="receipt-coupon-ok">✓ {appliedDiscount}% OFF</p>}
+                        </td>
+                      </tr>
+
+                      {/* Subtotal */}
+                      <tr className="receipt-subtotal">
+                        <td colSpan={2}>Subtotal</td>
+                        <td>₹{subTotalNum.toLocaleString("en-IN")}</td>
+                      </tr>
+
+                      {/* Discount */}
+                      {appliedDiscount > 0 && (
+                        <tr className="receipt-discount">
+                          <td colSpan={2}>Discount ({appliedDiscount}%)</td>
+                          <td>-₹{discountAmount.toLocaleString("en-IN")}</td>
+                        </tr>
+                      )}
+
+                      {/* Shipping */}
+                      <tr className="receipt-shipping">
+                        <td colSpan={2}>Shipping</td>
+                        <td className="receipt-free">FREE</td>
+                      </tr>
+
+                      {/* Total */}
+                      <tr className="receipt-total">
+                        <td colSpan={2}>Total</td>
+                        <td>₹{totalAmount.toLocaleString("en-IN")}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+
+                  {/* Footer info */}
+                  <div className="receipt-footer-info">
+                    Payment: Razorpay Secure
+                  </div>
+
+                  <div className="receipt-thank-you">Thank you!</div>
+
+                  {/* Barcode */}
+                  <div className="receipt-barcode-area">
+                    <div className="receipt-barcode" />
+                    <span className="receipt-barcode-text" suppressHydrationWarning>GOC-{Math.random().toString(36).substring(2, 6).toUpperCase()}</span>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
 
+          </div>
         </div>
 
       </div>
 
-      {/* CSS custom variables and keyframes for border glowing sweep */}
+      {/* Floating Hover Product Image Zoom Popover */}
+      {hoveredPreview && (
+        <div
+          className="fixed z-[99999] pointer-events-none transition-all duration-150 ease-out animate-in fade-in zoom-in-95"
+          style={{
+            left: `${Math.max(16, hoveredPreview.x - 240)}px`,
+            top: `${Math.max(80, Math.min(typeof window !== 'undefined' ? window.innerHeight - 290 : 400, hoveredPreview.y - 80))}px`,
+          }}
+        >
+          <div className="bg-[#18191d]/95 backdrop-blur-md border border-white/20 p-2.5 rounded-2xl shadow-[0_25px_60px_rgba(0,0,0,0.65)] w-56">
+            <div className="w-full h-52 rounded-xl overflow-hidden bg-black/60 border border-white/10 relative shadow-inner">
+              <img
+                src={hoveredPreview.image}
+                alt={hoveredPreview.title}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute top-2 right-2 bg-black/70 backdrop-blur-sm text-[9px] font-bold text-white/90 px-2 py-0.5 rounded-full border border-white/10 uppercase tracking-wider">
+                Preview
+              </div>
+            </div>
+            <div className="px-1 pt-2.5 pb-0.5">
+              <p className="text-[12px] font-bold text-white truncate font-sans tracking-tight leading-tight">{hoveredPreview.title}</p>
+              {hoveredPreview.variant && (
+                <p className="text-[10px] text-white/50 font-medium font-sans mt-0.5">{hoveredPreview.variant}</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CSS custom variables and keyframes for border glowing sweep + receipt printer */}
       <style dangerouslySetInnerHTML={{ __html: `
         @property --angle {
           syntax: '<angle>';
@@ -1169,6 +1511,422 @@ export default function CheckoutPageContent() {
         }
         @keyframes spin-border {
           to { --angle: 360deg; }
+        }
+
+        /* ── Receipt Printer Styles ── */
+
+        .printer-wrapper {
+          position: relative;
+          user-select: none;
+          font-size: 14px;
+        }
+
+        /* ── Receipt Paper ── */
+
+        .receipt-wrapper {
+          position: relative;
+          margin: 0 auto;
+          width: calc(100% - 24px);
+          filter: drop-shadow(0 4px 16px rgba(0,0,0,0.08));
+          /* Hidden by default — clipped inside the printer */
+          transform: translateY(-100%);
+          clip-path: inset(100% -40px -40px -40px);
+          transition: clip-path 0.4s ease;
+          z-index: 0;
+        }
+
+        .receipt-wrapper.is-printing {
+          animation: receiptPrint 1.4s 1 forwards ease-in;
+        }
+
+        .receipt-wrapper.is-visible {
+          transform: translateY(0);
+          clip-path: inset(-20% -40px -40px -40px);
+        }
+
+        @keyframes receiptPrint {
+          0% {
+            transform: translateY(-100%);
+            clip-path: inset(100% -40px -40px -40px);
+          }
+          100% {
+            transform: translateY(0);
+            clip-path: inset(-20% -40px -40px -40px);
+          }
+        }
+
+        .receipt-paper {
+          position: relative;
+          background-color: #f5f5f0;
+          padding-top: 6px;
+          padding-bottom: 16px;
+          clip-path: polygon(
+            0% 0%,
+            100% 0%,
+            100% calc(100% - 4.5px),
+            98.75% 100%, 97.5% calc(100% - 4.5px),
+            96.25% 100%, 95.0% calc(100% - 4.5px),
+            93.75% 100%, 92.5% calc(100% - 4.5px),
+            91.25% 100%, 90.0% calc(100% - 4.5px),
+            88.75% 100%, 87.5% calc(100% - 4.5px),
+            86.25% 100%, 85.0% calc(100% - 4.5px),
+            83.75% 100%, 82.5% calc(100% - 4.5px),
+            81.25% 100%, 80.0% calc(100% - 4.5px),
+            78.75% 100%, 77.5% calc(100% - 4.5px),
+            76.25% 100%, 75.0% calc(100% - 4.5px),
+            73.75% 100%, 72.5% calc(100% - 4.5px),
+            71.25% 100%, 70.0% calc(100% - 4.5px),
+            68.75% 100%, 67.5% calc(100% - 4.5px),
+            66.25% 100%, 65.0% calc(100% - 4.5px),
+            63.75% 100%, 62.5% calc(100% - 4.5px),
+            61.25% 100%, 60.0% calc(100% - 4.5px),
+            58.75% 100%, 57.5% calc(100% - 4.5px),
+            56.25% 100%, 55.0% calc(100% - 4.5px),
+            53.75% 100%, 52.5% calc(100% - 4.5px),
+            51.25% 100%, 50.0% calc(100% - 4.5px),
+            48.75% 100%, 47.5% calc(100% - 4.5px),
+            46.25% 100%, 45.0% calc(100% - 4.5px),
+            43.75% 100%, 42.5% calc(100% - 4.5px),
+            41.25% 100%, 40.0% calc(100% - 4.5px),
+            38.75% 100%, 37.5% calc(100% - 4.5px),
+            36.25% 100%, 35.0% calc(100% - 4.5px),
+            33.75% 100%, 32.5% calc(100% - 4.5px),
+            31.25% 100%, 30.0% calc(100% - 4.5px),
+            28.75% 100%, 27.5% calc(100% - 4.5px),
+            26.25% 100%, 25.0% calc(100% - 4.5px),
+            23.75% 100%, 22.5% calc(100% - 4.5px),
+            21.25% 100%, 20.0% calc(100% - 4.5px),
+            18.75% 100%, 17.5% calc(100% - 4.5px),
+            16.25% 100%, 15.0% calc(100% - 4.5px),
+            13.75% 100%, 12.5% calc(100% - 4.5px),
+            11.25% 100%, 10.0% calc(100% - 4.5px),
+            8.75% 100%, 7.5% calc(100% - 4.5px),
+            6.25% 100%, 5.0% calc(100% - 4.5px),
+            3.75% 100%, 2.5% calc(100% - 4.5px),
+            1.25% 100%, 0% calc(100% - 4.5px)
+          );
+        }
+
+        /* Receipt content area - Crisp, Modern, Highly Legible Typography */
+        .receipt-content {
+          padding: 18px 20px 8px 20px;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+          color: #111;
+          display: flex;
+          flex-direction: column;
+          gap: 0.9em;
+        }
+
+        /* Receipt header */
+        .receipt-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+        }
+        .receipt-shop-name {
+          font-weight: 800;
+          font-size: 13px;
+          letter-spacing: 0.08em;
+          color: #000;
+          text-transform: uppercase;
+        }
+        .receipt-shop-sub {
+          font-size: 11px;
+          font-weight: 500;
+          color: #666;
+          margin-top: 2px;
+          letter-spacing: 0.02em;
+        }
+        .receipt-logo {
+          font-size: 2.2em;
+          line-height: 1;
+        }
+
+        .receipt-sub-header {
+          border-bottom: 1.5px dashed rgba(0, 0, 0, 0.15);
+          padding-bottom: 0.6em;
+          font-size: 11px;
+          font-weight: 500;
+          color: #555;
+          letter-spacing: 0.02em;
+        }
+
+        /* Receipt table */
+        .receipt-table {
+          width: 100%;
+          border-collapse: collapse;
+          text-align: left;
+          line-height: 1.5em;
+        }
+        .receipt-table th {
+          font-weight: 700;
+          font-size: 10px;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          color: #666;
+          padding-bottom: 6px;
+          border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+        }
+        .receipt-table th:last-child,
+        .receipt-table td:last-child {
+          text-align: right;
+        }
+        .receipt-table td {
+          padding: 6px 0;
+          vertical-align: top;
+        }
+
+        .receipt-item-name {
+          display: block;
+          font-weight: 700;
+          font-size: 12px;
+          color: #111;
+          line-height: 1.35;
+          letter-spacing: 0.01em;
+        }
+        .receipt-item-variant {
+          display: block;
+          font-size: 11px;
+          font-weight: 500;
+          color: #666;
+          margin-top: 2px;
+        }
+        .receipt-item-actions {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          margin-top: 6px;
+        }
+        .receipt-qty-ctrl {
+          display: flex;
+          align-items: center;
+          border: 1px solid #d1d1d1;
+          border-radius: 5px;
+          overflow: hidden;
+          background: #fff;
+          box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+        }
+        .receipt-qty-ctrl button {
+          width: 22px;
+          height: 22px;
+          border: none;
+          background: transparent;
+          cursor: pointer;
+          font-size: 13px;
+          font-weight: bold;
+          color: #333;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: background 0.15s;
+        }
+        .receipt-qty-ctrl button:hover:not(:disabled) {
+          background: #f0f0f0;
+        }
+        .receipt-qty-ctrl button:disabled {
+          color: #ccc;
+          cursor: not-allowed;
+        }
+        .receipt-qty-ctrl span {
+          width: 24px;
+          text-align: center;
+          font-size: 11px;
+          font-weight: 700;
+          border-left: 1px solid #e2e2e2;
+          border-right: 1px solid #e2e2e2;
+          line-height: 22px;
+          color: #111;
+        }
+        .receipt-remove-btn {
+          border: none;
+          background: transparent;
+          cursor: pointer;
+          color: #999;
+          transition: color 0.15s;
+          display: flex;
+          align-items: center;
+          padding: 2px;
+        }
+        .receipt-remove-btn:hover {
+          color: #dc2626;
+        }
+
+        /* Coupon row */
+        .receipt-coupon-row td {
+          padding-top: 10px;
+          padding-bottom: 8px;
+        }
+        .receipt-coupon-input {
+          display: flex;
+          gap: 6px;
+        }
+        .receipt-coupon-input input {
+          flex: 1;
+          border: 1px solid #d1d1d1;
+          border-radius: 6px;
+          padding: 6px 10px;
+          font-family: inherit;
+          font-size: 11px;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+          outline: none;
+          background: #fff;
+          color: #111;
+          box-shadow: inset 0 1px 2px rgba(0,0,0,0.03);
+          transition: border-color 0.15s;
+        }
+        .receipt-coupon-input input::placeholder {
+          color: #aaa;
+          font-weight: 500;
+        }
+        .receipt-coupon-input input:focus {
+          border-color: #000;
+        }
+        .receipt-coupon-input button {
+          border: none;
+          background: #111;
+          color: #fff;
+          padding: 6px 12px;
+          border-radius: 6px;
+          font-family: inherit;
+          font-size: 10px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          cursor: pointer;
+          transition: background 0.15s;
+        }
+        .receipt-coupon-input button:hover {
+          background: #333;
+        }
+        .receipt-coupon-err {
+          color: #dc2626;
+          font-size: 11px;
+          font-weight: 600;
+          margin-top: 4px;
+        }
+        .receipt-coupon-ok {
+          color: #16a34a;
+          font-size: 11px;
+          font-weight: 700;
+          margin-top: 4px;
+        }
+
+        /* Subtotal / total rows */
+        .receipt-subtotal td {
+          border-top: 1.5px dashed rgba(0, 0, 0, 0.15);
+          padding-top: 8px;
+          font-size: 12px;
+          font-weight: 500;
+          color: #444;
+        }
+        .receipt-subtotal td:last-child {
+          font-weight: 700;
+          color: #111;
+        }
+        .receipt-discount td {
+          color: #16a34a;
+          font-weight: 600;
+          font-size: 12px;
+        }
+        .receipt-discount td:last-child {
+          font-weight: 700;
+        }
+        .receipt-shipping td {
+          color: #444;
+          font-size: 12px;
+          font-weight: 500;
+        }
+        .receipt-free {
+          color: #16a34a !important;
+          font-weight: 700;
+          text-transform: uppercase;
+        }
+        .receipt-total td {
+          border-top: 1.5px dashed rgba(0, 0, 0, 0.15);
+          font-weight: 800;
+          font-size: 14px;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+          color: #000;
+          padding-top: 10px;
+          padding-bottom: 6px;
+        }
+        .receipt-total td:last-child {
+          font-size: 18px;
+          font-weight: 900;
+        }
+
+        /* Footer info */
+        .receipt-footer-info {
+          font-size: 11px;
+          font-weight: 500;
+          color: #666;
+          text-align: center;
+          border-top: 1.5px dashed rgba(0, 0, 0, 0.15);
+          padding-top: 8px;
+        }
+        .receipt-thank-you {
+          text-align: center;
+          font-size: 12px;
+          font-weight: 800;
+          text-transform: uppercase;
+          letter-spacing: 0.12em;
+          color: #111;
+          padding: 2px 0;
+        }
+
+        /* Barcode */
+        .receipt-barcode-area {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          padding-top: 6px;
+        }
+        .receipt-barcode {
+          width: 150px;
+          height: 36px;
+          background: repeating-linear-gradient(
+            90deg,
+            #111 0px, #111 1.5px,
+            transparent 1.5px, transparent 3px,
+            #111 3px, #111 4px,
+            transparent 4px, transparent 7px,
+            #111 7px, #111 8.5px,
+            transparent 8.5px, transparent 10px,
+            #111 10px, #111 11px,
+            transparent 11px, transparent 14px,
+            #111 14px, #111 16px,
+            transparent 16px, transparent 18px,
+            #111 18px, #111 19px,
+            transparent 19px, transparent 21px
+          );
+          opacity: 0.85;
+          border-radius: 1px;
+        }
+        .receipt-barcode-text {
+          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+          font-size: 10px;
+          font-weight: 700;
+          color: #777;
+          letter-spacing: 0.25em;
+          margin-top: 5px;
+        }
+
+        /* Scrollbar for printer column */
+        .receipt-printer-col::-webkit-scrollbar {
+          width: 4px;
+        }
+        .receipt-printer-col::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .receipt-printer-col::-webkit-scrollbar-thumb {
+          background: rgba(0,0,0,0.1);
+          border-radius: 4px;
+        }
+        .receipt-printer-col::-webkit-scrollbar-thumb:hover {
+          background: rgba(0,0,0,0.2);
         }
       ` }} />
     </main>

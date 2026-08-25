@@ -150,7 +150,7 @@ export default function EarlyAccessFooter() {
             <p className="ea-footer-dark__copyright">
               © 2026{' '}
               <a
-                href="https://www.instagram.com/webdevtrack?igsh=OHI1eHVxMzlldGN5"
+                href="https://www.webdevtrack.com/"
                 target="_blank"
                 rel="noopener noreferrer"
               >

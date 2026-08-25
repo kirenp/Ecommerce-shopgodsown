@@ -115,7 +115,7 @@ export default function Footer() {
       {/* Bottom Bar */}
       <div className="py-3 text-center bg-white relative z-10 border-t border-black/10">
         <a
-          href="https://www.instagram.com/webdevtrack/"
+          href="https://www.webdevtrack.com/"
           target="_blank"
           rel="noopener noreferrer"
           className="text-[10px] tracking-widest font-bold text-black/60 hover:text-black transition-colors"
