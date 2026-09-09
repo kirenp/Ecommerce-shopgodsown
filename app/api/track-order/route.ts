@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rateLimit";
+import { trackByAWB, isShiprocketConfigured } from "@/lib/shiprocket";
 
 export async function POST(req: NextRequest) {
   // Rate limiting
@@ -136,6 +137,43 @@ export async function POST(req: NextRequest) {
               step = 4;
             }
 
+            // ── SHIPROCKET TRACKING INTEGRATION ──
+            // If we have an AWB/tracking number and Shiprocket is configured,
+            // fetch live tracking data with scan activities
+            let shiprocketTracking = null;
+
+            if (tracking?.number && isShiprocketConfigured()) {
+              try {
+                const srData = await trackByAWB(tracking.number);
+                if (srData) {
+                  shiprocketTracking = srData;
+
+                  // Override the step with more accurate Shiprocket status
+                  switch (srData.currentStatusCode) {
+                    case "PU":
+                      step = 2;
+                      break;
+                    case "IT":
+                      step = 3;
+                      break;
+                    case "OFD":
+                      step = 4;
+                      break;
+                    case "DL":
+                      step = 5;
+                      break;
+                    case "RTO":
+                    case "CANCELED":
+                    case "NDR":
+                      // Keep current step, special statuses handled on frontend
+                      break;
+                  }
+                }
+              } catch (srErr) {
+                console.warn("Shiprocket tracking lookup failed (falling back to Shopify):", srErr);
+              }
+            }
+
             return NextResponse.json({
               success: true,
               order: {
@@ -149,7 +187,7 @@ export async function POST(req: NextRequest) {
                 trackingNumber: tracking?.number || `TRK${cleanOrderNumber}IN`,
                 trackingUrl: tracking?.url || "https://www.bluedart.com",
                 currentStep: step,
-                estimatedDelivery: "5 - 7 Business Days",
+                estimatedDelivery: shiprocketTracking?.estimatedDelivery || "5 - 7 Business Days",
                 shippingAddress: orderNode.shippingAddress
                   ? `${orderNode.shippingAddress.address1}, ${orderNode.shippingAddress.city}, ${orderNode.shippingAddress.province} ${orderNode.shippingAddress.zip}`
                   : "Address on file",
@@ -160,6 +198,7 @@ export async function POST(req: NextRequest) {
                   image: e.node.image?.url || null,
                 })),
               },
+              shiprocketTracking,
             });
           }
         }

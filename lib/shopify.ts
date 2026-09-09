@@ -489,3 +489,85 @@ export async function getProduct(handle: string) {
     })
   };
 }
+
+export async function validateProductHandles(handles: string[]): Promise<{
+  validHandles: string[];
+  validProducts: {
+    id: string;
+    handle: string;
+    title: string;
+    price: string;
+    currencyCode: string;
+    image: string;
+    available: boolean;
+  }[];
+}> {
+  if (!handles || !Array.isArray(handles) || handles.length === 0) {
+    return { validHandles: [], validProducts: [] };
+  }
+
+  // Filter handles to only alphanumeric, hyphens, and underscores
+  const uniqueHandles = Array.from(
+    new Set(handles.map(h => String(h).trim()).filter(h => /^[a-zA-Z0-9\-_]+$/.test(h)))
+  ).slice(0, 50);
+
+  if (uniqueHandles.length === 0) {
+    return { validHandles: [], validProducts: [] };
+  }
+
+  const queryFields = uniqueHandles.map((handle, i) => `
+    p_${i}: product(handle: "${handle}") {
+      id
+      handle
+      title
+      availableForSale
+      priceRange {
+        minVariantPrice {
+          amount
+          currencyCode
+        }
+      }
+      images(first: 1) {
+        edges {
+          node {
+            url
+          }
+        }
+      }
+    }
+  `).join('\n');
+
+  const query = `query ValidateProductHandles {\n${queryFields}\n}`;
+
+  try {
+    const res = await shopifyFetch<any>({ query });
+    if (!res.data) {
+      return { validHandles: uniqueHandles, validProducts: [] };
+    }
+
+    const validHandles: string[] = [];
+    const validProducts: any[] = [];
+
+    uniqueHandles.forEach((handle, i) => {
+      const prod = res.data[`p_${i}`];
+      if (prod && prod.id && prod.handle) {
+        validHandles.push(prod.handle);
+        validProducts.push({
+          id: prod.id,
+          handle: prod.handle,
+          title: prod.title,
+          price: prod.priceRange?.minVariantPrice?.amount || '0',
+          currencyCode: prod.priceRange?.minVariantPrice?.currencyCode || 'INR',
+          image: prod.images?.edges?.[0]?.node?.url || '',
+          available: prod.availableForSale ?? true,
+        });
+      }
+    });
+
+    return { validHandles, validProducts };
+  } catch (error) {
+    console.error('Error validating product handles against Shopify:', error);
+    return { validHandles: uniqueHandles, validProducts: [] };
+  }
+}
+

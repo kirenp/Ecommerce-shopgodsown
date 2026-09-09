@@ -21,7 +21,7 @@ export default function ShippingPolicyPage() {
                     <section className="space-y-4">
                         <h2 className="text-black text-xs font-bold tracking-[0.3em] uppercase">International Shipping</h2>
                         <p>
-                            <span className="font-geishta">GODS OWN</span> ships worldwide. International shipping rates and delivery times vary by destination.
+                            GODS OWN ships worldwide. International shipping rates and delivery times vary by destination.
                             Customs duties and taxes, if applicable, are the responsibility of the customer.
                         </p>
                     </section>
@@ -37,7 +37,7 @@ export default function ShippingPolicyPage() {
                     <section className="space-y-4">
                         <h2 className="text-black text-xs font-bold tracking-[0.3em] uppercase">Delivery Issues</h2>
                         <p>
-                            If your package is lost or damaged during transit, please contact us immediately at support@godsownculture.com
+                            If your package is lost or damaged during transit, please contact us immediately at godsownculture@gmail.com
                             with your order number.
                         </p>
                     </section>

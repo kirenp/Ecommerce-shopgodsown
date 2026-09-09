@@ -11,6 +11,61 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { usePreview } from "@/lib/preview";
 
+function RecentlyViewedCard({
+  prod,
+  onClose,
+  onRemove,
+  getPreviewPath,
+}: {
+  prod: any;
+  onClose: () => void;
+  onRemove: (handleOrId: string) => void;
+  getPreviewPath: (path: string) => string;
+}) {
+  const [imgSrc, setImgSrc] = useState(prod.image || "/images/Gods Own (1).png");
+
+  return (
+    <div className="relative bg-white border border-gray-200 rounded-xl overflow-hidden shadow-xs hover:shadow-md transition-shadow group flex flex-col">
+      <Link
+        href={getPreviewPath(`/products/${prod.handle}`)}
+        onClick={onClose}
+        className="flex flex-col flex-1"
+      >
+        <div className="relative aspect-[4/5] bg-gray-50 overflow-hidden">
+          <Image
+            src={imgSrc}
+            alt={prod.title || "Product"}
+            fill
+            onError={() => setImgSrc("/images/Gods Own (1).png")}
+            className="object-cover group-hover:scale-105 transition-transform duration-500"
+          />
+        </div>
+        <div className="p-2.5 space-y-1">
+          <h5 className="text-[11px] font-bold text-black uppercase tracking-wider truncate font-sans">
+            {prod.title}
+          </h5>
+          <span className="text-[11px] font-bold text-black font-sans block">
+            ₹{parseFloat(prod.price || "0").toLocaleString("en-IN")}
+          </span>
+        </div>
+      </Link>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onRemove(prod.handle || prod.id);
+        }}
+        className="absolute top-2 right-2 w-6 h-6 rounded-full bg-white/90 hover:bg-white text-black/60 hover:text-red-600 flex items-center justify-center shadow-xs transition-opacity sm:opacity-0 group-hover:opacity-100 z-10"
+        title="Remove from recently viewed"
+        aria-label="Remove item"
+      >
+        <X size={12} />
+      </button>
+    </div>
+  );
+}
+
 export default function AccountSidebar() {
   const { isAccountSidebarOpen, openAccountSidebar, closeAccountSidebar } = useUI();
   const { customer, isLoggedIn, initiateAuth, logout, savedAddresses, orderHistory, addAddress, updateAddress, removeAddress, refreshCustomerData } = useCustomer();
@@ -107,10 +162,17 @@ export default function AccountSidebar() {
       setIsSubmitting(false);
     }
   };
-  const { items: recentlyViewedItems } = useRecentlyViewed();
+  const { items: recentlyViewedItems, removeRecentlyViewed, validateRecentlyViewed } = useRecentlyViewed();
   const { wishlistItems, removeFromWishlist } = useWishlist();
   const { addToCart } = useCart();
   const { getPreviewPath } = usePreview();
+
+  // Validate recently viewed when drawer opens
+  useEffect(() => {
+    if (isAccountSidebarOpen) {
+      validateRecentlyViewed?.();
+    }
+  }, [isAccountSidebarOpen, validateRecentlyViewed]);
 
   // Active Tab State for Logged-In Customer
   const [activeTab, setActiveTab] = useState<"profile" | "orders" | "addresses" | "wishlist">("profile");
@@ -774,29 +836,13 @@ export default function AccountSidebar() {
             ) : (
               <div className="grid grid-cols-2 gap-3">
                 {recentlyViewedItems.map((prod) => (
-                  <Link
-                    key={prod.id}
-                    href={getPreviewPath(`/products/${prod.handle}`)}
-                    onClick={closeAccountSidebar}
-                    className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-xs hover:shadow-md transition-shadow group flex flex-col"
-                  >
-                    <div className="relative aspect-[4/5] bg-gray-50 overflow-hidden">
-                      <Image
-                        src={prod.image}
-                        alt={prod.title}
-                        fill
-                        className="object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                    </div>
-                    <div className="p-2.5 space-y-1">
-                      <h5 className="text-[11px] font-bold text-black uppercase tracking-wider truncate font-sans">
-                        {prod.title}
-                      </h5>
-                      <span className="text-[11px] font-bold text-black font-sans block">
-                        ₹{parseFloat(prod.price).toLocaleString("en-IN")}
-                      </span>
-                    </div>
-                  </Link>
+                  <RecentlyViewedCard
+                    key={prod.id || prod.handle}
+                    prod={prod}
+                    onClose={closeAccountSidebar}
+                    onRemove={removeRecentlyViewed}
+                    getPreviewPath={getPreviewPath}
+                  />
                 ))}
               </div>
             )}

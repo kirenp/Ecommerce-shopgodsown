@@ -66,7 +66,6 @@ export default function AboutPageContent() {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-12">
             {[
               { title: "Secure Payment", body: "Your transactions are encrypted and protected with multiple payment methods.", icon: ShieldCheck },
-              { title: "Easy Returns", body: "Return or exchange your order within 5 days.", icon: RefreshCw },
               { title: "Dedicated Support", body: "Our team is available during business hours to help you.", icon: Headphones },
             ].map((v) => (
               <div key={v.title} className="border-t border-white/10 pt-8 space-y-4">

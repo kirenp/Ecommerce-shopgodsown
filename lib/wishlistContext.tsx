@@ -28,18 +28,54 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
   const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Load from localStorage on mount
+  // Load from localStorage on mount and validate against Shopify
   useEffect(() => {
     try {
       const saved = localStorage.getItem("goc_wishlist");
       if (saved) {
-        setWishlistItems(JSON.parse(saved));
+        const parsed: WishlistItem[] = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setWishlistItems(parsed);
+          const handles = parsed.map(i => i.handle).filter(Boolean);
+          if (handles.length > 0) {
+            fetch("/api/products/validate", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ handles }),
+            })
+              .then(res => res.json())
+              .then(data => {
+                if (data && Array.isArray(data.validHandles)) {
+                  const validSet = new Set(data.validHandles);
+                  setWishlistItems(prev => prev.filter(item => validSet.has(item.handle)));
+                }
+              })
+              .catch(e => console.warn("Failed to validate wishlist items:", e));
+          }
+        }
       }
     } catch (e) {
       console.error("Failed to load wishlist items from localStorage:", e);
     } finally {
       setIsLoaded(true);
     }
+  }, []);
+
+  // Listen for global product removal events (e.g. 404 on product page)
+  useEffect(() => {
+    const handleProductNotFound = (e: Event) => {
+      const customEvent = e as CustomEvent<{ handle?: string; id?: string }>;
+      const targetHandle = customEvent.detail?.handle;
+      const targetId = customEvent.detail?.id;
+      if (targetHandle || targetId) {
+        setWishlistItems(prev => prev.filter(i => i.handle !== targetHandle && i.id !== targetId));
+      }
+    };
+
+    window.addEventListener("goc_product_not_found", handleProductNotFound);
+    return () => {
+      window.removeEventListener("goc_product_not_found", handleProductNotFound);
+    };
   }, []);
 
   // Save to localStorage on change ONLY AFTER initial load
