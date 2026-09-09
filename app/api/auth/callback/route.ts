@@ -54,7 +54,8 @@ export async function GET(req: NextRequest) {
     }
 
     // Determine redirect URI (must match what was used in authorize)
-    const redirectUri = `${savedOrigin}/api/auth/callback`;
+    const configuredRedirect = process.env.SHOPIFY_CUSTOMER_ACCOUNT_REDIRECT_URI;
+    const redirectUri = configuredRedirect || `${savedOrigin}/api/auth/callback`;
 
     // Exchange authorization code for tokens
     const tokens = await exchangeCodeForTokens({

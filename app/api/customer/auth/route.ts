@@ -301,9 +301,11 @@ export async function POST(req: NextRequest) {
       }
 
       // Determine the base URL for the callback
+      const configuredRedirect = process.env.SHOPIFY_CUSTOMER_ACCOUNT_REDIRECT_URI;
       const referer = req.headers.get("referer") || "";
-      const origin = body.origin || req.headers.get("origin") || (referer ? new URL(referer).origin : "http://localhost:3000");
-      const redirectUri = `${origin}/api/auth/callback`;
+      const rawOrigin = body.origin || req.headers.get("origin") || (referer ? new URL(referer).origin : "http://localhost:3000");
+      const origin = rawOrigin.replace(/\/$/, "");
+      const redirectUri = configuredRedirect || `${origin}/api/auth/callback`;
 
       // Extract return path from referer if on dev-preview
       let returnPath = body.returnPath || "/dev-preview";
