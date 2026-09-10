@@ -12,3 +12,11 @@ export const pickyside = localFont({
   display: 'swap',
 });
 
+export const montserratBold = localFont({
+  src: '../fonts/montserrat/Montserrat-Bold.ttf',
+  variable: '--font-montserrat-bold',
+  weight: '700',
+  display: 'swap',
+});
+
+

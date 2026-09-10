@@ -31,6 +31,9 @@ const config: Config = {
         },
       },
       fontFamily: {
+        sans: ["var(--font-montserrat)", "sans-serif"],
+        montserrat: ["var(--font-montserrat)", "sans-serif"],
+        "montserrat-bold": ["var(--font-montserrat-bold)", "sans-serif"],
         luxury: ["var(--font-inter)", "sans-serif"],
         brand: ["var(--font-cormorant)", "serif"],
         geishta: ["var(--font-geishta)", "sans-serif"],

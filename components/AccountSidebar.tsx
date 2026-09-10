@@ -304,7 +304,8 @@ export default function AccountSidebar() {
                     Sign In or Sign Up
                   </button>
 
-                  {/* Purple Button: Sign In with Shop */}
+                  {/* Purple Button: Sign In with Shop (Hidden/Commented Out) */}
+                  {/*
                   <button
                     onClick={handleShopSignIn}
                     disabled={isSubmitting}
@@ -322,6 +323,7 @@ export default function AccountSidebar() {
                       </>
                     )}
                   </button>
+                  */}
                 </div>
 
                 {/* Privacy text */}
@@ -799,7 +801,7 @@ export default function AccountSidebar() {
                 <Truck size={20} />
               </div>
               <div>
-                <h4 className="text-xs font-bold text-black uppercase tracking-wider font-sans">
+                <h4 className="text-xs font-bold text-black uppercase tracking-wider font-montserrat-bold">
                   Track Your Order
                 </h4>
                 <p className="text-[10px] text-black/50 tracking-wide font-medium">

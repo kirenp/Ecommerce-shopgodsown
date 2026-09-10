@@ -76,7 +76,7 @@ export default function Footer() {
               {[
                 { label: "Track Order", href: "/track-order" },
                 { label: "Shipping Policy", href: "/shipping-policy" },
-                { label: "Refund Policy", href: "/refund-policy" },
+                // { label: "Refund Policy", href: "/refund-policy" },
                 { label: "Terms of Service", href: "/terms-of-service" },
               ].map((item) => (
                 <li key={item.label}>
@@ -93,7 +93,13 @@ export default function Footer() {
             <h3 className="text-black text-xs font-bold tracking-[0.2em] uppercase">Follow</h3>
             <div className="w-6 h-[2px] bg-[#C81E1E] mt-4 mb-6"></div>
             <div className="flex space-x-6">
-              <a href="#" className="text-black hover:text-[#C81E1E] transition-colors">
+              <a
+                href="https://www.instagram.com/godsownculture/"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Instagram"
+                className="text-black hover:text-[#C81E1E] transition-colors"
+              >
                 <Instagram size={22} strokeWidth={1.5} />
               </a>
               <a href="#" className="text-black hover:text-[#C81E1E] transition-colors">
@@ -120,7 +126,7 @@ export default function Footer() {
           rel="noopener noreferrer"
           className="text-[10px] tracking-widest font-bold text-black/60 hover:text-black transition-colors"
         >
-          Powered by WEBDEVTRACK
+          Built by WebDevTrack.com
         </a>
       </div>
 

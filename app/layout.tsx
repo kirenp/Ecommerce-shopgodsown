@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { Inter, Cormorant_Garamond } from "next/font/google";
-import { geishta, pickyside } from "@/lib/fonts";
+import { Inter, Montserrat, Cormorant_Garamond } from "next/font/google";
+import { geishta, pickyside, montserratBold } from "@/lib/fonts";
 import "./globals.css";
 import { CartProvider } from "@/lib/cartContext";
 import { UIProvider } from "@/lib/uiContext";
@@ -13,6 +13,11 @@ import AccountSidebar from "@/components/AccountSidebar";
 import Script from "next/script";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+const montserrat = Montserrat({
+  subsets: ["latin"],
+  variable: "--font-montserrat",
+  display: "swap",
+});
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
   variable: "--font-cormorant",
@@ -188,7 +193,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${cormorant.variable} ${geishta.variable} ${pickyside.variable}`}
+      className={`${inter.variable} ${montserrat.variable} ${montserratBold.variable} ${cormorant.variable} ${geishta.variable} ${pickyside.variable}`}
     >
       <head>
         {/* Canonical & alternate */}
@@ -204,7 +209,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
-      <body className="antialiased">
+      <body className="antialiased font-sans">
         <CustomerProvider>
           <WishlistProvider>
             <RecentlyViewedProvider>

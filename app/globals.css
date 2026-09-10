@@ -26,6 +26,7 @@
 :root {
   --background: #000000;
   --foreground: #ffffff;
+  --font-inter: var(--font-montserrat);
 }
 
 html, body {
@@ -73,7 +74,7 @@ html, body {
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-montserrat), 'Montserrat', sans-serif;
   overflow-x: hidden;
 }
 

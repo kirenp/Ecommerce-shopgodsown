@@ -63,19 +63,18 @@ export default function PromiseBanner() {
         <div className="relative z-10 h-full flex items-center px-8 sm:px-12 md:px-16 lg:px-24 py-14 md:py-20">
           <div className="max-w-lg">
             {/* Label */}
-            <p className="text-[#C81E1E] text-[10px] md:text-[11px] font-bold tracking-[0.35em] uppercase mb-4 md:mb-5 drop-shadow-sm">
+            <p className="text-[#C81E1E] text-[10px] md:text-[11px] font-montserrat-bold font-bold tracking-[0.35em] uppercase mb-4 md:mb-5 drop-shadow-sm">
               Our Promise
             </p>
 
             {/* Heading */}
-            <h2 className="text-white text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black uppercase leading-[0.9] tracking-tight mb-5 md:mb-7 drop-shadow-lg">
+            <h2 className="text-white text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-montserrat-bold font-bold uppercase leading-[0.9] tracking-tight mb-5 md:mb-7 drop-shadow-lg">
               Made With<br />Purpose
             </h2>
 
             {/* Body text */}
-            <p className="text-white/60 text-xs sm:text-sm md:text-base leading-relaxed max-w-sm mb-8 md:mb-10 tracking-wide">
-              Every piece we create is a reflection of who we are<br className="hidden sm:block" />
-              and what we stand for. No compromises. Ever.
+            <p className="text-[#F5F5F3] text-sm md:text-base leading-relaxed max-w-md lg:max-w-lg mb-8 md:mb-10 tracking-wide text-balance font-normal">
+              Every piece we create is a reflection of who we are and what we stand for. No compromises, ever.
             </p>
 
             {/* CTA Button — also glass-styled */}

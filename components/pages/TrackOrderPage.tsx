@@ -168,8 +168,8 @@ export default function TrackOrderPageContent() {
       <div className="pt-36 pb-24 px-6 md:px-12 max-w-5xl mx-auto space-y-12">
         {/* Header */}
         <div className="text-center space-y-4 max-w-xl mx-auto">
-          <p className="text-[10px] text-white/40 tracking-[0.4em] uppercase font-mono">Real-Time Logistics</p>
-          <h1 className="font-brand text-4xl md:text-6xl font-light text-white tracking-tight">
+          <p className="text-[10px] text-white/40 tracking-[0.4em] uppercase font-montserrat-bold font-bold">Real-Time Logistics</p>
+          <h1 className="font-montserrat-bold text-4xl md:text-6xl font-bold text-white tracking-tight">
             Track Your Order
           </h1>
           <p className="text-xs text-white/60 leading-relaxed tracking-wide font-medium">

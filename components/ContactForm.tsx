@@ -52,7 +52,7 @@ export default function ContactForm() {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                   </svg>
                 </div>
-                <h3 className="font-brand text-3xl text-white font-light">Message Received.</h3>
+                <h3 className="font-montserrat-bold text-3xl text-white font-bold">Message Received.</h3>
                 <p className="text-white/70 text-sm max-w-lg mx-auto leading-relaxed">
                   {liveEmailSent ? (
                     <>
@@ -81,8 +81,8 @@ export default function ContactForm() {
             ) : (
               <>
                 <div className="mb-10">
-                  <p className="text-[10px] text-white/30 tracking-[0.4em] uppercase mb-2">Get in Touch</p>
-                  <h2 className="font-brand text-4xl font-light text-white tracking-tight">Let's talk.</h2>
+                  <p className="text-[10px] text-[#E0E0DC] tracking-[0.4em] uppercase mb-2 font-montserrat-bold font-bold">Get in Touch</p>
+                  <h2 className="font-montserrat-bold text-4xl font-bold text-white tracking-tight">Let's talk.</h2>
                 </div>
 
                 {errorMsg && (
@@ -94,37 +94,37 @@ export default function ContactForm() {
                 <form onSubmit={handleSubmit} className="space-y-8">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <label className="text-[10px] text-white/30 tracking-[0.3em] uppercase">Name</label>
+                      <label className="text-[10px] text-[#E0E0DC] tracking-[0.3em] uppercase font-montserrat-bold font-bold">Name</label>
                       <input
                         type="text"
                         required
                         value={form.name}
                         onChange={e => setForm({ ...form, name: e.target.value })}
-                        className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3.5 text-white text-sm placeholder:text-white/20 outline-none focus:border-white/30 transition-colors"
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3.5 text-white text-sm placeholder:text-white/40 outline-none focus:border-white/40 transition-colors"
                         placeholder="Your name"
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[10px] text-white/30 tracking-[0.3em] uppercase">Email</label>
+                      <label className="text-[10px] text-[#E0E0DC] tracking-[0.3em] uppercase font-montserrat-bold font-bold">Email</label>
                       <input
                         type="email"
                         required
                         value={form.email}
                         onChange={e => setForm({ ...form, email: e.target.value })}
-                        className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3.5 text-white text-sm placeholder:text-white/20 outline-none focus:border-white/30 transition-colors"
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3.5 text-white text-sm placeholder:text-white/40 outline-none focus:border-white/40 transition-colors"
                         placeholder="your@email.com"
                       />
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-[10px] text-white/30 tracking-[0.3em] uppercase">Message</label>
+                    <label className="text-[10px] text-[#E0E0DC] tracking-[0.3em] uppercase font-montserrat-bold font-bold">Message</label>
                     <textarea
                       required
                       rows={5}
                       value={form.message}
                       onChange={e => setForm({ ...form, message: e.target.value })}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3.5 text-white text-sm placeholder:text-white/20 outline-none focus:border-white/30 transition-colors resize-none"
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3.5 text-white text-sm placeholder:text-white/40 outline-none focus:border-white/40 transition-colors resize-none"
                       placeholder="What's on your mind?"
                     />
                   </div>
