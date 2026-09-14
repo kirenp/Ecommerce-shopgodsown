@@ -36,45 +36,7 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  // =========================================================================
-  // PRE-LAUNCH WEBSITE ROUTING MIDDLEWARE
-  // =========================================================================
-  //
-  // 1. PUBLIC ROUTES ARE LOCKED BEHIND EARLY ACCESS.
-  //    All public traffic requesting standard pages (e.g. "/", "/catalog", "/about",
-  //    "/contact") will be redirected to the "/early-access" landing page.
-  //
-  // 2. DEVELOPER PREVIEW ROUTES ARE ACCESSIBLE ONLY THROUGH "/dev-preview/*".
-  //    Routes starting with "/dev-preview" (e.g. "/dev-preview/products", 
-  //    "/dev-preview/about", "/dev-preview/contact") will bypass the early-access redirect.
-  //
-  // 3. LAUNCH DAY ONLY REQUIRES DISABLING THE MIDDLEWARE REDIRECT.
-  //    On launch day, to open the site to the public, disable the redirect logic below
-  //    or delete this middleware file.
-  //
-  // =========================================================================
-
-  // Define allowed paths that should bypass the early-access redirect
-  const isAllowedPath =
-    pathname === '/early-access' ||
-    pathname === '/dev-preview' ||
-    pathname.startsWith('/dev-preview/') ||
-    pathname.startsWith('/api') ||
-    pathname.startsWith('/_next') ||
-    pathname === '/favicon.ico' ||
-    pathname === '/sitemap.xml' ||
-    pathname === '/robots.txt' ||
-    pathname.startsWith('/images') ||
-    pathname.startsWith('/videos') ||
-    pathname.startsWith('/static');
-
-  if (isAllowedPath) {
-    return NextResponse.next();
-  }
-
-  // Pre-launch mode: redirect all public visitors to early-access landing page
-  const earlyAccessUrl = new URL('/early-access', request.url);
-  return NextResponse.redirect(earlyAccessUrl);
+  return NextResponse.next();
 }
 
 export const config = {
