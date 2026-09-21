@@ -308,7 +308,7 @@ export async function POST(req: NextRequest) {
       const redirectUri = configuredRedirect || `${origin}/api/auth/callback`;
 
       // Extract return path from referer if on dev-preview
-      let returnPath = body.returnPath || "/dev-preview";
+      let returnPath = body.returnPath || "/";
       if (!body.returnPath && referer) {
         try {
           const refUrl = new URL(referer);

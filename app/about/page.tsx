@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import AboutPageContent from "@/components/pages/AboutPage";
 
 export const metadata: Metadata = {
-  title: "About — Gods Own Culture | Our Story",
+  title: "About — God's Own Culture | Our Story",
   description:
-    "Gods Own Culture is a premium Indian streetwear brand rooted in Kerala's cultural heritage. Discover our story, mission, and values.",
+    "God's Own Culture is a premium Indian streetwear brand rooted in Kerala's cultural heritage. Discover our story, mission, and values.",
   keywords: [
     "about gods own culture",
     "godsownculture brand story",

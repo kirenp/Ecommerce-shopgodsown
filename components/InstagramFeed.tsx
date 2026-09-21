@@ -14,39 +14,39 @@ interface InstagramPost {
 const FALLBACK_POSTS: InstagramPost[] = [
   {
     id: "fb-1",
-    mediaUrl: "/images/productnavig-2.png",
+    mediaUrl: "/images/ChatGPT Image Jul 8, 2026, 02_49_03 PM (2).png",
     permalink: "https://www.instagram.com/godsownculture/",
-    caption: "GODS OWN CULTURE — Luxury redefined.",
+    caption: "GOD'S OWN CULTURE — Luxury redefined.",
   },
   {
     id: "fb-2",
-    mediaUrl: "/images/IMG_9026.JPG.jpeg",
+    mediaUrl: "/images/mission-new.png",
     permalink: "https://www.instagram.com/godsownculture/",
     caption: "Designed in Kerala. Delivered worldwide.",
   },
   {
     id: "fb-3",
-    mediaUrl: "/images/IMG_9025.JPG (1).jpeg",
+    mediaUrl: "/images/Adobe%234732.png",
     permalink: "https://www.instagram.com/godsownculture/",
     caption: "Our Drops — Limited Edition.",
   },
   {
     id: "fb-4",
-    mediaUrl: "/images/bannerimageseason.png",
-    permalink: "https://www.instagram.com/godsownculture/",
-    caption: "Malayali Dept. Collection.",
-  },
-  {
-    id: "fb-5",
-    mediaUrl: "/images/banner-mobile-newseason.png",
+    mediaUrl: "/images/gradedfinal10.png",
     permalink: "https://www.instagram.com/godsownculture/",
     caption: "Wear the heritage. Own the culture.",
   },
   {
-    id: "fb-6",
-    mediaUrl: "/images/ChatGPT Image Jul 8, 2026, 02_49_03 PM (2).png",
+    id: "fb-5",
+    mediaUrl: "/images/ChatGPT Image Sep 8, 2026, 02_51_15 PM.png",
     permalink: "https://www.instagram.com/godsownculture/",
     caption: "Follow @godsownculture on Instagram.",
+  },
+  {
+    id: "fb-6",
+    mediaUrl: "/images/ChatGPT Image Jul 8, 2026, 05_25_11 PM.png",
+    permalink: "https://www.instagram.com/godsownculture/",
+    caption: "Malayali Dept. Collection.",
   },
 ];
 
@@ -79,7 +79,7 @@ export default function InstagramFeed() {
     <section className="w-full bg-black py-20 border-t border-white/5 overflow-hidden">
       {/* Editorial Section Header */}
       <div className="px-6 md:px-12 lg:px-16 pb-10">
-        <p className="text-[9px] text-white/40 tracking-[0.5em] uppercase mb-2">
+        <p className="text-xs md:text-sm font-semibold text-white/70 tracking-[0.25em] uppercase mb-2">
           Instagram
         </p>
         <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2">
@@ -114,7 +114,7 @@ export default function InstagramFeed() {
               href={post.permalink}
               target="_blank"
               rel="noopener noreferrer"
-              className="relative aspect-square group block bg-white/[0.02] border border-white/[0.05] rounded-xl overflow-hidden shadow-sm hover:border-white/20 transition-colors"
+              className="relative aspect-[4/5] group block bg-white/[0.02] border border-white/[0.05] rounded-xl overflow-hidden shadow-sm hover:border-white/20 transition-colors"
             >
               {/* Image */}
               <Image
@@ -148,7 +148,7 @@ export default function InstagramFeed() {
                     {post.caption}
                   </p>
                   <span className="text-[9px] font-bold uppercase tracking-widest text-[#ef4444] group-hover:text-white transition-colors font-sans">
-                    View Post →
+                    Visit Profile →
                   </span>
                 </div>
               </div>

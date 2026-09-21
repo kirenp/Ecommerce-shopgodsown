@@ -22,8 +22,8 @@ export async function GET(req: NextRequest) {
     // Use cookieOrigin if available and valid, otherwise fallback
     const savedOrigin = (cookieOrigin && !cookieOrigin.includes("b2591201c62c")) ? cookieOrigin : fallbackOrigin;
 
-    // Retrieve return path from cookie (defaulting to /dev-preview)
-    const returnPathCookie = req.cookies.get("goc_auth_return_url")?.value || "/dev-preview";
+    // Retrieve return path from cookie (defaulting to /)
+    const returnPathCookie = req.cookies.get("goc_auth_return_url")?.value || "/";
     const returnUrl = new URL(returnPathCookie, savedOrigin);
 
     // Handle errors from Shopify
@@ -191,7 +191,7 @@ export async function GET(req: NextRequest) {
     return response;
   } catch (error: any) {
     console.error("OAuth callback error:", error);
-    const returnPathCookie = req.cookies.get("goc_auth_return_url")?.value || "/dev-preview";
+    const returnPathCookie = req.cookies.get("goc_auth_return_url")?.value || "/";
     const redirectUrl = new URL(returnPathCookie, req.url);
     redirectUrl.searchParams.set("auth_error", error.message || "Authentication failed.");
     return NextResponse.redirect(redirectUrl);

@@ -4,7 +4,7 @@ const STRIP_ITEMS = [
   { icon: <Zap size={14} />, text: "KERALA ORIGINALS" },
   { icon: <Flame size={14} />, text: "BACKWATER DROPS" },
   { icon: <Crown size={14} />, text: "HERITAGE PRIDE" },
-  { icon: <Zap size={14} />, text: "GODS OWN" },
+  { icon: <Zap size={14} />, text: "GOD'S OWN" },
   { icon: <Star size={14} />, text: "TRADITION REBORN" },
   { icon: <Flame size={14} />, text: "CULTURAL LUXE" },
   { icon: <Crown size={14} />, text: "VESSEL OF STYLE" },
@@ -20,7 +20,7 @@ export default function CategoryStrip() {
               <div className="w-10 h-10 rounded-full border border-luxury-gold/30 flex items-center justify-center text-luxury-gold bg-luxury-gold/5">
                 {item.icon}
               </div>
-              <span className={`text-luxury-gold text-[10px] md:text-xs font-bold tracking-[0.4em] uppercase ${item.text === "GODS OWN" ? "font-geishta" : ""}`}>
+              <span className={`text-luxury-gold text-[10px] md:text-xs font-bold tracking-[0.4em] uppercase ${item.text === "GOD'S OWN" ? "font-geishta" : ""}`}>
                 {item.text}
               </span>
             </div>
@@ -33,7 +33,7 @@ export default function CategoryStrip() {
               <div className="w-10 h-10 rounded-full border border-luxury-gold/30 flex items-center justify-center text-luxury-gold bg-luxury-gold/5">
                 {item.icon}
               </div>
-              <span className={`text-luxury-gold text-[10px] md:text-xs font-bold tracking-[0.4em] uppercase ${item.text === "GODS OWN" ? "font-geishta" : ""}`}>
+              <span className={`text-luxury-gold text-[10px] md:text-xs font-bold tracking-[0.4em] uppercase ${item.text === "GOD'S OWN" ? "font-geishta" : ""}`}>
                 {item.text}
               </span>
             </div>

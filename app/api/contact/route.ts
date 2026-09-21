@@ -110,7 +110,7 @@ export async function POST(req: NextRequest) {
             </div>
 
             <div class="footer">
-              GODS OWN CULTURE &bull; E-Commerce Concierge Notification
+              GOD'S OWN CULTURE &bull; E-Commerce Concierge Notification
             </div>
           </div>
         </div>
@@ -144,7 +144,7 @@ export async function POST(req: NextRequest) {
         <div style="background-color: #000000; padding: 20px 0;">
           <div class="container">
             <div class="header">
-              <h1 class="brand-title"><span class="brand-red">GODS</span> OWN CULTURE</h1>
+              <h1 class="brand-title"><span class="brand-red">GOD'S</span> OWN CULTURE</h1>
             </div>
             
             <h2 class="headline">Thank you for contacting us, ${safeName}.</h2>
@@ -163,7 +163,7 @@ export async function POST(req: NextRequest) {
             </div>
 
             <div class="footer">
-              <p style="margin: 0 0 6px 0; color: #a1a1aa; font-weight: 600;">GODS OWN CULTURE</p>
+              <p style="margin: 0 0 6px 0; color: #a1a1aa; font-weight: 600;">GOD'S OWN CULTURE</p>
               <p style="margin: 0;">Streetwear Born from Kerala Heritage</p>
               <p style="margin: 8px 0 0 0; color: #52525b; font-size: 10px;">If you have additional details, simply reply directly to this email.</p>
             </div>
@@ -189,18 +189,18 @@ export async function POST(req: NextRequest) {
 
       // Send to Admin
       await transporter.sendMail({
-        from: `"${safeName} via GODS OWN" <${smtpUser}>`,
+        from: `"${safeName} via GOD'S OWN" <${smtpUser}>`,
         replyTo: email, // Use raw email for reply-to (not HTML context)
         to: adminEmail,
-        subject: `New Inquiry from ${safeName} — GODS OWN CULTURE`,
+        subject: `New Inquiry from ${safeName} — GOD'S OWN CULTURE`,
         html: adminHtml,
       });
 
       // Send Auto-Confirmation to Customer
       await transporter.sendMail({
-        from: `"GODS OWN CULTURE" <${smtpUser}>`,
+        from: `"GOD'S OWN CULTURE" <${smtpUser}>`,
         to: email,
-        subject: `We've Received Your Message — GODS OWN CULTURE`,
+        subject: `We've Received Your Message — GOD'S OWN CULTURE`,
         html: customerHtml,
       });
 

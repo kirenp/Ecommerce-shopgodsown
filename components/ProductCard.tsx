@@ -16,6 +16,7 @@ interface ProductCardProps {
   currencyCode?: string;
   isSale?: boolean;
   variant?: "dark" | "glass";
+  ctaType?: "buy-now" | "add-to-cart";
 }
 
 export default function ProductCard({ 
@@ -25,12 +26,15 @@ export default function ProductCard({
   price, 
   currencyCode = "INR", 
   isSale,
-  variant = "dark"
+  variant = "dark",
+  ctaType
 }: ProductCardProps) {
   const { openQuickView } = useUI();
   const [loading, setLoading] = useState(false);
   const [wishlisted, setWishlisted] = useState(false);
   const { getPreviewPath } = usePreview();
+
+  const effectiveCta = ctaType ?? (variant === "glass" ? "add-to-cart" : "buy-now");
 
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -90,33 +94,44 @@ export default function ProductCard({
               </h3>
               {/* Subtle liquid glass divider line under title */}
               <div className="w-8 h-[1.5px] bg-gradient-to-r from-white/60 to-white/10 mt-2" />
-              <p className="text-white font-black text-sm md:text-base mt-2.5 tracking-widest drop-shadow">
-                ₹{parseFloat(price).toLocaleString("en-IN")} {currencyCode}
+              <p className="text-white font-semibold text-base md:text-lg mt-2 tracking-wide flex items-baseline gap-1.5">
+                <span>₹ {parseFloat(price).toLocaleString("en-IN")}</span>
+                <span className="text-xs md:text-sm text-white/70 font-normal tracking-wider uppercase">{currencyCode}</span>
               </p>
             </div>
 
-            {/* ADD TO CART button on liquid glass card */}
-            <button
-              onClick={handleAddToCart}
-              disabled={loading}
-              className="relative z-10 w-full py-3 md:py-3.5 bg-white/15 hover:bg-white/25 backdrop-blur-md border border-white/30 text-white text-[10px] font-bold uppercase tracking-[0.25em] rounded-2xl transition-all duration-400 flex items-center justify-between px-5 md:px-6 shadow-[0_4px_16px_rgba(0,0,0,0.2),inset_0_1px_0_0_rgba(255,255,255,0.4)] group-hover:shadow-[0_6px_20px_rgba(0,0,0,0.3)] group-hover:border-white/50"
-            >
-              {loading ? (
-                <span className="w-full text-center">Processing...</span>
-              ) : (
-                <>
-                  <span>Add to Cart</span>
-                  <span className="text-base font-light leading-none">→</span>
-                </>
-              )}
-            </button>
+            {/* CTA Button: Add to Cart for landing page glass cards, or Buy Now */}
+            {effectiveCta === "add-to-cart" ? (
+              <button
+                type="button"
+                onClick={handleAddToCart}
+                disabled={loading}
+                className="relative z-10 w-full py-3 md:py-3.5 bg-white/15 hover:bg-white/25 backdrop-blur-md border border-white/30 text-white text-[10px] font-bold uppercase tracking-[0.25em] rounded-2xl transition-all duration-400 flex items-center justify-between px-5 md:px-6 shadow-[0_4px_16px_rgba(0,0,0,0.2),inset_0_1px_0_0_rgba(255,255,255,0.4)] group-hover:shadow-[0_6px_20px_rgba(0,0,0,0.3)] group-hover:border-white/50 cursor-pointer disabled:opacity-50"
+              >
+                {loading ? (
+                  <span className="w-full text-center">Processing...</span>
+                ) : (
+                  <>
+                    <span>Add to Cart</span>
+                    <span className="text-base font-light leading-none">→</span>
+                  </>
+                )}
+              </button>
+            ) : (
+              <span
+                className="relative z-10 w-full py-3 md:py-3.5 bg-white/15 hover:bg-white/25 backdrop-blur-md border border-white/30 text-white text-[10px] font-bold uppercase tracking-[0.25em] rounded-2xl transition-all duration-400 flex items-center justify-between px-5 md:px-6 shadow-[0_4px_16px_rgba(0,0,0,0.2),inset_0_1px_0_0_rgba(255,255,255,0.4)] group-hover:shadow-[0_6px_20px_rgba(0,0,0,0.3)] group-hover:border-white/50"
+              >
+                <span>Buy Now</span>
+                <span className="text-base font-light leading-none">→</span>
+              </span>
+            )}
           </div>
         </div>
       </Link>
     );
   }
 
-  // Default Dark Card with Apple Liquid Glass content section
+  // Default Dark Card with Apple Liquid Glass content section (Used on Shop / Catalog pages)
   return (
     <Link href={getPreviewPath(`/products/${handle}`)} className="group cursor-pointer block">
       {/* Liquid glass card container */}
@@ -157,26 +172,37 @@ export default function ProductCard({
               {title}
             </h3>
             <div className="w-8 h-[1.5px] bg-gradient-to-r from-white/50 to-white/10 mt-2" />
-            <p className="text-white font-black text-xs md:text-sm mt-2.5 tracking-widest drop-shadow">
-              ₹{parseFloat(price).toLocaleString("en-IN")} {currencyCode}
+            <p className="text-white font-semibold text-sm md:text-base mt-2 tracking-wide flex items-baseline gap-1.5">
+              <span>₹ {parseFloat(price).toLocaleString("en-IN")}</span>
+              <span className="text-xs text-white/70 font-normal tracking-wider uppercase">{currencyCode}</span>
             </p>
           </div>
 
-          {/* ADD TO CART liquid glass button */}
-          <button
-            onClick={handleAddToCart}
-            disabled={loading}
-            className="relative z-10 w-full py-3 bg-white/15 hover:bg-white/25 backdrop-blur-md border border-white/25 text-white text-[10px] font-bold uppercase tracking-[0.2em] rounded-xl transition-all duration-400 flex items-center justify-between px-4 shadow-[0_4px_14px_rgba(0,0,0,0.2),inset_0_1px_0_0_rgba(255,255,255,0.4)] group-hover:border-white/40"
-          >
-            {loading ? (
-              <span className="w-full text-center">Processing...</span>
-            ) : (
-              <>
-                <span>Add to Cart</span>
-                <span className="text-xs font-light leading-none">→</span>
-              </>
-            )}
-          </button>
+          {/* CTA Button: Buy Now for shop cards, or Add to Cart */}
+          {effectiveCta === "add-to-cart" ? (
+            <button
+              type="button"
+              onClick={handleAddToCart}
+              disabled={loading}
+              className="relative z-10 w-full py-3 bg-white/15 hover:bg-white/25 backdrop-blur-md border border-white/25 text-white text-[10px] font-bold uppercase tracking-[0.2em] rounded-xl transition-all duration-400 flex items-center justify-between px-4 shadow-[0_4px_14px_rgba(0,0,0,0.2),inset_0_1px_0_0_rgba(255,255,255,0.4)] group-hover:border-white/40 cursor-pointer disabled:opacity-50"
+            >
+              {loading ? (
+                <span className="w-full text-center">Processing...</span>
+              ) : (
+                <>
+                  <span>Add to Cart</span>
+                  <span className="text-xs font-light leading-none">→</span>
+                </>
+              )}
+            </button>
+          ) : (
+            <span
+              className="relative z-10 w-full py-3 bg-white/15 hover:bg-white/25 backdrop-blur-md border border-white/25 text-white text-[10px] font-bold uppercase tracking-[0.2em] rounded-xl transition-all duration-400 flex items-center justify-between px-4 shadow-[0_4px_14px_rgba(0,0,0,0.2),inset_0_1px_0_0_rgba(255,255,255,0.4)] group-hover:border-white/40"
+            >
+              <span>Buy Now</span>
+              <span className="text-xs font-light leading-none">→</span>
+            </span>
+          )}
         </div>
       </div>
     </Link>

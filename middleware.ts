@@ -36,6 +36,27 @@ export function middleware(request: NextRequest) {
     }
   }
 
+  // =========================================================================
+  // RETIRE /dev-preview — Redirect all preview routes to canonical paths
+  // =========================================================================
+  if (pathname === '/dev-preview' || pathname === '/dev-preview/') {
+    const url = request.nextUrl.clone();
+    url.pathname = '/';
+    return NextResponse.redirect(url, 308);
+  }
+
+  if (pathname.startsWith('/dev-preview/')) {
+    const targetSubpath = pathname.replace(/^\/dev-preview/, '');
+    const url = request.nextUrl.clone();
+    // Route /dev-preview/products to /catalog, and others to direct subpath
+    if (targetSubpath === '/products') {
+      url.pathname = '/catalog';
+    } else {
+      url.pathname = targetSubpath;
+    }
+    return NextResponse.redirect(url, 308);
+  }
+
   return NextResponse.next();
 }
 

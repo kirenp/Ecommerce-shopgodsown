@@ -18,7 +18,7 @@ export default function Footer() {
         <div className="lg:w-[400px] flex flex-col justify-between">
           <div>
             <h2 className="font-sans font-bold text-4xl md:text-5xl tracking-[0.25em] uppercase leading-none mb-4">
-              <span className="text-[#C81E1E]">GODS</span> <span className="text-[#111111]">OWN</span>
+              <span className="text-[#C81E1E]">GOD&apos;S</span> <span className="text-[#111111]">OWN</span>
             </h2>
             <p className="text-black/60 text-xs tracking-wider leading-relaxed font-medium mb-6">
               The new standard of streetwear.<br />
@@ -56,7 +56,7 @@ export default function Footer() {
             <div className="w-6 h-[2px] bg-[#C81E1E] mt-4 mb-6"></div>
             <ul className="space-y-3">
               {[
-                { label: "About", href: "/about" },
+                { label: "Our Story", href: "/about" },
                 { label: "Contact", href: "/contact" },
               ].map((item) => (
                 <li key={item.label}>
@@ -76,7 +76,7 @@ export default function Footer() {
               {[
                 { label: "Track Order", href: "/track-order" },
                 { label: "Shipping Policy", href: "/shipping-policy" },
-                // { label: "Refund Policy", href: "/refund-policy" },
+                { label: "Refunds & Exchanges", href: "/refund-policy" },
                 { label: "Terms of Service", href: "/terms-of-service" },
               ].map((item) => (
                 <li key={item.label}>

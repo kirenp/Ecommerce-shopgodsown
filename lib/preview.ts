@@ -1,48 +1,28 @@
-import { usePathname } from 'next/navigation';
-
 /**
- * Returns a preview-aware version of a path.
- * If in preview mode, routes like /products, /catalog, /about, /contact, /cart, /collections/[handle], etc.
- * are prefixed with /dev-preview.
+ * Normalizes a path to its canonical root domain version.
+ * Now that /dev-preview is retired, all preview prefixes are stripped.
  */
-export function getPreviewPath(path: string, isPreview: boolean): string {
-  if (!isPreview) return path;
-
+export function getPreviewPath(path: string, _isPreview?: boolean): string {
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
 
-  if (cleanPath === '/') {
-    return '/dev-preview';
+  if (cleanPath === '/dev-preview' || cleanPath === '/dev-preview/') {
+    return '/';
   }
 
-  if (cleanPath.startsWith('/dev-preview')) {
-    return cleanPath;
+  if (cleanPath === '/dev-preview/products') {
+    return '/catalog';
   }
 
-  // Handle "/products" or "/catalog" links
-  if (cleanPath === '/products' || cleanPath === '/catalog') {
-    return '/dev-preview/products';
+  if (cleanPath.startsWith('/dev-preview/')) {
+    return cleanPath.replace(/^\/dev-preview/, '');
   }
 
-  // Handle "/cart" links
-  if (cleanPath === '/cart') {
-    return '/dev-preview/cart';
-  }
-
-  // Handle anchor links (e.g. /#collections)
-  if (cleanPath.startsWith('/#')) {
-    return `/dev-preview${cleanPath.substring(1)}`;
-  }
-
-  // Prevent double prefixing if path already includes /dev-preview
-  return `/dev-preview${cleanPath}`;
+  return cleanPath;
 }
 
 export function usePreview() {
-  const pathname = usePathname();
-  const isPreview = pathname?.startsWith('/dev-preview') || false;
-
   return {
-    isPreview,
-    getPreviewPath: (path: string) => getPreviewPath(path, isPreview),
+    isPreview: false,
+    getPreviewPath: (path: string) => getPreviewPath(path, false),
   };
 }

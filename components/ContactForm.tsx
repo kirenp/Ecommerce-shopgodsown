@@ -56,7 +56,7 @@ export default function ContactForm() {
                 <p className="text-white/70 text-sm max-w-lg mx-auto leading-relaxed">
                   {liveEmailSent ? (
                     <>
-                      Thank you for reaching out to <span className="text-[#C81E1E] font-semibold">GODS OWN CULTURE</span>. Your message has been sent to <span className="text-white font-medium">godsownculture@gmail.com</span> and a confirmation copy was delivered to your email (<span className="text-white font-medium">{form.email}</span>).
+                      Thank you for reaching out to <span className="text-[#C81E1E] font-semibold">GOD&apos;S OWN CULTURE</span>. Your message has been sent to <span className="text-white font-medium">godsownculture@gmail.com</span> and a confirmation copy was delivered to your email (<span className="text-white font-medium">{form.email}</span>).
                     </>
                   ) : (
                     <>

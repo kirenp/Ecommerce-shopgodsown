@@ -306,7 +306,7 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
       }
 
       const clientOrigin = typeof window !== 'undefined' ? window.location.origin : '';
-      const clientPath = typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/dev-preview';
+      const clientPath = typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/';
 
       const res = await fetch("/api/customer/auth", {
         method: "POST",

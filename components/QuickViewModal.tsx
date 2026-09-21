@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import Image from "next/image";
 import { useCart } from "@/lib/cartContext";
 import { useUI } from "@/lib/uiContext";
+import { Plus, Minus } from "lucide-react";
 
 const SIZE_ORDER: Record<string, number> = {
   "XXS": 1,
@@ -35,6 +36,20 @@ function sortSizesList(sizes: any[]) {
     if (aVal !== bVal) return aVal - bVal;
     return aLabel.localeCompare(bLabel);
   });
+}
+
+function renderProductTitle(title: string) {
+  if (!title) return null;
+  const match = title.match(/^(.*?)[\s]+((?:OVERSIZED\s+)?(?:T-SHIRT|T-Shirt|TANK TOP|Tank Top|HOODIE|Hoodie|SWEATSHIRT|Sweatshirt))$/i);
+  if (match) {
+    return (
+      <>
+        <span className="block">{match[1]}</span>
+        <span className="block whitespace-nowrap mt-1">{match[2]}</span>
+      </>
+    );
+  }
+  return title;
 }
 
 export default function QuickViewModal() {
@@ -105,7 +120,7 @@ export default function QuickViewModal() {
     }, [selectedSize, selectedColor, availableStock]);
 
     const handleAddToCart = () => {
-        if (!quickViewProduct || !isVariantSelected || !isAvailable) return;
+        if (!quickViewProduct || !isVariantSelected || !isAvailable || availableStock <= 0) return;
 
         addToCart({
             id: quickViewProduct.id,
@@ -166,13 +181,14 @@ export default function QuickViewModal() {
                 {/* Right: Details */}
                 <div className="w-full md:w-1/2 p-8 md:p-10 flex flex-col overflow-y-auto">
                     <div className="mb-6">
-                        <h2 className="font-brand text-3xl text-black font-semibold leading-tight mb-2">
-                            {quickViewProduct.title}
+                        <h2 className="font-sans text-2xl md:text-3xl text-black font-bold uppercase tracking-tight leading-tight mb-3 [hyphens:none]">
+                            {renderProductTitle(quickViewProduct.title)}
                         </h2>
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-baseline gap-4">
                             <p className="text-xl font-medium text-black">
-                                ₹{parseFloat(currentVariant?.price || quickViewProduct.price).toLocaleString("en-IN")}
+                                ₹ {parseFloat(currentVariant?.price || quickViewProduct.price).toLocaleString("en-IN")}
                             </p>
+                            <span className="text-xs font-normal text-black/60 tracking-[0.25em] uppercase">{quickViewProduct.currencyCode || "INR"}</span>
                         </div>
                     </div>
 
@@ -234,25 +250,42 @@ export default function QuickViewModal() {
                         )}
 
                         {isVariantSelected && isAvailable && availableStock > 0 && (
-                            <div className="space-y-3">
+                            <div className="space-y-2">
                                 <h4 className="text-xs font-bold text-black uppercase tracking-wider">
-                                    Quantity
+                                    ADD TO BAG
                                 </h4>
-                                <div className="relative border border-gray-200 rounded text-xs font-medium text-black bg-white inline-flex items-center">
-                                    <select
-                                        value={selectedQty}
-                                        onChange={(e) => setSelectedQty(parseInt(e.target.value))}
-                                        className="bg-transparent pl-3 pr-8 py-2 text-xs font-bold text-black outline-none cursor-pointer appearance-none"
+                                <div className="inline-flex items-center border border-gray-300 rounded-lg bg-gray-50 overflow-hidden">
+                                    <button
+                                        type="button"
+                                        onClick={() => setSelectedQty((prev) => Math.max(1, prev - 1))}
+                                        disabled={selectedQty <= 1}
+                                        aria-label="Decrease quantity"
+                                        className={`px-3 py-2 text-black/70 transition-all ${
+                                            selectedQty <= 1
+                                                ? "opacity-25 cursor-not-allowed"
+                                                : "hover:bg-black/10 hover:text-black cursor-pointer active:scale-95"
+                                        }`}
                                     >
-                                        {Array.from({ length: Math.max(1, Math.min(10, availableStock)) }, (_, i) => i + 1).map((q) => (
-                                            <option key={q} value={q}>
-                                                {q}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <svg viewBox="0 0 24 24" className="w-3 h-3 text-black/50 absolute right-2.5 pointer-events-none" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                        <path d="M6 9l6 6 6-6" />
-                                    </svg>
+                                        <Minus size={13} strokeWidth={2.5} />
+                                    </button>
+
+                                    <span className="w-10 text-center text-xs font-bold tracking-wider text-black select-none">
+                                        {selectedQty}
+                                    </span>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => setSelectedQty((prev) => Math.min(Math.max(1, Math.min(10, availableStock)), prev + 1))}
+                                        disabled={selectedQty >= Math.max(1, Math.min(10, availableStock))}
+                                        aria-label="Increase quantity"
+                                        className={`px-3 py-2 text-black/70 transition-all ${
+                                            selectedQty >= Math.max(1, Math.min(10, availableStock))
+                                                ? "opacity-25 cursor-not-allowed"
+                                                : "hover:bg-black/10 hover:text-black cursor-pointer active:scale-95"
+                                        }`}
+                                    >
+                                        <Plus size={13} strokeWidth={2.5} />
+                                    </button>
                                 </div>
                             </div>
                         )}
@@ -261,7 +294,7 @@ export default function QuickViewModal() {
                             <p className="text-red-500 text-xs font-medium">Please select all options before adding to cart.</p>
                         )}
 
-                        {!isAvailable && isVariantSelected && (
+                        {(!isAvailable || availableStock <= 0) && isVariantSelected && (
                             <p className="text-red-500 text-xs font-medium">This variant is currently out of stock.</p>
                         )}
                     </div>
@@ -269,13 +302,13 @@ export default function QuickViewModal() {
                     <div className="mt-8 pt-6 border-t border-gray-100">
                         <button
                             onClick={handleAddToCart}
-                            disabled={!isVariantSelected || !isAvailable}
-                            className={`w-full py-4 rounded-lg font-bold uppercase tracking-wider text-sm transition-all ${!isVariantSelected || !isAvailable
+                            disabled={!isVariantSelected || !isAvailable || availableStock <= 0}
+                            className={`w-full py-4 rounded-lg font-bold uppercase tracking-wider text-sm transition-all ${!isVariantSelected || !isAvailable || availableStock <= 0
                                 ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                                 : "bg-black hover:bg-black/90 text-white hover:-translate-y-0.5"
                                 }`}
                         >
-                            Add To Cart
+                            {!isVariantSelected ? "Add To Cart" : (!isAvailable || availableStock <= 0) ? "Out of Stock" : "Add To Cart"}
                         </button>
                     </div>
                 </div>

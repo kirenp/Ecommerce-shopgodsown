@@ -14,7 +14,7 @@ export default async function FeaturedProducts() {
 
       {/* Section Header — Minimal, editorial (same format as Shop The Look) */}
       <div className="px-6 md:px-12 lg:px-16 pb-6 md:pb-8">
-        <p className="text-[9px] text-gray-500 tracking-[0.5em] uppercase mb-2">
+        <p className="text-xs md:text-sm font-semibold text-neutral-800 tracking-[0.25em] uppercase mb-2">
           Collection
         </p>
         <h2 className="text-2xl md:text-3xl font-light text-black tracking-tight">
@@ -41,6 +41,7 @@ export default async function FeaturedProducts() {
                 title={product.title}
                 price={product.price}
                 variant="glass"
+                ctaType="add-to-cart"
               />
             </div>
           ))}

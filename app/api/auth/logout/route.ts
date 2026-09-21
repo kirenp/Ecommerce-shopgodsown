@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const returnPathCookie = req.cookies.get("goc_auth_return_url")?.value || searchParams.get("returnPath") || "/dev-preview";
+    const returnPathCookie = req.cookies.get("goc_auth_return_url")?.value || searchParams.get("returnPath") || "/";
     const authError = searchParams.get("auth_error");
     
     // Determine public origin
@@ -41,6 +41,6 @@ export async function GET(req: NextRequest) {
     return response;
   } catch (error: any) {
     console.error("Logout callback error:", error);
-    return NextResponse.redirect(new URL("/dev-preview", req.url));
+    return NextResponse.redirect(new URL("/", req.url));
   }
 }

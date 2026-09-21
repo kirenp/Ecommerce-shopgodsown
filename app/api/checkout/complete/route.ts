@@ -361,7 +361,7 @@ async function sendOrderEmailAlerts({
         </div>
 
         <div style="text-align: center; padding-top: 20px; border-top: 1px solid #1f1f1f; font-size: 11px; color: #666666;">
-          GODS OWN CULTURE &bull; Streetwear Born from Kerala Heritage
+          GOD'S OWN CULTURE &bull; Streetwear Born from Kerala Heritage
         </div>
       </div>
     </body>
@@ -370,9 +370,9 @@ async function sendOrderEmailAlerts({
 
   if (targetEmail) {
     await transporter.sendMail({
-      from: `"GODS OWN CULTURE" <${smtpUser}>`,
+      from: `"GOD'S OWN CULTURE" <${smtpUser}>`,
       to: targetEmail,
-      subject: `Order Confirmation — ${orderNumber} (GODS OWN CULTURE)`,
+      subject: `Order Confirmation — ${orderNumber} (GOD'S OWN CULTURE)`,
       html: customerHtml,
     });
     console.log(`[Order Email] Confirmation sent to customer: ${targetEmail}`);

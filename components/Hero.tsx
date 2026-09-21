@@ -28,7 +28,7 @@ export default function Hero() {
         <div className="absolute inset-0 z-0 hidden md:block">
           <img
             src="/images/bannerimageseason.png"
-            alt="GODS OWN Season Banner"
+            alt="GOD'S OWN Season Banner"
             className="w-full h-full object-cover select-none"
           />
           {/* Subtle dark overlay to ensure text and glassmorphic button readability */}
@@ -39,7 +39,7 @@ export default function Hero() {
         <div className="absolute inset-0 z-0 block md:hidden">
           <img
             src="/images/banner-mobile-newseason.png"
-            alt="GODS OWN Season Banner Mobile"
+            alt="GOD'S OWN Season Banner Mobile"
             className="w-full h-full object-cover select-none"
           />
           {/* Subtle dark overlay to ensure text and glassmorphic button readability */}

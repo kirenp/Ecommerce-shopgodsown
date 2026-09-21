@@ -112,29 +112,62 @@ export default function CheckoutPageContent() {
     x: number;
     y: number;
   } | null>(null);
-  const hasAutoPrinted = useRef(false);
-
-  // Auto-print receipt on first mount
-  useEffect(() => {
-    if (!hasAutoPrinted.current && items.length > 0) {
-      hasAutoPrinted.current = true;
-      const timer = setTimeout(() => {
-        triggerPrint();
-      }, 600);
-      return () => clearTimeout(timer);
-    }
-  }, [items.length]);
+  const hasPrintedRef = useRef(false);
+  const printTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const finishTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const triggerPrint = useCallback(() => {
     if (isPrinting) return;
+    if (printTimerRef.current) {
+      clearTimeout(printTimerRef.current);
+      printTimerRef.current = null;
+    }
+    if (finishTimerRef.current) {
+      clearTimeout(finishTimerRef.current);
+      finishTimerRef.current = null;
+    }
+
     setReceiptVisible(false);
     setIsPrinting(true);
-    // After the print animation finishes (~1.5s), mark receipt as fully visible
-    setTimeout(() => {
+    hasPrintedRef.current = true;
+
+    finishTimerRef.current = setTimeout(() => {
       setReceiptVisible(true);
       setIsPrinting(false);
-    }, 1800);
+      finishTimerRef.current = null;
+    }, 1600);
   }, [isPrinting]);
+
+  // Auto-print receipt when user lands on checkout with items
+  useEffect(() => {
+    if (items.length === 0) return;
+    if (hasPrintedRef.current) return;
+
+    // Start auto-print animation shortly after mount
+    printTimerRef.current = setTimeout(() => {
+      hasPrintedRef.current = true;
+      setReceiptVisible(false);
+      setIsPrinting(true);
+
+      finishTimerRef.current = setTimeout(() => {
+        setReceiptVisible(true);
+        setIsPrinting(false);
+        finishTimerRef.current = null;
+      }, 1600);
+      printTimerRef.current = null;
+    }, 350);
+
+    return () => {
+      if (printTimerRef.current) {
+        clearTimeout(printTimerRef.current);
+        printTimerRef.current = null;
+      }
+      if (finishTimerRef.current) {
+        clearTimeout(finishTimerRef.current);
+        finishTimerRef.current = null;
+      }
+    };
+  }, [items.length]);
 
   // Pre-fill logged in customer email & default saved address
   useEffect(() => {
@@ -376,7 +409,7 @@ export default function CheckoutPageContent() {
         key: orderData.keyId,
         amount: orderData.amount,
         currency: orderData.currency,
-        name: "Gods Own Culture",
+        name: "God's Own Culture",
         description: "Streetwear Order Checkout",
         order_id: orderData.id,
         handler: async function (response: any) {
@@ -512,7 +545,7 @@ export default function CheckoutPageContent() {
 
               {/* Confirmation Text */}
               <div className="text-center mb-4" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-                <p className="text-xs font-bold text-black uppercase tracking-wider">GODS OWN CULTURE</p>
+                <p className="text-xs font-bold text-black uppercase tracking-wider">GOD&apos;S OWN CULTURE</p>
                 <p className="text-[9px] text-black/40 mt-1">Your order has been confirmed</p>
               </div>
 
@@ -557,9 +590,11 @@ export default function CheckoutPageContent() {
               {/* Barcode */}
               <div className="flex flex-col items-center pt-2 pb-1">
                 <div className="receipt-barcode" />
-                <p className="text-[8px] text-black/25 mt-1.5 tracking-[0.3em] uppercase" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-                  <span suppressHydrationWarning>GOC {confirmedOrderNumber || Math.random().toString(36).substring(2, 6).toUpperCase()}</span>
-                </p>
+                {confirmedOrderNumber && (
+                  <p className="text-[8px] text-black/25 mt-1.5 tracking-[0.3em] uppercase" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+                    <span>ORDER #{confirmedOrderNumber}</span>
+                  </p>
+                )}
               </div>
 
               {/* Continue Shopping */}
@@ -1170,10 +1205,10 @@ export default function CheckoutPageContent() {
 
           {/* Footer Policy Links */}
           <footer className="pt-10 border-t border-gray-200 flex flex-wrap justify-center gap-x-6 gap-y-3 text-[10px] uppercase tracking-widest text-black/40 font-semibold">
-            <Link href={getPreviewPath("/refund-policy")} className="hover:text-black transition-colors">Refund policy</Link>
-            <Link href={getPreviewPath("/shipping-policy")} className="hover:text-black transition-colors">Shipping policy</Link>
-            <Link href={getPreviewPath("/terms-of-service")} className="hover:text-black transition-colors">Privacy policy</Link>
-            <Link href={getPreviewPath("/terms-of-service")} className="hover:text-black transition-colors">Terms of service</Link>
+            <Link href={getPreviewPath("/refund-policy")} target="_blank" rel="noopener noreferrer" className="hover:text-black transition-colors">Refund policy</Link>
+            <Link href={getPreviewPath("/shipping-policy")} target="_blank" rel="noopener noreferrer" className="hover:text-black transition-colors">Shipping policy</Link>
+            <Link href={getPreviewPath("/terms-of-service")} target="_blank" rel="noopener noreferrer" className="hover:text-black transition-colors">Privacy policy</Link>
+            <Link href={getPreviewPath("/terms-of-service")} target="_blank" rel="noopener noreferrer" className="hover:text-black transition-colors">Terms of service</Link>
           </footer>
         </div>
 
@@ -1328,7 +1363,7 @@ export default function CheckoutPageContent() {
                   {/* Shop Header */}
                   <div className="receipt-header">
                     <div>
-                      <span className="receipt-shop-name">GODS OWN CULTURE</span><br />
+                      <span className="receipt-shop-name">GOD&apos;S OWN CULTURE</span><br />
                       <span className="receipt-shop-sub">Luxury Streetwear</span>
                     </div>
                     <div className="receipt-logo">👕</div>
@@ -1461,7 +1496,6 @@ export default function CheckoutPageContent() {
                   {/* Barcode */}
                   <div className="receipt-barcode-area">
                     <div className="receipt-barcode" />
-                    <span className="receipt-barcode-text" suppressHydrationWarning>GOC-{Math.random().toString(36).substring(2, 6).toUpperCase()}</span>
                   </div>
                 </div>
               </div>

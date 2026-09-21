@@ -621,6 +621,7 @@ export default function FilterableProductGrid({ products }: FilterableProductGri
                     image={product.image}
                     title={product.title}
                     price={product.price}
+                    ctaType="buy-now"
                   />
                 ))}
               </div>
