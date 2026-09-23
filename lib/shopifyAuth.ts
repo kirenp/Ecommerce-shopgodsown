@@ -59,7 +59,8 @@ export function buildAuthorizationUrl({
   const authUrl = new URL(`https://shopify.com/authentication/${shopId}/oauth/authorize`);
   
   authUrl.searchParams.set('client_id', clientId);
-  authUrl.searchParams.set('scope', 'openid email customer-account-api:full');
+  const scope = process.env.SHOPIFY_AUTH_SCOPE || 'openid email';
+  authUrl.searchParams.set('scope', scope);
   authUrl.searchParams.set('response_type', 'code');
   authUrl.searchParams.set('redirect_uri', redirectUri);
   authUrl.searchParams.set('state', state);
@@ -99,12 +100,14 @@ export function buildLogoutUrl({
 export async function exchangeCodeForTokens({
   shopId,
   clientId,
+  clientSecret,
   redirectUri,
   code,
   codeVerifier,
 }: {
   shopId: string;
   clientId: string;
+  clientSecret?: string;
   redirectUri: string;
   code: string;
   codeVerifier: string;
@@ -116,14 +119,21 @@ export async function exchangeCodeForTokens({
   token_type: string;
 } | null> {
   const tokenUrl = `https://shopify.com/authentication/${shopId}/oauth/token`;
+  const secret = clientSecret || process.env.SHOPIFY_CLIENT_SECRET || process.env.SHOPIFY_CUSTOMER_ACCOUNT_CLIENT_SECRET;
   
-  const body = new URLSearchParams({
+  const params: Record<string, string> = {
     grant_type: 'authorization_code',
     client_id: clientId,
     redirect_uri: redirectUri,
     code,
     code_verifier: codeVerifier,
-  });
+  };
+
+  if (secret) {
+    params.client_secret = secret;
+  }
+
+  const body = new URLSearchParams(params);
 
   const res = await fetch(tokenUrl, {
     method: 'POST',
@@ -133,21 +143,36 @@ export async function exchangeCodeForTokens({
 
   if (!res.ok) {
     const errText = await res.text();
-    console.error('Token exchange failed:', res.status, errText);
+    console.error('Token exchange failed:', {
+      status: res.status,
+      error: errText,
+      redirectUri,
+      clientId,
+      hasSecret: !!secret,
+    });
     return null;
   }
 
-  return res.json();
+  const tokenData = await res.json();
+  console.log('[Auth] Token exchange success:', {
+    hasAccessToken: !!tokenData.access_token,
+    hasRefreshToken: !!tokenData.refresh_token,
+    hasIdToken: !!tokenData.id_token,
+    expiresIn: tokenData.expires_in,
+  });
+  return tokenData;
 }
 
 // Refresh the access token using refresh_token
 export async function refreshAccessToken({
   shopId,
   clientId,
+  clientSecret,
   refreshToken,
 }: {
   shopId: string;
   clientId: string;
+  clientSecret?: string;
   refreshToken: string;
 }): Promise<{
   access_token: string;
@@ -156,12 +181,19 @@ export async function refreshAccessToken({
   expires_in: number;
 } | null> {
   const tokenUrl = `https://shopify.com/authentication/${shopId}/oauth/token`;
+  const secret = clientSecret || process.env.SHOPIFY_CLIENT_SECRET || process.env.SHOPIFY_CUSTOMER_ACCOUNT_CLIENT_SECRET;
   
-  const body = new URLSearchParams({
+  const params: Record<string, string> = {
     grant_type: 'refresh_token',
     client_id: clientId,
     refresh_token: refreshToken,
-  });
+  };
+
+  if (secret) {
+    params.client_secret = secret;
+  }
+
+  const body = new URLSearchParams(params);
 
   const res = await fetch(tokenUrl, {
     method: 'POST',
@@ -181,15 +213,17 @@ export async function refreshAccessToken({
 export async function fetchCustomerProfile({
   shopId,
   accessToken,
-  apiVersion = '2024-10',
+  apiVersion,
 }: {
   shopId: string;
   accessToken: string;
   apiVersion?: string;
 }): Promise<any> {
+  // Use env or fallback to latest known stable version
+  const version = apiVersion || process.env.SHOPIFY_API_VERSION || '2025-01';
   // Official Shopify Customer Account API GraphQL Endpoint URL format
-  const primaryEndpoint = `https://shopify.com/${shopId}/account/customer/api/${apiVersion}/graphql`;
-  const fallbackEndpoint = `https://shopify.com/authentication/${shopId}/api/${apiVersion}/graphql`;
+  const primaryEndpoint = `https://shopify.com/${shopId}/account/customer/api/${version}/graphql`;
+  const fallbackEndpoint = `https://shopify.com/authentication/${shopId}/api/${version}/graphql`;
   
   const query = `
     query {

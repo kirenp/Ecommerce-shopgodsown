@@ -297,10 +297,14 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
       setCustomer(null);
       setOrderHistory([]);
       setSavedAddresses([]);
-      deleteCookie("goc_auth_session");
+      // Clear client-accessible cookies before starting new auth flow
+      // Note: goc_auth_session is httpOnly and can only be cleared server-side
       deleteCookie("goc_auth_customer");
       deleteCookie("goc_pkce_verifier");
       deleteCookie("goc_pkce_state");
+      deleteCookie("goc_auth_redirect_uri");
+      // Clear httpOnly session cookie via server
+      try { await fetch('/api/auth/clear-session', { method: 'POST' }); } catch(e) {}
       if (typeof window !== 'undefined') {
         try { localStorage.removeItem("goc_customer_profile"); } catch (e) {}
       }
@@ -318,7 +322,7 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
         return { error: json.error || "Failed to initiate authentication." };
       }
 
-      // Store PKCE verifier, state, origin and return URL in cookies (for the callback to read)
+      // Store PKCE verifier, state, origin, redirect URI and return URL in cookies (for the callback to read)
       if (json.codeVerifier) {
         setCookie("goc_pkce_verifier", json.codeVerifier, 600); // 10 min
       }
@@ -330,6 +334,10 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
       }
       if (json.returnPath || clientPath) {
         setCookie("goc_auth_return_url", json.returnPath || clientPath, 600);
+      }
+      // Store the exact redirect_uri used during authorization so callback uses the same one
+      if (json.redirectUri) {
+        setCookie("goc_auth_redirect_uri", json.redirectUri, 600);
       }
       // Store the email the user typed so callback can verify it matches
       if (email) {
@@ -351,13 +359,15 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
     setCustomer(null);
     setOrderHistory([]);
     setSavedAddresses([]);
-    deleteCookie("goc_auth_session");
     deleteCookie("goc_auth_customer");
     deleteCookie("goc_pkce_verifier");
     deleteCookie("goc_pkce_state");
     deleteCookie("goc_auth_origin");
     deleteCookie("goc_auth_return_url");
     deleteCookie("goc_auth_intended_email");
+    deleteCookie("goc_auth_redirect_uri");
+    // Clear httpOnly session cookie via server
+    fetch('/api/auth/clear-session', { method: 'POST' }).catch(() => {});
 
     if (typeof window !== 'undefined') {
       try {

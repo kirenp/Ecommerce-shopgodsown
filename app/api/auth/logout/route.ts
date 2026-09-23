@@ -37,6 +37,7 @@ export async function GET(req: NextRequest) {
     response.cookies.delete("goc_auth_return_url");
     response.cookies.delete("goc_auth_origin");
     response.cookies.delete("goc_auth_intended_email");
+    response.cookies.delete("goc_auth_redirect_uri");
 
     return response;
   } catch (error: any) {

@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic';
 
 const shopId = process.env.SHOPIFY_SHOP_ID || "";
 const clientId = process.env.SHOPIFY_CUSTOMER_ACCOUNT_CLIENT_ID || "";
+const clientSecret = process.env.SHOPIFY_CLIENT_SECRET || process.env.SHOPIFY_CUSTOMER_ACCOUNT_CLIENT_SECRET;
 
 export async function GET(req: NextRequest) {
   try {
@@ -54,13 +55,24 @@ export async function GET(req: NextRequest) {
     }
 
     // Determine redirect URI (must match what was used in authorize)
+    // Priority: 1) Cookie stored during initiation, 2) env config, 3) computed from origin
+    const storedRedirectUri = req.cookies.get("goc_auth_redirect_uri")?.value;
     const configuredRedirect = process.env.SHOPIFY_CUSTOMER_ACCOUNT_REDIRECT_URI;
-    const redirectUri = configuredRedirect || `${savedOrigin}/api/auth/callback`;
+    const redirectUri = storedRedirectUri || configuredRedirect || `${savedOrigin}/api/auth/callback`;
+
+    console.log('[Auth Callback] Token exchange params:', {
+      hasCode: !!code,
+      hasVerifier: !!savedVerifier,
+      redirectUri,
+      storedRedirectUri: !!storedRedirectUri,
+      savedOrigin,
+    });
 
     // Exchange authorization code for tokens
     const tokens = await exchangeCodeForTokens({
       shopId,
       clientId,
+      clientSecret,
       redirectUri,
       code,
       codeVerifier: savedVerifier,
@@ -140,6 +152,7 @@ export async function GET(req: NextRequest) {
       mismatchResponse.cookies.delete("goc_auth_return_url");
       mismatchResponse.cookies.delete("goc_auth_origin");
       mismatchResponse.cookies.delete("goc_auth_intended_email");
+      mismatchResponse.cookies.delete("goc_auth_redirect_uri");
       mismatchResponse.cookies.delete("goc_auth_session");
       mismatchResponse.cookies.delete("goc_auth_customer");
       return mismatchResponse;
@@ -187,6 +200,7 @@ export async function GET(req: NextRequest) {
     response.cookies.delete("goc_auth_return_url");
     response.cookies.delete("goc_auth_origin");
     response.cookies.delete("goc_auth_intended_email");
+    response.cookies.delete("goc_auth_redirect_uri");
 
     return response;
   } catch (error: any) {

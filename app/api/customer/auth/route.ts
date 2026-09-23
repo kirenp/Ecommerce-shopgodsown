@@ -333,6 +333,8 @@ export async function POST(req: NextRequest) {
         loginHint: email?.trim(),
       });
 
+      console.log('[Auth] Initiated OAuth flow:', { redirectUri, origin, returnPath, hasEmail: !!email });
+
       return NextResponse.json({
         authorizationUrl,
         codeVerifier,
@@ -340,6 +342,7 @@ export async function POST(req: NextRequest) {
         nonce,
         returnPath,
         origin,
+        redirectUri,
       });
     }
 
