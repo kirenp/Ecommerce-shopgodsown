@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from 'react';
 import SignupForm from './SignupForm';
 import EarlyAccessFooter from './EarlyAccessFooter';
 import VideoFrame from './VideoFrame';
+import CountdownTimer from './CountdownTimer';
 
 type Phase = 'signup' | 'success';
 
@@ -361,9 +362,12 @@ export default function EarlyAccessExperience() {
                 <div className="w-full lg:max-w-[550px] flex-shrink-0">
                   {renderContent()}
                 </div>
-                {/* Right Column: Video Frame */}
-                <div className="w-full lg:w-auto flex justify-center lg:justify-end lg:flex-1 mt-10 lg:mt-0 lg:-translate-y-12">
-                  <VideoFrame shouldPlay={isFadingOut || hasEntered} />
+                {/* Right Column: Video Frame & Countdown Timer */}
+                <div className="w-full lg:w-auto flex justify-center lg:justify-end lg:flex-1 mt-10 lg:mt-0 lg:-translate-y-10">
+                  <div className="w-full max-w-[420px] flex flex-col items-center gap-6 sm:gap-7">
+                    <VideoFrame shouldPlay={isFadingOut || hasEntered} />
+                    <CountdownTimer />
+                  </div>
                 </div>
               </div>
             )}
