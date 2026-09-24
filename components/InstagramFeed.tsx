@@ -51,9 +51,11 @@ const FALLBACK_POSTS: InstagramPost[] = [
 ];
 
 export default function InstagramFeed() {
-  const [posts, setPosts] = useState<InstagramPost[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [posts] = useState<InstagramPost[]>([]);
+  const [loading] = useState(false);
 
+  // Live Instagram API call temporarily commented out - using fallback posts
+  /*
   useEffect(() => {
     fetch("/api/instagram")
       .then((res) => {
@@ -72,6 +74,7 @@ export default function InstagramFeed() {
         setLoading(false);
       });
   }, []);
+  */
 
   const displayPosts = posts.length > 0 ? posts : FALLBACK_POSTS;
 
