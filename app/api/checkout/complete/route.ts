@@ -5,6 +5,7 @@ import { saveServerCustomerAddress } from "@/lib/serverCustomerStore";
 import { saveServerCustomerOrder } from "@/lib/serverOrderStore";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rateLimit";
 import { escapeHtml } from "@/lib/security";
+import { sendMetaPurchaseEvent } from "@/lib/metaConversionsApi";
 
 export const dynamic = "force-dynamic";
 
@@ -249,10 +250,43 @@ export async function POST(req: NextRequest) {
       shippingAddress: formattedShipping,
     }).catch((err) => console.error("Async order email send error:", err));
 
+    // 5. Send Purchase event to Meta Conversions API (Server CAPI)
+    const eventId = String(shopifyOrderResult?.id || orderId || orderNumber);
+    const clientIp = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || req.headers.get("x-real-ip");
+    const userAgent = req.headers.get("user-agent");
+    const fbp = req.cookies.get("_fbp")?.value || null;
+    const fbc = req.cookies.get("_fbc")?.value || null;
+
+    sendMetaPurchaseEvent({
+      orderId: eventId,
+      orderNumber,
+      amount,
+      currency: "INR",
+      items,
+      customer: {
+        email,
+        phone,
+        firstName: shippingAddress?.firstName,
+        lastName: shippingAddress?.lastName,
+        city: shippingAddress?.city,
+        state: shippingAddress?.state,
+        zip: shippingAddress?.pinCode,
+        country: "in",
+      },
+      reqContext: {
+        ip: clientIp,
+        userAgent,
+        fbp,
+        fbc,
+        url: req.headers.get("referer") || "https://shopgodsown.com/checkout",
+      },
+    }).catch((err) => console.error("Async Meta CAPI Purchase send error:", err));
+
     return NextResponse.json({
       success: true,
       orderId: shopifyOrderResult?.id || `local_${Date.now()}`,
       orderNumber: orderNumber,
+      eventId: eventId,
       message: shopifyOrderResult
         ? "Order placed and recorded in Shopify successfully."
         : "Order saved to local server store.",

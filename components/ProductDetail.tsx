@@ -8,6 +8,7 @@ import { useWishlist } from "@/lib/wishlistContext";
 import { usePreview } from "@/lib/preview";
 import { useRouter } from "next/navigation";
 import { Heart, Search, ArrowDown, X, Plus, Minus, Truck, ShieldCheck } from "lucide-react";
+import { trackViewContent } from "@/lib/metaPixel";
 
 interface ProductDetailProps {
   product: any;
@@ -118,6 +119,15 @@ export default function ProductDetail({ product }: ProductDetailProps) {
         image: product.images[0]?.url || displayImage,
         price: product.price,
         currencyCode: product.currencyCode || "INR",
+        category: product.category || "",
+      });
+
+      // Track ViewContent for Meta Pixel
+      trackViewContent({
+        id: product.id,
+        title: product.title,
+        price: product.price,
+        currency: product.currencyCode || "INR",
         category: product.category || "",
       });
     }

@@ -6,8 +6,9 @@ export function middleware(request: NextRequest) {
 
   // =========================================================================
   // CSRF PROTECTION — Validate Origin/Referer for POST requests to API routes
+  // (Exempt server-to-server webhook endpoints like /api/webhooks which use HMAC)
   // =========================================================================
-  if (request.method === "POST" && pathname.startsWith("/api")) {
+  if (request.method === "POST" && pathname.startsWith("/api") && !pathname.startsWith("/api/webhooks")) {
     const origin = request.headers.get("origin");
     const referer = request.headers.get("referer");
     const host = request.headers.get("host") || request.headers.get("x-forwarded-host") || "";

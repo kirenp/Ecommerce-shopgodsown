@@ -8,6 +8,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { usePreview } from "@/lib/preview";
 import { ArrowLeft, CreditCard, ShieldCheck, CheckCircle2, Trash2, Plus, Minus } from "lucide-react";
 import Script from "next/script";
+import { trackInitiateCheckout, trackPurchase } from "@/lib/metaPixel";
 
 // Array containing all states and Union Territories of India
 const INDIAN_STATES = [
@@ -168,6 +169,19 @@ export default function CheckoutPageContent() {
       }
     };
   }, [items.length]);
+
+  // Track InitiateCheckout on Meta Pixel when checkout loads with items
+  const hasTrackedCheckoutRef = useRef(false);
+  useEffect(() => {
+    if (!hasTrackedCheckoutRef.current && items.length > 0) {
+      hasTrackedCheckoutRef.current = true;
+      trackInitiateCheckout({
+        items,
+        totalAmount: subtotal,
+        currency: "INR",
+      });
+    }
+  }, [items, subtotal]);
 
   // Pre-fill logged in customer email & default saved address
   useEffect(() => {
@@ -434,6 +448,16 @@ export default function CheckoutPageContent() {
             if (userEmail) {
               refreshCustomerData(userEmail);
             }
+
+            // Track Purchase on Meta Pixel (Browser) with matching eventID for CAPI deduplication
+            const purchaseEventId = completeData.eventId || String(completeData.orderId || response.razorpay_order_id);
+            trackPurchase({
+              orderId: purchaseEventId,
+              orderNumber: completeData.orderNumber,
+              amount: totalAmount,
+              currency: "INR",
+              items,
+            });
           } catch (err) {
             console.error("Order complete sync error:", err);
           } finally {
