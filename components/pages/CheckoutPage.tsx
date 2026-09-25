@@ -569,7 +569,7 @@ export default function CheckoutPageContent() {
 
               {/* Confirmation Text */}
               <div className="text-center mb-4" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-                <p className="text-xs font-bold text-black uppercase tracking-wider">GOD&apos;S OWN CULTURE</p>
+                <p className="text-xs font-bold text-black uppercase tracking-wider">GOD&apos;S OWN</p>
                 <p className="text-[9px] text-black/40 mt-1">Your order has been confirmed</p>
               </div>
 
@@ -1278,11 +1278,11 @@ export default function CheckoutPageContent() {
               <div className="bg-[#131417] border border-white/[0.06] rounded-[22px] p-5 shadow-[inset_0_2px_6px_rgba(0,0,0,0.5)]">
                 {items.length === 0 ? (
                   <p className="text-xs text-white/30 text-center py-4 font-medium font-sans">No items in cart</p>
-                ) : (
+                ) : items.length === 1 ? (
                   <>
                     {/* Top half: Product info + Total */}
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-3.5 min-w-0 flex-1 pr-2">
+                    <div className="flex justify-between items-center gap-3">
+                      <div className="flex items-center gap-3.5 min-w-0 flex-1 pr-1">
                         {/* Circular embossed badge with T-shirt icon / product image */}
                         <div
                           className="w-12 h-12 rounded-full bg-gradient-to-b from-[#24262d] to-[#17181c] border border-white/[0.08] overflow-hidden flex items-center justify-center shrink-0 shadow-[0_4px_6px_rgba(0,0,0,0.35),inset_0_1px_1px_rgba(255,255,255,0.12)] cursor-zoom-in transition-transform hover:scale-105"
@@ -1308,22 +1308,20 @@ export default function CheckoutPageContent() {
                           )}
                         </div>
                         
-                        <div className="min-w-0">
-                          <h3 className="text-[15px] font-bold text-white truncate font-sans tracking-tight leading-snug">
-                            {items.length === 1 ? items[0].title : `${items[0].title} +${items.length - 1} more`}
+                        <div className="min-w-0 flex-1">
+                          <h3 className="text-[14.5px] font-bold text-white truncate font-sans tracking-tight leading-snug" title={items[0].title}>
+                            {items[0].title}
                           </h3>
-                          <p className="text-[12px] font-medium text-white/45 mt-0.5 font-sans">
-                            {items.length === 1
-                              ? `${items[0].color ? items[0].color + ' / ' : ''}${items[0].size || ''}`
-                              : `${items.reduce((sum, i) => sum + i.quantity, 0)} items total`
-                            }
+                          <p className="text-[11.5px] font-medium text-white/45 mt-0.5 font-sans truncate">
+                            {items[0].color ? items[0].color + ' / ' : ''}{items[0].size || ''}
+                            {items[0].quantity > 1 ? ` · Qty: ${items[0].quantity}` : ''}
                           </p>
                         </div>
                       </div>
 
                       <div className="text-right shrink-0 pl-2">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 font-sans">TOTAL</p>
-                        <p className="text-[26px] font-black text-white font-sans leading-none mt-1 tabular-nums">
+                        <p className="text-[9.5px] font-bold uppercase tracking-widest text-white/40 font-sans">TOTAL</p>
+                        <p className="text-[20px] sm:text-[22px] font-black text-white font-sans leading-none mt-1 tabular-nums tracking-tight">
                           ₹{totalAmount.toLocaleString("en-IN")}
                         </p>
                       </div>
@@ -1331,6 +1329,102 @@ export default function CheckoutPageContent() {
 
                     {/* Divider */}
                     <div className="border-t border-white/[0.06] my-4" />
+
+                    {/* Bottom half: Status Badge */}
+                    <div className="flex items-center gap-2.5">
+                      {isPrinting ? (
+                        <>
+                          <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin shrink-0" />
+                          <span className="text-[11px] text-white/60 font-bold uppercase tracking-wider font-sans">
+                            PROCESSING YOUR ORDER
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <div className="w-5 h-5 rounded-full bg-[#163824] border border-[#22c55e]/30 flex items-center justify-center shrink-0">
+                            <svg className="w-3 h-3 text-[#22c55e]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          </div>
+                          <span className="text-[11px] text-[#22c55e] font-bold uppercase tracking-wider font-sans">
+                            ORDER READY FOR CHECKOUT
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {/* Multi-product view: Header with Total + Responsive list of all products */}
+                    <div className="flex justify-between items-end pb-3 border-b border-white/[0.06]">
+                      <div className="flex items-center gap-2">
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 font-sans">
+                          ORDER ITEMS
+                        </p>
+                        <span className="text-[9.5px] font-bold px-1.5 py-0.5 rounded bg-white/[0.08] text-white/70 font-sans tracking-wide">
+                          {items.reduce((sum, i) => sum + i.quantity, 0)} {items.reduce((sum, i) => sum + i.quantity, 0) === 1 ? 'ITEM' : 'ITEMS'}
+                        </span>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-[9.5px] font-bold uppercase tracking-widest text-white/40 font-sans">TOTAL</p>
+                        <p className="text-[20px] sm:text-[22px] font-black text-white font-sans leading-none mt-0.5 tabular-nums tracking-tight">
+                          ₹{totalAmount.toLocaleString("en-IN")}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Responsive scrollable list displaying each product clearly */}
+                    <div className="space-y-2.5 max-h-[160px] overflow-y-auto pr-1 my-3 screen-items-scroll">
+                      {items.map((item, idx) => (
+                        <div key={`screen-item-${item.variantId}-${idx}`} className="flex items-center justify-between gap-3 group">
+                          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                            {/* Circular embossed thumbnail with preview on hover */}
+                            <div
+                              className="w-10 h-10 rounded-full bg-gradient-to-b from-[#24262d] to-[#17181c] border border-white/[0.08] overflow-hidden flex items-center justify-center shrink-0 shadow-[0_2px_4px_rgba(0,0,0,0.35)] cursor-zoom-in transition-transform group-hover:scale-105"
+                              onMouseEnter={(e) => {
+                                if (!item.image) return;
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                setHoveredPreview({
+                                  image: item.image,
+                                  title: item.title,
+                                  variant: `${item.color ? item.color : ''}${item.size ? (item.color ? ' / ' : '') + item.size : ''}`,
+                                  x: rect.left,
+                                  y: rect.top,
+                                });
+                              }}
+                              onMouseLeave={() => setHoveredPreview(null)}
+                            >
+                              {item.image ? (
+                                <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
+                              ) : (
+                                <svg className="w-4 h-4 text-white/80" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M6 3l3 2c1.5 1 4.5 1 6 0l3-2 3 5-3 2v11H6V10L3 8l3-5z" />
+                                </svg>
+                              )}
+                            </div>
+
+                            <div className="min-w-0 flex-1">
+                              <h4 className="text-[13px] font-bold text-white truncate font-sans tracking-tight leading-snug" title={item.title}>
+                                {item.title}
+                              </h4>
+                              <p className="text-[11px] font-medium text-white/45 font-sans truncate mt-0.5">
+                                {item.color ? item.color + ' / ' : ''}{item.size || ''}
+                                {item.quantity > 1 ? ` · Qty: ${item.quantity}` : ''}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="text-right shrink-0">
+                            <span className="text-[13px] font-bold text-white/90 font-sans tabular-nums">
+                              ₹{(parseFloat(item.price || "0") * item.quantity).toLocaleString("en-IN")}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Divider */}
+                    <div className="border-t border-white/[0.06] mb-3" />
 
                     {/* Bottom half: Status Badge */}
                     <div className="flex items-center gap-2.5">
@@ -1387,10 +1481,34 @@ export default function CheckoutPageContent() {
                   {/* Shop Header */}
                   <div className="receipt-header">
                     <div>
-                      <span className="receipt-shop-name">GOD&apos;S OWN CULTURE</span><br />
+                      <span className="receipt-shop-name">GOD&apos;S OWN</span><br />
                       <span className="receipt-shop-sub">Luxury Streetwear</span>
                     </div>
-                    <div className="receipt-logo">👕</div>
+                    <div className="receipt-logo flex items-center justify-center">
+                      <svg
+                        width="30"
+                        height="30"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="inline-block"
+                        aria-label="Black T-Shirt"
+                      >
+                        <path
+                          d="M16 2.5C14.8 3.8 13.5 4.2 12 4.2C10.5 4.2 9.2 3.8 8 2.5L2.8 5.4C2.3 5.7 2.1 6.3 2.3 6.9L3.8 10.2C4.1 10.8 4.7 11 5.2 10.7L6.5 10V20.5C6.5 21.3 7.2 22 8 22H16C16.8 22 17.5 21.3 17.5 20.5V10L18.8 10.7C19.3 11 19.9 10.8 20.2 10.2L21.7 6.9C21.9 6.3 21.7 5.7 21.2 5.4L16 2.5Z"
+                          fill="#181818"
+                          stroke="#0a0a0a"
+                          strokeWidth="0.6"
+                          strokeLinejoin="round"
+                        />
+                        <path
+                          d="M9 2.8C9.8 4 10.8 4.6 12 4.6C13.2 4.6 14.2 4 15 2.8"
+                          stroke="#3a3a3a"
+                          strokeWidth="0.9"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                    </div>
                   </div>
 
                   <div className="receipt-sub-header" suppressHydrationWarning>
@@ -1434,7 +1552,26 @@ export default function CheckoutPageContent() {
                                 </div>
                               ) : (
                                 <div className="w-14 h-14 rounded-lg bg-gray-100 border border-black/10 flex items-center justify-center shrink-0 mt-0.5 text-base text-gray-400">
-                                  👕
+                                  <svg
+                                    width="22"
+                                    height="22"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                  >
+                                    <path
+                                      d="M16 2.5C14.8 3.8 13.5 4.2 12 4.2C10.5 4.2 9.2 3.8 8 2.5L2.8 5.4C2.3 5.7 2.1 6.3 2.3 6.9L3.8 10.2C4.1 10.8 4.7 11 5.2 10.7L6.5 10V20.5C6.5 21.3 7.2 22 8 22H16C16.8 22 17.5 21.3 17.5 20.5V10L18.8 10.7C19.3 11 19.9 10.8 20.2 10.2L21.7 6.9C21.9 6.3 21.7 5.7 21.2 5.4L16 2.5Z"
+                                      fill="#222222"
+                                      stroke="#111111"
+                                      strokeWidth="0.5"
+                                    />
+                                    <path
+                                      d="M9 2.8C9.8 4 10.8 4.6 12 4.6C13.2 4.6 14.2 4 15 2.8"
+                                      stroke="#444444"
+                                      strokeWidth="0.8"
+                                      strokeLinecap="round"
+                                    />
+                                  </svg>
                                 </div>
                               )}
                               <div className="min-w-0 flex-1">
@@ -1725,9 +1862,17 @@ export default function CheckoutPageContent() {
           padding-bottom: 6px;
           border-bottom: 1px solid rgba(0, 0, 0, 0.12);
         }
+        .receipt-table th:nth-child(2),
+        .receipt-table td:nth-child(2) {
+          text-align: center;
+          white-space: nowrap;
+          padding: 6px 8px;
+        }
         .receipt-table th:last-child,
         .receipt-table td:last-child {
           text-align: right;
+          white-space: nowrap;
+          font-variant-numeric: tabular-nums;
         }
         .receipt-table td {
           padding: 6px 0;
@@ -1985,6 +2130,22 @@ export default function CheckoutPageContent() {
         }
         .receipt-printer-col::-webkit-scrollbar-thumb:hover {
           background: rgba(0,0,0,0.2);
+        }
+
+        /* Scrollbar for screen multi-items list */
+        .screen-items-scroll::-webkit-scrollbar {
+          width: 3px;
+        }
+        .screen-items-scroll::-webkit-scrollbar-track {
+          background: rgba(255, 255, 255, 0.02);
+          border-radius: 3px;
+        }
+        .screen-items-scroll::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.18);
+          border-radius: 3px;
+        }
+        .screen-items-scroll::-webkit-scrollbar-thumb:hover {
+          background: rgba(255, 255, 255, 0.35);
         }
       ` }} />
     </main>

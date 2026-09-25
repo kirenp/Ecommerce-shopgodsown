@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useCart } from "@/lib/cartContext";
 import { useUI } from "@/lib/uiContext";
 import { Plus, Minus } from "lucide-react";
+import SizeGuideModal from "@/components/SizeGuideModal";
 
 const SIZE_ORDER: Record<string, number> = {
   "XXS": 1,
@@ -315,73 +316,7 @@ export default function QuickViewModal() {
             </div>
 
             {/* Size Guide Modal Overlay */}
-            {showSizeGuide && (
-                <div className="fixed inset-0 z-[200] flex items-center justify-center px-4">
-                    <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowSizeGuide(false)}></div>
-                    <div className="relative bg-white text-black p-8 rounded-2xl w-full max-w-2xl shadow-2xl animate-in zoom-in-95 duration-300">
-                        <button
-                            onClick={() => setShowSizeGuide(false)}
-                            className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
-                        >
-                            <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
-                        <h3 className="text-2xl font-brand font-semibold mb-6">Size Guide</h3>
-                        <div className="overflow-x-auto">
-                            <table className="w-full border-collapse text-sm text-center">
-                                <thead>
-                                    <tr className="border-b-2 border-gray-200 bg-gray-50/50">
-                                        <th className="p-4 font-bold text-gray-700">Size</th>
-                                        <th className="p-4 font-bold text-gray-700">Chest (in)</th>
-                                        <th className="p-4 font-bold text-gray-700">Chest (cm)</th>
-                                        <th className="p-4 font-bold text-gray-700">Length (in)</th>
-                                        <th className="p-4 font-bold text-gray-700">Length (cm)</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr className="border-b border-gray-100 hover:bg-gray-50/50">
-                                        <td className="p-4 font-bold">S</td>
-                                        <td className="p-4 text-gray-600">21</td>
-                                        <td className="p-4 text-gray-600">53.34</td>
-                                        <td className="p-4 text-gray-600">29</td>
-                                        <td className="p-4 text-gray-600">73.66</td>
-                                    </tr>
-                                    <tr className="border-b border-gray-100 hover:bg-gray-50/50">
-                                        <td className="p-4 font-bold">M</td>
-                                        <td className="p-4 text-gray-600">22</td>
-                                        <td className="p-4 text-gray-600">55.88</td>
-                                        <td className="p-4 text-gray-600">29.5</td>
-                                        <td className="p-4 text-gray-600">74.93</td>
-                                    </tr>
-                                    <tr className="border-b border-gray-100 hover:bg-gray-50/50">
-                                        <td className="p-4 font-bold">L</td>
-                                        <td className="p-4 text-gray-600">23</td>
-                                        <td className="p-4 text-gray-600">58.42</td>
-                                        <td className="p-4 text-gray-600">30</td>
-                                        <td className="p-4 text-gray-600">76.20</td>
-                                    </tr>
-                                    <tr className="border-b border-gray-100 hover:bg-gray-50/50">
-                                        <td className="p-4 font-bold">XL</td>
-                                        <td className="p-4 text-gray-600">24</td>
-                                        <td className="p-4 text-gray-600">60.96</td>
-                                        <td className="p-4 text-gray-600">30.5</td>
-                                        <td className="p-4 text-gray-600">77.47</td>
-                                    </tr>
-                                    <tr className="hover:bg-gray-50/50">
-                                        <td className="p-4 font-bold">XXL</td>
-                                        <td className="p-4 text-gray-600">25</td>
-                                        <td className="p-4 text-gray-600">63.50</td>
-                                        <td className="p-4 text-gray-600">31</td>
-                                        <td className="p-4 text-gray-600">78.74</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                        <p className="text-xs text-gray-500 mt-6 text-center">Measurements may vary up to 1 inch due to manual calculation.</p>
-                    </div>
-                </div>
-            )}
+            <SizeGuideModal isOpen={showSizeGuide} onClose={() => setShowSizeGuide(false)} product={quickViewProduct} />
         </div>
     );
 }
