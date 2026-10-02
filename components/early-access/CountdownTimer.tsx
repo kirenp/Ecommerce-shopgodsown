@@ -9,18 +9,40 @@ interface TimeLeft {
   seconds: number;
 }
 
-// Default fallback offset matching reference preview (3 days, 18 hours, 45 mins, 27 secs)
+// Default launch target: 05-10-2026, 8:08 PM IST (+05:30)
+const DEFAULT_LAUNCH_DATE = '2026-10-05T20:08:00+05:30';
+
+// Fallback relative offset (if both launch date and countdown duration are unset)
 const DEFAULT_OFFSET_MS = (3 * 86400 + 18 * 3600 + 45 * 60 + 27) * 1000;
 
 function parseLaunchDate(dateStr?: string): number | null {
   if (!dateStr || !dateStr.trim()) return null;
   const cleanStr = dateStr.trim().replace(/^["']|["']$/g, '');
-  
-  // Direct Date parse (supports ISO "2026-10-01T00:00:00", "2026-10-01", etc.)
+
+  // Support DD-MM-YYYY or DD/MM/YYYY format, e.g. "05-10-2026 , 8.08 pm" or "05-10-2026 20:08:00"
+  const ddmmyyyyMatch = cleanStr.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})(?:\s*,?\s*(\d{1,2})(?:[:.](\d{1,2}))?(?:[:.](\d{1,2}))?\s*(am|pm)?)?/i);
+  if (ddmmyyyyMatch) {
+    const day = parseInt(ddmmyyyyMatch[1], 10);
+    const month = parseInt(ddmmyyyyMatch[2], 10);
+    const year = parseInt(ddmmyyyyMatch[3], 10);
+    let hours = ddmmyyyyMatch[4] ? parseInt(ddmmyyyyMatch[4], 10) : 0;
+    const minutes = ddmmyyyyMatch[5] ? parseInt(ddmmyyyyMatch[5], 10) : 0;
+    const seconds = ddmmyyyyMatch[6] ? parseInt(ddmmyyyyMatch[6], 10) : 0;
+    const meridian = ddmmyyyyMatch[7] ? ddmmyyyyMatch[7].toLowerCase() : null;
+
+    if (meridian === 'pm' && hours < 12) hours += 12;
+    if (meridian === 'am' && hours === 12) hours = 0;
+
+    const isoString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}+05:30`;
+    const parsed = new Date(isoString).getTime();
+    if (!isNaN(parsed)) return parsed;
+  }
+
+  // Direct Date parse (supports ISO "2026-10-05T20:08:00+05:30", etc.)
   const parsed = new Date(cleanStr).getTime();
   if (!isNaN(parsed)) return parsed;
 
-  // Try replacing spaces with 'T' (e.g., "2026-10-01 18:00:00")
+  // Try replacing spaces with 'T' (e.g., "2026-10-05 20:08:00")
   const isoTry = new Date(cleanStr.replace(' ', 'T')).getTime();
   if (!isNaN(isoTry)) return isoTry;
 
@@ -50,8 +72,8 @@ function getEnvDurationMs(): number {
 }
 
 function getTargetTimestamp(): number {
-  // 1. Primary: If explicit target date is provided in env, always respect it
-  const envDate = process.env.NEXT_PUBLIC_LAUNCH_DATE;
+  // 1. Primary: If explicit target date is provided in env or default constant, always respect it
+  const envDate = process.env.NEXT_PUBLIC_LAUNCH_DATE || DEFAULT_LAUNCH_DATE;
   const parsedDate = parseLaunchDate(envDate);
   if (parsedDate !== null) {
     return parsedDate;
@@ -325,16 +347,11 @@ const FlipCard = memo(function FlipCard({ value, label }: FlipCardProps) {
 });
 
 export default function CountdownTimer() {
-  const [timeLeft, setTimeLeft] = useState<TimeLeft>({
-    days: 3,
-    hours: 18,
-    minutes: 45,
-    seconds: 27,
+  const [timeLeft, setTimeLeft] = useState<TimeLeft>(() => {
+    return calculateTimeLeft(getTargetTimestamp());
   });
-  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    setIsClient(true);
     const target = getTargetTimestamp();
     setTimeLeft(calculateTimeLeft(target));
 
@@ -436,10 +453,10 @@ export default function CountdownTimer() {
 
       {/* ── 4 Countdown Flip Cards ── */}
       <div className="flex items-center justify-center gap-3 sm:gap-4 md:gap-5">
-        <FlipCard value={isClient ? timeLeft.days : 3} label="DAYS" />
-        <FlipCard value={isClient ? timeLeft.hours : 18} label="HOURS" />
-        <FlipCard value={isClient ? timeLeft.minutes : 45} label="MINUTES" />
-        <FlipCard value={isClient ? timeLeft.seconds : 27} label="SECONDS" />
+        <FlipCard value={timeLeft.days} label="DAYS" />
+        <FlipCard value={timeLeft.hours} label="HOURS" />
+        <FlipCard value={timeLeft.minutes} label="MINUTES" />
+        <FlipCard value={timeLeft.seconds} label="SECONDS" />
       </div>
     </div>
   );
