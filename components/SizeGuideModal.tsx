@@ -25,13 +25,12 @@ const TSHIRT_DATA = [
   { label: "Armhole Straight", s: "24", m: "25", l: "26", xl: "27" },
 ];
 
-// Tank Top Measurements (Kept blank as requested)
+// Tank Top Measurements
 const TANK_TOP_DATA = [
-  { label: "Chest Width", s: "—", m: "—", l: "—", xl: "—" },
-  { label: "Front Length", s: "—", m: "—", l: "—", xl: "—" },
-  { label: "Bottom Width", s: "—", m: "—", l: "—", xl: "—" },
-  { label: "Shoulder Strap", s: "—", m: "—", l: "—", xl: "—" },
-  { label: "Armhole Straight", s: "—", m: "—", l: "—", xl: "—" },
+  { label: "Length", s: "24 1/4", m: "25 1/4", l: "26 1/4", xl: "27 1/4" },
+  { label: "Chest", s: "10 1/4", m: "10 3/4", l: "11 1/4", xl: "11 3/4" },
+  { label: "Bottom", s: "10 1/4", m: "10 3/4", l: "11 1/4", xl: "11 3/4" },
+  { label: "Shoulder", s: "9 3/4", m: "10", l: "10 1/2", xl: "10 3/4" },
 ];
 
 function detectProductType(product?: any): 'tshirt' | 'tanktop' {
@@ -165,7 +164,7 @@ export default function SizeGuideModal({ isOpen, onClose, product }: SizeGuideMo
         <p className="text-xs text-gray-500 mt-5 text-center">
           {isTshirt 
             ? "All measurements in CM | Tolerance: +/- 0.5 cm"
-            : "Tank top size chart data will be updated soon."}
+            : "All measurements are in inches"}
         </p>
       </div>
     </div>

@@ -38,6 +38,7 @@ export default async function FeaturedProducts() {
               <ProductCard
                 handle={product.handle}
                 image={product.image}
+                secondaryImage={product.secondaryImage}
                 title={product.title}
                 price={product.price}
                 variant="glass"

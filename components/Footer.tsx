@@ -105,7 +105,13 @@ export default function Footer() {
               <a href="#" className="text-black hover:text-[#C81E1E] transition-colors">
                 <Facebook size={22} strokeWidth={1.5} />
               </a>
-              <a href="#" className="text-black hover:text-[#C81E1E] transition-colors">
+              <a
+                href="https://wa.me/917907478189"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Chat with us on WhatsApp"
+                className="text-black hover:text-[#C81E1E] transition-colors"
+              >
                 {/* WhatsApp Custom SVG for accuracy */}
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21" />

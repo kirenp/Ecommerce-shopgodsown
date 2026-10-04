@@ -83,6 +83,29 @@ export default function ContactForm() {
                 <div className="mb-10">
                   <p className="text-[10px] text-[#E0E0DC] tracking-[0.4em] uppercase mb-2 font-montserrat-bold font-bold">Get in Touch</p>
                   <h2 className="font-montserrat-bold text-4xl font-bold text-white tracking-tight">Let's talk.</h2>
+                  <p className="text-white/60 text-xs mt-3 leading-relaxed">
+                    Have an inquiry about an order or our drops? Chat with us directly on WhatsApp or drop a message below.
+                  </p>
+                  <div className="flex flex-wrap items-center gap-3 mt-5">
+                    <a
+                      href="https://wa.me/917907478189"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#25D366]/15 border border-[#25D366]/30 hover:border-[#25D366] text-white text-xs font-semibold transition-all hover:bg-[#25D366]/25"
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#25D366]">
+                        <path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21" />
+                        <path d="M9 10a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1a5 5 0 0 0 5 5h1a.5.5 0 0 0 0-1h-1a.5.5 0 0 0 0 1" />
+                      </svg>
+                      <span>WhatsApp: <span className="font-mono text-white">+91 7907478189</span></span>
+                    </a>
+                    <a
+                      href="mailto:godsownculture@gmail.com"
+                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 hover:border-white/20 text-white/80 hover:text-white text-xs font-semibold transition-all"
+                    >
+                      <span>godsownculture@gmail.com</span>
+                    </a>
+                  </div>
                 </div>
 
                 {errorMsg && (

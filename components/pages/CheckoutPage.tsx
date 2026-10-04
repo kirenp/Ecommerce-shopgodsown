@@ -96,7 +96,10 @@ export default function CheckoutPageContent() {
   // Checkout Process States
   const [discountCode, setDiscountCode] = useState("");
   const [appliedDiscount, setAppliedDiscount] = useState(0); // in percentage
+  const [appliedDiscountAmount, setAppliedDiscountAmount] = useState(0); // in fixed amount
+  const [appliedCouponCode, setAppliedCouponCode] = useState("");
   const [discountError, setDiscountError] = useState("");
+  const [isApplyingDiscount, setIsApplyingDiscount] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [confirmedOrderNumber, setConfirmedOrderNumber] = useState("");
@@ -236,15 +239,54 @@ export default function CheckoutPageContent() {
     }
   }, []);
 
-  // Discount application simulation
-  const handleApplyDiscount = () => {
+  // Apply Discount via Shopify API
+  const handleApplyDiscount = async () => {
+    const trimmed = discountCode.trim();
+    if (!trimmed) {
+      setDiscountError("Please enter a coupon code.");
+      return;
+    }
+
     setDiscountError("");
-    if (discountCode.trim().toUpperCase() === "CLUB10") {
-      setAppliedDiscount(10);
-    } else if (discountCode.trim().toUpperCase() === "KERALA20") {
-      setAppliedDiscount(20);
-    } else {
-      setDiscountError("Invalid discount code. Try CLUB10 or KERALA20");
+    setIsApplyingDiscount(true);
+
+    try {
+      const res = await fetch("/api/checkout/discount", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code: trimmed,
+          items: items,
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok || !data.valid) {
+        setAppliedDiscount(0);
+        setAppliedDiscountAmount(0);
+        setAppliedCouponCode("");
+        setDiscountError(data.error || "Invalid discount code.");
+        return;
+      }
+
+      if (data.type === "percentage" && data.percentage > 0) {
+        setAppliedDiscount(data.percentage);
+        setAppliedDiscountAmount(0);
+      } else if (data.discountAmount > 0) {
+        setAppliedDiscount(0);
+        setAppliedDiscountAmount(data.discountAmount);
+      } else if (data.fixedAmount > 0) {
+        setAppliedDiscount(0);
+        setAppliedDiscountAmount(data.fixedAmount);
+      }
+      setAppliedCouponCode(data.code || trimmed.toUpperCase());
+      setDiscountError("");
+    } catch (err) {
+      console.error("Failed to apply discount:", err);
+      setDiscountError("Failed to apply coupon. Please try again.");
+    } finally {
+      setIsApplyingDiscount(false);
     }
   };
 
@@ -357,6 +399,8 @@ export default function CheckoutPageContent() {
       })),
       amount: totalAmount,
       contact: emailOrPhone,
+      discountCode: appliedCouponCode || undefined,
+      discountAmount: discountAmount > 0 ? discountAmount : undefined,
       shippingAddress: {
         firstName,
         lastName,
@@ -496,8 +540,12 @@ export default function CheckoutPageContent() {
   };
 
   const subTotalNum = parseFloat(subtotal) || 0;
-  const discountAmount = subTotalNum * (appliedDiscount / 100);
-  const totalAmount = subTotalNum - discountAmount;
+  const discountAmount = appliedDiscount > 0
+    ? subTotalNum * (appliedDiscount / 100)
+    : appliedDiscountAmount > 0
+    ? Math.min(appliedDiscountAmount, subTotalNum)
+    : 0;
+  const totalAmount = Math.max(0, subTotalNum - discountAmount);
   const taxes = totalAmount * 0.05; // 5% GST included
 
   if (isSuccess) {
@@ -925,40 +973,77 @@ export default function CheckoutPageContent() {
               <p className="text-xs text-black/45 pl-0.5 font-medium">All transactions are secure and encrypted.</p>
 
               {/* Razorpay Frame Container */}
-              <div className="border border-gray-200 rounded-2xl overflow-hidden bg-gray-50/50 shadow-sm">
+              <div className="border-2 border-[#0C83FD]/30 rounded-2xl overflow-hidden bg-gradient-to-b from-[#F4F8FF] to-white shadow-[0_4px_24px_rgba(12,131,253,0.08)] ring-1 ring-[#0C83FD]/15 transition-all">
                 
                 {/* Razorpay Header Box */}
-                <div className="p-5 border-b border-gray-200 bg-white flex items-center justify-between">
+                <div className="p-4 sm:p-5 border-b border-[#0C83FD]/15 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <input 
                       type="radio" 
                       checked 
                       readOnly 
-                      className="w-4 h-4 accent-black cursor-pointer" 
+                      className="w-4 h-4 accent-[#0C83FD] cursor-pointer" 
                     />
-                    <div className="text-left">
-                      <p className="text-sm font-bold text-black uppercase tracking-wide">Razorpay Secure</p>
-                      <p className="text-[10px] text-black/45 mt-0.5 uppercase tracking-wider font-bold">UPI, Cards, NetBanking, Wallets</p>
+                    <div className="text-left flex flex-col">
+                      <div className="flex items-center gap-2">
+                        {/* Official Razorpay Logo */}
+                        <img 
+                          src="/images/razorpay-logo.svg" 
+                          alt="Razorpay" 
+                          className="h-5 sm:h-6 w-auto object-contain" 
+                        />
+                        <span className="text-[9px] font-black uppercase tracking-wider bg-[#072654] text-white px-1.5 py-0.5 rounded flex items-center gap-1 shadow-xs">
+                          <ShieldCheck size={11} className="text-[#3395FF]" /> SECURE
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-[#072654]/65 mt-1 uppercase tracking-wider font-bold">
+                        UPI, Cards, NetBanking, Wallets
+                      </p>
                     </div>
                   </div>
 
                   {/* Payment Icons */}
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[9px] bg-gray-50 border border-gray-200 text-black/50 px-1.5 py-0.5 rounded font-bold">UPI</span>
-                    <span className="text-[9px] bg-gray-50 border border-gray-200 text-black/50 px-1.5 py-0.5 rounded font-bold">VISA</span>
-                    <span className="text-[9px] bg-gray-50 border border-gray-200 text-black/50 px-1.5 py-0.5 rounded font-bold">MC</span>
-                    <span className="text-[9px] bg-gray-50 border border-gray-200 text-black/40 px-1 py-0.5 rounded text-center font-bold font-sans">+15</span>
+                  <div className="flex items-center gap-1.5 self-end sm:self-auto">
+                    <span className="text-[9px] bg-[#F2F7FF] border border-[#0C83FD]/20 text-[#072654] px-2 py-0.5 rounded font-extrabold tracking-wide">UPI</span>
+                    <span className="text-[9px] bg-[#F2F7FF] border border-[#0C83FD]/20 text-[#072654] px-2 py-0.5 rounded font-extrabold tracking-wide">VISA</span>
+                    <span className="text-[9px] bg-[#F2F7FF] border border-[#0C83FD]/20 text-[#072654] px-2 py-0.5 rounded font-extrabold tracking-wide">MC</span>
+                    <span className="text-[9px] bg-[#F2F7FF] border border-[#0C83FD]/20 text-[#072654] px-2 py-0.5 rounded font-extrabold tracking-wide">RUPAY</span>
+                    <span className="text-[9px] bg-[#072654] text-white px-1.5 py-0.5 rounded text-center font-bold font-sans shadow-xs">+15</span>
                   </div>
                 </div>
 
                 {/* Redirect details inside Razorpay panel */}
-                <div className="p-5 bg-gray-50/30 text-center space-y-4">
-                  <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center mx-auto">
-                    <CreditCard size={20} className="text-blue-500" />
+                <div className="p-6 bg-gradient-to-b from-[#F8FAFF] to-[#EFF6FF]/40 text-center space-y-4">
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#0C83FD]/15 via-[#3395FF]/10 to-[#072654]/10 border border-[#0C83FD]/25 flex items-center justify-center mx-auto shadow-sm">
+                    <svg className="w-7 h-7 text-[#0C83FD]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="2" y="5" width="20" height="14" rx="2" />
+                      <line x1="2" y1="10" x2="22" y2="10" />
+                      <circle cx="7" cy="15" r="1" fill="currentColor" />
+                    </svg>
                   </div>
-                  <p className="text-xs text-black/50 leading-relaxed max-w-sm mx-auto font-medium">
-                    You'll be redirected to Razorpay Secure (UPI, Cards, Int'l Cards, Wallets) to complete your purchase safely.
-                  </p>
+                  <div className="space-y-1">
+                    <p className="text-xs text-[#072654] font-semibold leading-relaxed max-w-md mx-auto">
+                      You&apos;ll be redirected to <span className="font-bold text-[#0C83FD]">Razorpay Secure</span> to complete your purchase safely.
+                    </p>
+                    <p className="text-[11px] text-[#072654]/60 max-w-sm mx-auto font-medium">
+                      Supports Google Pay, PhonePe, Paytm, all Major Credit &amp; Debit Cards, NetBanking, and Wallets.
+                    </p>
+                  </div>
+
+                  {/* Trust Badges Bar */}
+                  <div className="pt-2 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-[10px] text-[#072654]/75 font-semibold">
+                    <span className="flex items-center gap-1">
+                      <ShieldCheck size={12} className="text-[#00C853]" /> 256-Bit SSL Encrypted
+                    </span>
+                    <span className="text-gray-300">•</span>
+                    <span className="flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#0C83FD]" /> PCI-DSS Compliant
+                    </span>
+                    <span className="text-gray-300">•</span>
+                    <span className="flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#00C853]" /> Instant Verification
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1610,12 +1695,32 @@ export default function CheckoutPageContent() {
                               type="text"
                               placeholder="COUPON CODE"
                               value={discountCode}
-                              onChange={(e) => setDiscountCode(e.target.value)}
+                              disabled={isApplyingDiscount}
+                              onChange={(e) => {
+                                setDiscountCode(e.target.value);
+                                if (discountError) setDiscountError("");
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  handleApplyDiscount();
+                                }
+                              }}
                             />
-                            <button type="button" onClick={handleApplyDiscount}>Apply</button>
+                            <button
+                              type="button"
+                              onClick={handleApplyDiscount}
+                              disabled={isApplyingDiscount || !discountCode.trim()}
+                            >
+                              {isApplyingDiscount ? "..." : "Apply"}
+                            </button>
                           </div>
                           {discountError && <p className="receipt-coupon-err">{discountError}</p>}
-                          {appliedDiscount > 0 && <p className="receipt-coupon-ok">✓ {appliedDiscount}% OFF</p>}
+                          {(appliedDiscount > 0 || appliedDiscountAmount > 0) && (
+                            <p className="receipt-coupon-ok">
+                              ✓ {appliedCouponCode} applied ({appliedDiscount > 0 ? `${appliedDiscount}% OFF` : `-₹${discountAmount.toLocaleString("en-IN")}`})
+                            </p>
+                          )}
                         </td>
                       </tr>
 
@@ -1626,9 +1731,9 @@ export default function CheckoutPageContent() {
                       </tr>
 
                       {/* Discount */}
-                      {appliedDiscount > 0 && (
+                      {discountAmount > 0 && (
                         <tr className="receipt-discount">
-                          <td colSpan={2}>Discount ({appliedDiscount}%)</td>
+                          <td colSpan={2}>Discount {appliedDiscount > 0 ? `(${appliedDiscount}%)` : `(${appliedCouponCode})`}</td>
                           <td>-₹{discountAmount.toLocaleString("en-IN")}</td>
                         </tr>
                       )}

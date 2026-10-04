@@ -11,6 +11,7 @@ import { usePreview } from "@/lib/preview";
 interface ProductCardProps {
   handle: string;
   image: string;
+  secondaryImage?: string | null;
   title: string;
   price: string;
   currencyCode?: string;
@@ -22,6 +23,7 @@ interface ProductCardProps {
 export default function ProductCard({ 
   handle, 
   image, 
+  secondaryImage,
   title, 
   price, 
   currencyCode = "INR", 
@@ -65,7 +67,7 @@ export default function ProductCard({
     return (
       <Link href={getPreviewPath(`/products/${handle}`)} className="group cursor-pointer block">
         {/* Apple Liquid Glass Card */}
-        <div className="relative aspect-[2/3] w-full bg-white/20 border border-white/40 rounded-[2.5rem] overflow-hidden transition-all duration-500 hover:shadow-[0_24px_60px_rgba(0,0,0,0.12)] hover:-translate-y-1.5 shadow-[0_12px_40px_rgba(0,0,0,0.06)]">
+        <div className="relative aspect-[2/3] w-full bg-white/20 border border-white/40 hover:border-white/60 rounded-[2.5rem] overflow-hidden transition-colors duration-300 shadow-[0_12px_40px_rgba(0,0,0,0.08)]">
           
           {/* Full Image Background */}
           <div className="absolute inset-0 overflow-hidden rounded-[2.5rem] [transform:translateZ(0)]">
@@ -73,8 +75,18 @@ export default function ProductCard({
               src={image}
               alt={title}
               fill
-              className="object-cover transition-transform duration-700 group-hover:scale-105"
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 340px"
+              className="object-cover"
             />
+            {secondaryImage && (
+              <Image
+                src={secondaryImage}
+                alt={`${title} - Back view`}
+                fill
+                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 340px"
+                className="object-cover transition-opacity duration-300 ease-in-out opacity-0 group-hover:opacity-100 pointer-events-none"
+              />
+            )}
             {/* Apple Liquid Glass Highlight reflection removed as requested */}
             {isSale && (
               <div className="absolute top-4 left-4 bg-white/30 backdrop-blur-md px-3 py-1 rounded-full border border-white/20 z-20">
@@ -135,15 +147,25 @@ export default function ProductCard({
   return (
     <Link href={getPreviewPath(`/products/${handle}`)} className="group cursor-pointer block">
       {/* Liquid glass card container */}
-      <div className="relative bg-[#0a0a0a] border border-white/[0.12] rounded-2xl overflow-hidden transition-all duration-500 hover:shadow-[0_12px_40px_rgba(0,0,0,0.7)] hover:border-white/[0.25] hover:-translate-y-1">
+      <div className="relative bg-[#0a0a0a] border border-white/[0.12] hover:border-white/[0.3] rounded-2xl overflow-hidden transition-colors duration-300 shadow-[0_8px_30px_rgba(0,0,0,0.5)]">
         {/* Image */}
         <div className="relative aspect-[3/4] overflow-hidden rounded-t-2xl [transform:translateZ(0)]">
           <Image
             src={image}
             alt={title}
             fill
-            className="object-cover transition-transform duration-700 group-hover:scale-105"
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 300px"
+            className="object-cover"
           />
+          {secondaryImage && (
+            <Image
+              src={secondaryImage}
+              alt={`${title} - Back view`}
+              fill
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 300px"
+              className="object-cover transition-opacity duration-300 ease-in-out opacity-0 group-hover:opacity-100 pointer-events-none"
+            />
+          )}
           {isSale && (
             <div className="absolute top-3 left-3 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full border border-white/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.4)]">
               <span className="text-[9px] text-white uppercase tracking-widest font-bold">Sale</span>

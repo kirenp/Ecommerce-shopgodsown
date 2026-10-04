@@ -94,7 +94,14 @@ export default function RefundPolicyPage() {
                                 </p>
                                 <p>
                                     <span className="font-bold text-black">WhatsApp:</span>{" "}
-                                    <span className="text-[#1a1a1a]">[WhatsApp Number]</span>
+                                    <a
+                                        href="https://wa.me/917907478189"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-black hover:text-[#C81E1E] underline underline-offset-4 transition-colors font-semibold"
+                                    >
+                                        +91 7907478189
+                                    </a>
                                 </p>
                             </div>
                             <p className="text-sm text-[#333333] font-medium pt-2">

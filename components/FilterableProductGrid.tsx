@@ -9,6 +9,7 @@ interface Product {
   id: string;
   handle: string;
   image: string;
+  secondaryImage?: string | null;
   title: string;
   price: string;
   maxPrice: string;
@@ -620,6 +621,7 @@ export default function FilterableProductGrid({ products }: FilterableProductGri
                     key={product.id}
                     handle={product.handle}
                     image={product.image}
+                    secondaryImage={product.secondaryImage}
                     title={product.title}
                     price={product.price}
                     ctaType="buy-now"

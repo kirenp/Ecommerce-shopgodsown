@@ -68,7 +68,19 @@ export default function ProductDetail({ product }: ProductDetailProps) {
   const { getPreviewPath } = usePreview();
   const router = useRouter();
 
-  const [selectedColor, setSelectedColor] = useState<string | null>(null);
+  const availableColors = product.colors || [];
+
+  // Auto-detect default color (e.g. "Black") if only one color exists or from first variant
+  const defaultColor = useMemo(() => {
+    if (availableColors.length > 0) {
+      const first = availableColors[0];
+      return typeof first === 'string' ? first : (first?.label || first?.name || "Black");
+    }
+    const colorOpt = product.variants?.[0]?.options?.find((o: any) => o.name?.toLowerCase() === "color");
+    return colorOpt?.value || "Black";
+  }, [availableColors, product.variants]);
+
+  const [selectedColor, setSelectedColor] = useState<string | null>(defaultColor);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [selectedQty, setSelectedQty] = useState<number>(1);
   const [displayImage, setDisplayImage] = useState(product.images[0]?.url || "/images/placeholder.png");
@@ -76,6 +88,13 @@ export default function ProductDetail({ product }: ProductDetailProps) {
   const [showSizeGuide, setShowSizeGuide] = useState(false);
   const [isZoomOpen, setIsZoomOpen] = useState(false);
   const thumbnailsRef = useRef<HTMLDivElement>(null);
+
+  // Keep selectedColor synchronized with defaultColor if product changes
+  useEffect(() => {
+    if (defaultColor) {
+      setSelectedColor(defaultColor);
+    }
+  }, [defaultColor, product.id]);
 
   // Close zoom modal with Escape key
   useEffect(() => {
@@ -134,13 +153,11 @@ export default function ProductDetail({ product }: ProductDetailProps) {
     }
   }, [product.id, product.handle]);
 
-  const availableColors = product.colors || [];
-
   // Update image when color changes
   useEffect(() => {
     if (selectedColor) {
       const variantWithImage = product.variants.find((v: any) =>
-        v.image && v.options.some((opt: any) => opt.name.toLowerCase() === "color" && opt.value === selectedColor)
+        v.image && v.options.some((opt: any) => opt.name.toLowerCase() === "color" && opt.value.toLowerCase() === selectedColor.toLowerCase())
       );
       if (variantWithImage?.image) setDisplayImage(variantWithImage.image);
     }
@@ -150,24 +167,30 @@ export default function ProductDetail({ product }: ProductDetailProps) {
   const availableSizesForColor = useMemo(() => {
     if (!selectedColor) return sortSizesList(product.sizes || []);
     const sizes = product.variants
-      .filter((v: any) => v.options.some((opt: any) => opt.name.toLowerCase() === "color" && opt.value === selectedColor))
+      .filter((v: any) => {
+        const colorOpt = v.options.find((opt: any) => opt.name.toLowerCase() === "color");
+        return !colorOpt || colorOpt.value.toLowerCase() === selectedColor.toLowerCase();
+      })
       .map((v: any) => {
         const sizeOpt = v.options.find((opt: any) => opt.name.toLowerCase() === "size");
         return sizeOpt ? sizeOpt.value : null;
       })
       .filter(Boolean);
-    return sortSizesList(Array.from(new Set(sizes)).map((s) => ({ label: s })));
+    const sorted = sortSizesList(Array.from(new Set(sizes)).map((s) => ({ label: s })));
+    return sorted.length > 0 ? sorted : sortSizesList(product.sizes || []);
   }, [selectedColor, product.variants, product.sizes]);
 
   const currentVariant = useMemo(() => {
     return product.variants.find((v: any) => {
-      const colorMatch = !selectedColor || v.options.some((opt: any) => opt.name.toLowerCase() === "color" && opt.value === selectedColor);
-      const sizeMatch = !selectedSize || v.options.some((opt: any) => opt.name.toLowerCase() === "size" && opt.value === selectedSize);
+      const colorMatch = !selectedColor || v.options.some((opt: any) => opt.name.toLowerCase() === "color" && opt.value.toLowerCase() === selectedColor.toLowerCase());
+      const sizeMatch = !selectedSize || v.options.some((opt: any) => opt.name.toLowerCase() === "size" && opt.value.toLowerCase() === selectedSize.toLowerCase());
       return colorMatch && sizeMatch;
     });
   }, [product.variants, selectedColor, selectedSize]);
 
-  const isVariantSelected = selectedColor !== null && selectedSize !== null;
+  const isColorSelected = availableColors.length <= 1 || selectedColor !== null;
+  const isSizeRequired = (product?.sizes && product.sizes.length > 0) || availableSizesForColor.length > 0;
+  const isVariantSelected = isColorSelected && (!isSizeRequired || selectedSize !== null);
   const isAvailable = currentVariant ? Boolean(currentVariant.available) : Boolean(product.available);
   const availableStock = currentVariant?.quantityAvailable ?? 999;
   const isOutOfStock = isVariantSelected && (!currentVariant || !isAvailable || availableStock <= 0);
@@ -191,7 +214,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
       handle: product.handle,
       title: product.title,
       image: displayImage,
-      color: selectedColor || "",
+      color: selectedColor || defaultColor || "Black",
       size: selectedSize || "",
       price: currentVariant?.price || product.price,
       currencyCode: product.currencyCode || "INR",
@@ -210,7 +233,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
       handle: product.handle,
       title: product.title,
       image: displayImage,
-      color: selectedColor || "",
+      color: selectedColor || defaultColor || "Black",
       size: selectedSize || "",
       price: currentVariant?.price || product.price,
       currencyCode: product.currencyCode || "INR",
@@ -236,9 +259,11 @@ export default function ProductDetail({ product }: ProductDetailProps) {
   }, [displayImage]);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
-      {/* Image Gallery — Redesigned according to reference */}
-      <div className="flex flex-col-reverse sm:flex-row gap-3 sm:gap-4 items-start">
+    <div className="space-y-12">
+      {/* Top Section: Media Gallery & Purchase Selection */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
+        {/* Left Column: Image Gallery */}
+        <div className="flex flex-col-reverse sm:flex-row gap-3 sm:gap-4 items-start">
         {/* Left Thumbnails Column */}
         {product.images && product.images.length > 1 && (
           <div className="flex sm:flex-col items-center gap-2.5 w-full sm:w-20 md:w-24 shrink-0">
@@ -346,7 +371,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
         </div>
       </div>
 
-      {/* Product Details */}
+      {/* Right Column: Product Details */}
       <div className="flex flex-col space-y-10">
         {/* Header */}
         <div>
@@ -354,26 +379,19 @@ export default function ProductDetail({ product }: ProductDetailProps) {
             <span>{product.category || "New Arrival"}</span>
             <div className="w-8 h-[1px] bg-white/20" />
           </div>
-          <h1 className="font-sans text-2xl sm:text-3xl md:text-3xl lg:text-4xl font-bold text-white tracking-wide uppercase leading-tight mb-4 [hyphens:none]">
+          <h1 className="font-sans text-2xl sm:text-3xl md:text-3xl lg:text-4xl font-bold text-white tracking-wide uppercase leading-tight mb-6 [hyphens:none]">
             {renderProductTitle(product.title)}
           </h1>
-          <p className="font-sans text-lg sm:text-xl font-medium text-white/90 tracking-wide flex items-baseline gap-4 sm:gap-5">
+          <p className="font-sans text-2xl sm:text-3xl font-semibold text-white tracking-wide flex items-baseline gap-4 sm:gap-5 mt-2">
             <span>₹ {parseFloat(currentVariant?.price || product.price).toLocaleString("en-IN")}</span>
             <span className="text-xs sm:text-sm font-normal text-white/60 tracking-[0.25em] uppercase">{product.currencyCode || "INR"}</span>
           </p>
         </div>
 
-        {/* Description */}
-        <div className="space-y-3 border-t border-white/5 pt-8">
-          <h3 className="text-[10px] text-white/80 uppercase tracking-[0.3em] font-medium">About This Piece</h3>
-          <p className="text-white/75 leading-relaxed font-normal text-sm">
-            {product.description || "A luxury piece designed to disrupt. Precision-tailored for the modern presence."}
-          </p>
-        </div>
 
         {/* Colors + Sizes */}
         <div className="space-y-8">
-          {availableColors.length > 0 && (
+          {availableColors.length > 1 && (
             <div className="space-y-4">
               <h4 className="text-[10px] text-white uppercase tracking-[0.3em]">
                 Color
@@ -396,22 +414,45 @@ export default function ProductDetail({ product }: ProductDetailProps) {
             </div>
           )}
 
-          {/* Sizes — only shown when color is selected (or always if no colors) */}
-          {(availableSizesForColor.length > 0 || (availableColors.length === 0 && (product.sizes?.length > 0))) && (
+          {/* Sizes */}
+          {(availableSizesForColor.length > 0 || (product.sizes && product.sizes.length > 0)) && (
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <h4 className="text-[10px] text-white uppercase tracking-[0.3em]">
                   Size
                   {selectedSize && <span className="text-white ml-3 font-medium tracking-widest">— {selectedSize}</span>}
                 </h4>
-                <button onClick={() => setShowSizeGuide(true)} className="text-[10px] text-white hover:text-white uppercase tracking-wider underline underline-offset-4 font-medium transition-colors">Size Guide</button>
+                <button
+                  type="button"
+                  onClick={() => setShowSizeGuide(true)}
+                  className="inline-flex items-center gap-1.5 text-[10px] text-white/90 hover:text-white uppercase tracking-wider underline underline-offset-4 font-medium transition-colors cursor-pointer group"
+                >
+                  <svg
+                    viewBox="0 0 24 16"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.75"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="w-3.5 h-2.5 shrink-0 text-white/90 group-hover:text-white transition-colors"
+                    aria-hidden="true"
+                  >
+                    <rect x="1.5" y="1.5" width="21" height="13" rx="1.5" />
+                    <line x1="5.5" y1="1.5" x2="5.5" y2="6.5" />
+                    <line x1="9" y1="1.5" x2="9" y2="5" />
+                    <line x1="12" y1="1.5" x2="12" y2="7.5" />
+                    <line x1="15.5" y1="1.5" x2="15.5" y2="5" />
+                    <line x1="18.5" y1="1.5" x2="18.5" y2="6.5" />
+                  </svg>
+                  <span>Size Guide</span>
+                </button>
               </div>
               <div className="flex flex-wrap gap-3">
                 {sortSizesList(availableSizesForColor.length > 0 ? availableSizesForColor : product.sizes || []).map((s: any, i: number) => (
                   <button
                     key={i}
                     onClick={() => setSelectedSize(s.label)}
-                    className={`w-14 h-14 border text-[11px] font-medium uppercase tracking-wider rounded-xl transition-all duration-300 ${selectedSize === s.label ? "bg-white text-black border-white" : "border-white/40 text-white hover:border-white/80"}`}
+                    className={`w-14 h-14 border text-[11px] font-medium uppercase tracking-wider rounded-xl transition-all duration-300 cursor-pointer ${selectedSize === s.label ? "bg-white text-black border-white shadow-lg" : "border-white/40 text-white hover:border-white/80"}`}
                   >
                     {s.label}
                   </button>
@@ -422,21 +463,39 @@ export default function ProductDetail({ product }: ProductDetailProps) {
         </div>
 
         {/* Selection guard hint */}
-        {!isVariantSelected && availableColors.length > 0 && (
-          <p className="text-luxury-kasavu text-[11px] tracking-[0.15em] font-semibold uppercase animate-pulse">
-            {!selectedColor ? "← Select a color to continue" : "← Now select a size"}
+        {!isVariantSelected && (
+          <p className="text-white text-[11px] tracking-[0.15em] font-medium uppercase animate-pulse">
+            {!selectedSize ? "Select a size to continue" : "Select a color to continue"}
           </p>
         )}
 
-        {/* Stock Status Indicator */}
-        <div className="flex items-center space-x-3">
-          <div className={`w-1.5 h-1.5 rounded-full ${!isAvailable || availableStock <= 0 ? "bg-red-400" : "bg-green-400"}`} />
-          <span className="text-[10px] text-white uppercase tracking-widest font-medium">
-            {!isAvailable || availableStock <= 0
-              ? "Out of Stock"
-              : "In Stock — Ready to ship"}
-          </span>
-        </div>
+        {/* Stock Status Indicator & Size/Policy Guidance */}
+        {isVariantSelected && (
+          <div className="space-y-2">
+            <div className="flex items-center space-x-3">
+              <div className={`w-1.5 h-1.5 rounded-full ${!isAvailable || availableStock <= 0 ? "bg-red-400" : "bg-green-400"}`} />
+              <span className="text-[10px] text-white uppercase tracking-widest font-medium">
+                {!isAvailable || availableStock <= 0
+                  ? "Out of Stock"
+                  : "In Stock — Ready to ship"}
+              </span>
+            </div>
+
+            {isAvailable && availableStock > 0 && (
+              <p className="text-xs text-white/70 tracking-wide leading-relaxed">
+                Please check our{" "}
+                <button
+                  type="button"
+                  onClick={() => setShowSizeGuide(true)}
+                  className="underline underline-offset-4 text-white hover:text-[#C81E1E] font-medium transition-colors cursor-pointer uppercase"
+                >
+                  SIZE GUIDE
+                </button>{" "}
+                before ordering. We&apos;re unable to offer refunds or exchanges for size-related issues.
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Quantity Selection */}
         {isVariantSelected && isAvailable && availableStock > 0 && (
@@ -515,7 +574,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
                   handle: product.handle,
                   image: displayImage,
                   price: currentVariant?.price || product.price,
-                  color: selectedColor || "",
+                  color: selectedColor || defaultColor || "Black",
                   size: selectedSize || "",
                   currencyCode: product.currencyCode || "INR"
                 });
@@ -615,27 +674,64 @@ export default function ProductDetail({ product }: ProductDetailProps) {
             }
           ` }} />
         </div>
+      </div>
+      {/* End of Top Section Grid */}
+      </div>
 
-        {/* Free Shipping & Secure Payment Trust Features */}
-        <div className="grid grid-cols-2 gap-3 sm:gap-5 pt-6 border-t border-white/10">
-          <div className="flex items-start gap-2.5 sm:gap-3.5">
-            <Truck className="w-5 h-5 sm:w-6 sm:h-6 text-white/85 shrink-0 mt-0.5" strokeWidth={1.75} />
-            <div className="space-y-0.5">
-              <h4 className="text-[11px] sm:text-xs font-semibold text-white tracking-wide">Free Shipping</h4>
-              <p className="text-[10px] sm:text-[11px] text-white/60 leading-relaxed">
-                Across India<br />5–7 Business Days
-              </p>
+      {/* Bottom Section: Same Alignment for About This Piece & Free Shipping */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 pt-8 border-t border-white/10">
+        {/* Left: About This Piece */}
+        <div className="space-y-3">
+          <h3 className="text-[10px] text-white uppercase tracking-[0.3em] font-semibold">About This Piece</h3>
+          <p className="text-white/75 leading-relaxed font-normal text-sm max-w-xl">
+            {product.description || "A luxury piece designed to disrupt. Precision-tailored for the modern presence."}
+          </p>
+        </div>
+
+        {/* Right: Free Shipping & Secure Payment + Please Note */}
+        <div className="space-y-6">
+          {/* Free Shipping & Secure Payment Trust Features */}
+          <div className="grid grid-cols-2 gap-3 sm:gap-5">
+            <div className="flex items-start gap-2.5 sm:gap-3.5">
+              <Truck className="w-5 h-5 sm:w-6 sm:h-6 text-white/85 shrink-0 mt-0.5" strokeWidth={1.75} />
+              <div className="space-y-0.5">
+                <h4 className="text-[11px] sm:text-xs font-semibold text-white tracking-wide">Free Shipping</h4>
+                <p className="text-[10px] sm:text-[11px] text-white/60 leading-relaxed">
+                  Across India<br />5–7 Business Days
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-2.5 sm:gap-3.5">
+              <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6 text-white/85 shrink-0 mt-0.5" strokeWidth={1.75} />
+              <div className="space-y-0.5">
+                <h4 className="text-[11px] sm:text-xs font-semibold text-white tracking-wide">Secure Payment</h4>
+                <p className="text-[10px] sm:text-[11px] text-white/60 leading-relaxed">
+                  100% Secure Checkout<br />UPI · Cards · NetBanking
+                </p>
+              </div>
             </div>
           </div>
 
-          <div className="flex items-start gap-2.5 sm:gap-3.5">
-            <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6 text-white/85 shrink-0 mt-0.5" strokeWidth={1.75} />
-            <div className="space-y-0.5">
-              <h4 className="text-[11px] sm:text-xs font-semibold text-white tracking-wide">Secure Payment</h4>
-              <p className="text-[10px] sm:text-[11px] text-white/60 leading-relaxed">
-                100% Secure Checkout<br />UPI · Cards · NetBanking
-              </p>
-            </div>
+          {/* Product Disclaimers / Please Note */}
+          <div className="pt-6 border-t border-white/10 space-y-2.5">
+            <h4 className="text-[11px] sm:text-xs font-semibold text-white tracking-wide">
+              Please Note:
+            </h4>
+            <ul className="space-y-1.5 text-[11px] sm:text-xs text-white/65 leading-relaxed font-normal list-none">
+              <li className="flex items-start gap-2">
+                <span className="text-white/40 shrink-0 select-none">•</span>
+                <span>Colours may slightly vary depending on your screen brightness.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-white/40 shrink-0 select-none">•</span>
+                <span>Actual product specifications/GSM may vary +/-5%</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-white/40 shrink-0 select-none">•</span>
+                <span>All the products have different sizes and size charts</span>
+              </li>
+            </ul>
           </div>
         </div>
       </div>

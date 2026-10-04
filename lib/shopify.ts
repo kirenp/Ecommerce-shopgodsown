@@ -56,7 +56,7 @@ export const GET_PRODUCTS_QUERY = `
           title
           handle
           productType
-          images(first: 1) {
+          images(first: 5) {
             edges {
               node {
                 url
@@ -98,11 +98,14 @@ export async function getProducts(first: number = 8) {
     const product = edge.node;
     const colorsOption = product.options?.find((o: any) => o.name.toLowerCase() === 'color');
     const sizesOption = product.options?.find((o: any) => o.name.toLowerCase() === 'size');
+    const images = product.images?.edges?.map((e: any) => e.node.url) || [];
     return {
       id: product.id,
       title: product.title,
       handle: product.handle,
-      image: product.images.edges[0]?.node.url || "/images/placeholder.png",
+      image: images[0] || "/images/placeholder.png",
+      secondaryImage: images[1] || null,
+      images,
       price: product.priceRange.minVariantPrice.amount,
       maxPrice: product.priceRange.maxVariantPrice?.amount || product.priceRange.minVariantPrice.amount,
       category: product.productType || '',
@@ -140,7 +143,7 @@ export const GET_COLLECTIONS_QUERY = `
                 id
                 title
                 handle
-                images(first: 1) {
+                images(first: 5) {
                   edges {
                     node {
                       url
@@ -183,11 +186,13 @@ export async function getCollections(first: number = 4) {
       image: collection.image?.url || "/images/placeholder.png",
       products: collection.products.edges.map((productEdge: any) => {
         const product = productEdge.node;
+        const images = product.images?.edges?.map((e: any) => e.node.url) || [];
         return {
           id: product.id,
           title: product.title,
           handle: product.handle,
-          image: product.images.edges[0]?.node.url || "/images/placeholder.png",
+          image: images[0] || "/images/placeholder.png",
+          secondaryImage: images[1] || null,
           price: product.priceRange.minVariantPrice.amount,
         };
       }),
@@ -213,7 +218,7 @@ export const GET_COLLECTION_BY_HANDLE_QUERY = `
             id
             title
             handle
-            images(first: 1) {
+            images(first: 5) {
               edges {
                 node {
                   url
@@ -251,11 +256,13 @@ export async function getCollectionByHandle(handle: string) {
     image: collection.image?.url || "/images/placeholder.png",
     products: collection.products.edges.map((edge: any) => {
       const product = edge.node;
+      const images = product.images?.edges?.map((e: any) => e.node.url) || [];
       return {
         id: product.id,
         title: product.title,
         handle: product.handle,
-        image: product.images.edges[0]?.node.url || "/images/placeholder.png",
+        image: images[0] || "/images/placeholder.png",
+        secondaryImage: images[1] || null,
         price: product.priceRange.minVariantPrice.amount,
       };
     }),
@@ -527,7 +534,7 @@ export async function validateProductHandles(handles: string[]): Promise<{
           currencyCode
         }
       }
-      images(first: 1) {
+      images(first: 5) {
         edges {
           node {
             url
@@ -559,6 +566,7 @@ export async function validateProductHandles(handles: string[]): Promise<{
           price: prod.priceRange?.minVariantPrice?.amount || '0',
           currencyCode: prod.priceRange?.minVariantPrice?.currencyCode || 'INR',
           image: prod.images?.edges?.[0]?.node?.url || '',
+          secondaryImage: prod.images?.edges?.[1]?.node?.url || null,
           available: prod.availableForSale ?? true,
         });
       }

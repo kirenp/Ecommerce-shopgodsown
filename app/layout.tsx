@@ -147,9 +147,11 @@ const jsonLd = {
       sameAs: [
         "https://www.instagram.com/godsownculture",
         "https://shopgodsown.com",
+        "https://wa.me/917907478189",
       ],
       contactPoint: {
         "@type": "ContactPoint",
+        telephone: "+91-7907478189",
         contactType: "customer service",
         url: `${siteUrl}/contact`,
       },

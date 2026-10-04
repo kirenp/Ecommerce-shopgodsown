@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { items, contact, shippingAddress, billingAddress, amount, paymentId, orderId, razorpaySignature } = body;
+    const { items, contact, shippingAddress, billingAddress, amount, paymentId, orderId, razorpaySignature, discountCode, discountAmount } = body;
 
     if (!items || !Array.isArray(items) || items.length === 0 || items.length > 50) {
       return NextResponse.json({ error: "Invalid cart items." }, { status: 400 });
@@ -153,6 +153,11 @@ export async function POST(req: NextRequest) {
               send_receipt: true,
               send_fulfillment_receipt: true,
               line_items: lineItems,
+              discount_codes: discountCode ? [{
+                code: String(discountCode),
+                amount: discountAmount ? String(discountAmount) : undefined,
+                type: "percentage",
+              }] : undefined,
               shipping_address: formattedShipping,
               billing_address: formattedBilling,
               note: `Payment completed via Razorpay. Payment ID: ${paymentId || "N/A"}, Razorpay Order ID: ${orderId || "N/A"}`,
@@ -187,6 +192,11 @@ export async function POST(req: NextRequest) {
                 send_receipt: true,
                 send_fulfillment_receipt: true,
                 line_items: fallbackLineItems,
+                discount_codes: discountCode ? [{
+                  code: String(discountCode),
+                  amount: discountAmount ? String(discountAmount) : undefined,
+                  type: "percentage",
+                }] : undefined,
                 shipping_address: formattedShipping,
                 billing_address: formattedBilling,
                 note: `Payment completed via Razorpay. Payment ID: ${paymentId || "N/A"}, Razorpay Order ID: ${orderId || "N/A"}`,

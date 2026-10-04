@@ -52,6 +52,15 @@ export default function ShippingPolicyPage() {
                             >
                                 godsownculture@gmail.com
                             </a>{" "}
+                            or via WhatsApp at{" "}
+                            <a
+                                href="https://wa.me/917907478189"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-black hover:text-[#C81E1E] underline underline-offset-4 transition-colors font-semibold"
+                            >
+                                +91 7907478189
+                            </a>{" "}
                             with your order number.
                         </p>
                     </section>

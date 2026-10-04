@@ -57,7 +57,19 @@ export default function QuickViewModal() {
     const { isQuickViewOpen, closeQuickView, quickViewProduct, openCartSidebar } = useUI();
     const { addToCart } = useCart();
 
-    const [selectedColor, setSelectedColor] = useState<string | null>(null);
+    const availableColors = quickViewProduct?.colors || [];
+
+    const defaultColor = useMemo(() => {
+        if (!quickViewProduct) return null;
+        if (quickViewProduct.colors && quickViewProduct.colors.length > 0) {
+            const first = quickViewProduct.colors[0];
+            return typeof first === 'string' ? first : (first?.label || first?.name || "Black");
+        }
+        const colorOpt = quickViewProduct.variants?.[0]?.options?.find((o: any) => o.name?.toLowerCase() === "color");
+        return colorOpt?.value || "Black";
+    }, [quickViewProduct]);
+
+    const [selectedColor, setSelectedColor] = useState<string | null>(defaultColor);
     const [selectedSize, setSelectedSize] = useState<string | null>(null);
     const [selectedQty, setSelectedQty] = useState<number>(1);
     const [displayImage, setDisplayImage] = useState("/images/placeholder.png");
@@ -66,49 +78,52 @@ export default function QuickViewModal() {
     // Reset state when product changes
     useEffect(() => {
         if (quickViewProduct) {
-            setSelectedColor(null);
+            setSelectedColor(defaultColor);
             setSelectedSize(null);
             setSelectedQty(1);
             setDisplayImage(quickViewProduct.images[0]?.url || "/images/placeholder.png");
         }
-    }, [quickViewProduct]);
+    }, [quickViewProduct, defaultColor]);
 
     // Update image when color changes
     useEffect(() => {
         if (selectedColor && quickViewProduct) {
             const variantWithImage = quickViewProduct.variants.find((v: any) =>
-                v.image && v.options.some((opt: any) => opt.name.toLowerCase() === "color" && opt.value === selectedColor)
+                v.image && v.options.some((opt: any) => opt.name.toLowerCase() === "color" && opt.value.toLowerCase() === selectedColor.toLowerCase())
             );
             if (variantWithImage?.image) setDisplayImage(variantWithImage.image);
         }
     }, [selectedColor, quickViewProduct]);
 
-    const availableColors = quickViewProduct?.colors || [];
-
     const availableSizesForColor = useMemo(() => {
         if (!quickViewProduct) return [];
         if (!selectedColor) return sortSizesList(quickViewProduct.sizes || []);
         const sizes = quickViewProduct.variants
-            .filter((v: any) => v.options.some((opt: any) => opt.name.toLowerCase() === "color" && opt.value === selectedColor))
+            .filter((v: any) => {
+                const colorOpt = v.options.find((opt: any) => opt.name.toLowerCase() === "color");
+                return !colorOpt || colorOpt.value.toLowerCase() === selectedColor.toLowerCase();
+            })
             .map((v: any) => {
                 const sizeOpt = v.options.find((opt: any) => opt.name.toLowerCase() === "size");
                 return sizeOpt ? sizeOpt.value : null;
             })
             .filter(Boolean);
-        return sortSizesList(Array.from(new Set(sizes)).map((s) => ({ label: s })));
+        const sorted = sortSizesList(Array.from(new Set(sizes)).map((s) => ({ label: s })));
+        return sorted.length > 0 ? sorted : sortSizesList(quickViewProduct.sizes || []);
     }, [selectedColor, quickViewProduct]);
 
     const currentVariant = useMemo(() => {
         if (!quickViewProduct) return null;
         return quickViewProduct.variants.find((v: any) => {
-            const colorMatch = !selectedColor || v.options.some((opt: any) => opt.name.toLowerCase() === "color" && opt.value === selectedColor);
-            const sizeMatch = !selectedSize || v.options.some((opt: any) => opt.name.toLowerCase() === "size" && opt.value === selectedSize);
+            const colorMatch = !selectedColor || v.options.some((opt: any) => opt.name.toLowerCase() === "color" && opt.value.toLowerCase() === selectedColor.toLowerCase());
+            const sizeMatch = !selectedSize || v.options.some((opt: any) => opt.name.toLowerCase() === "size" && opt.value.toLowerCase() === selectedSize.toLowerCase());
             return colorMatch && sizeMatch;
         });
     }, [quickViewProduct, selectedColor, selectedSize]);
 
-    const isVariantSelected = (availableColors.length === 0 || selectedColor !== null) &&
-        ((availableSizesForColor.length === 0 && !quickViewProduct?.sizes?.length) || selectedSize !== null);
+    const isColorSelected = availableColors.length <= 1 || selectedColor !== null;
+    const isSizeRequired = (quickViewProduct?.sizes && quickViewProduct.sizes.length > 0) || availableSizesForColor.length > 0;
+    const isVariantSelected = Boolean(quickViewProduct) && isColorSelected && (!isSizeRequired || selectedSize !== null);
     const isAvailable = currentVariant ? currentVariant.available : quickViewProduct?.available;
     const availableStock = currentVariant?.quantityAvailable ?? 999;
 
@@ -129,7 +144,7 @@ export default function QuickViewModal() {
             handle: quickViewProduct.handle,
             title: quickViewProduct.title,
             image: displayImage,
-            color: selectedColor || "",
+            color: selectedColor || defaultColor || "Black",
             size: selectedSize || "",
             price: currentVariant?.price || quickViewProduct.price,
             currencyCode: quickViewProduct.currencyCode || "INR",
@@ -195,7 +210,7 @@ export default function QuickViewModal() {
 
                     <div className="space-y-6 flex-1">
                         {/* Colors */}
-                        {availableColors.length > 0 && (
+                        {availableColors.length > 1 && (
                             <div className="space-y-3">
                                 <h4 className="text-xs font-bold text-black uppercase tracking-wider">
                                     Color {selectedColor && <span className="font-normal text-black/60 capitalize">— {selectedColor}</span>}
@@ -231,7 +246,30 @@ export default function QuickViewModal() {
                                     <h4 className="text-xs font-bold text-black uppercase tracking-wider">
                                         Size {selectedSize && <span className="font-normal text-black/60 uppercase">— {selectedSize}</span>}
                                     </h4>
-                                    <button onClick={() => setShowSizeGuide(true)} className="text-[10px] text-gray-500 hover:text-black uppercase tracking-wider underline underline-offset-4 transition-colors">Size Guide</button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowSizeGuide(true)}
+                                        className="inline-flex items-center gap-1.5 text-[10px] text-gray-500 hover:text-black uppercase tracking-wider underline underline-offset-4 transition-colors group cursor-pointer"
+                                    >
+                                        <svg
+                                            viewBox="0 0 24 16"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeWidth="1.75"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            className="w-3.5 h-2.5 shrink-0 text-gray-500 group-hover:text-black transition-colors"
+                                            aria-hidden="true"
+                                        >
+                                            <rect x="1.5" y="1.5" width="21" height="13" rx="1.5" />
+                                            <line x1="5.5" y1="1.5" x2="5.5" y2="6.5" />
+                                            <line x1="9" y1="1.5" x2="9" y2="5" />
+                                            <line x1="12" y1="1.5" x2="12" y2="7.5" />
+                                            <line x1="15.5" y1="1.5" x2="15.5" y2="5" />
+                                            <line x1="18.5" y1="1.5" x2="18.5" y2="6.5" />
+                                        </svg>
+                                        <span>Size Guide</span>
+                                    </button>
                                 </div>
                                 <div className="flex flex-wrap gap-2">
                                     {sortSizesList(availableSizesForColor.length > 0 ? availableSizesForColor : quickViewProduct.sizes || []).map((s: any, i: number) => (
