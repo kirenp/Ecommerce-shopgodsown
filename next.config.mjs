@@ -17,6 +17,27 @@ const nextConfig = {
     ],
   },
 
+  async redirects() {
+    const shopifyDomain = process.env.SHOPIFY_STORE_DOMAIN || "godsown-9751.myshopify.com";
+    return [
+      {
+        source: "/:shopId(\\d+)/:path*",
+        destination: `https://${shopifyDomain}/:shopId/:path*`,
+        permanent: false,
+      },
+      {
+        source: "/checkouts/:path*",
+        destination: `https://${shopifyDomain}/checkouts/:path*`,
+        permanent: false,
+      },
+      {
+        source: "/orders/:orderToken/authenticate",
+        destination: `https://${shopifyDomain}/orders/:orderToken/authenticate`,
+        permanent: false,
+      },
+    ];
+  },
+
   async rewrites() {
     return [
       {

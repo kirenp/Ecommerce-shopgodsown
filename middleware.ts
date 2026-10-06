@@ -58,6 +58,26 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(url, 308);
   }
 
+  // =========================================================================
+  // SHOPIFY HOSTED URLS (Order Status, Authenticate, Checkout, etc.)
+  // When Shopify sends transactional emails (Order delivered, confirmed, etc.)
+  // it uses the store's primary domain (shopgodsown.com) with Shopify paths like
+  // /65346109534/orders/... or /orders/.../authenticate
+  // Forward these requests directly to the Shopify store domain so customers can
+  // view their official order tracking, authentication, and status page.
+  // =========================================================================
+  const shopifyStoreDomain = process.env.SHOPIFY_STORE_DOMAIN || 'godsown-9751.myshopify.com';
+
+  const isShopifyPath =
+    /^\/\d+(\/.*)?$/.test(pathname) || // e.g. /65346109534/orders/..., /65346109534/...
+    /^\/orders\/[^\/]+\/authenticate\b/.test(pathname) ||
+    /^\/checkouts(\/.*)?$/.test(pathname);
+
+  if (isShopifyPath) {
+    const targetUrl = new URL(`https://${shopifyStoreDomain}${pathname}${request.nextUrl.search}`);
+    return NextResponse.redirect(targetUrl, 307);
+  }
+
   return NextResponse.next();
 }
 
