@@ -94,7 +94,7 @@ export default function TrackOrderPageContent() {
 
   const STAGES = [
     { id: 1, label: "Order Placed", desc: "Confirmed", icon: Package },
-    { id: 2, label: "Dispatched", desc: "Picked Up", icon: CheckCircle2 },
+    { id: 2, label: "Dispatched", desc: "Picked Up", icon: Clock },
     { id: 3, label: "In Transit", desc: "On the Way", icon: Truck },
     { id: 4, label: "Out for Delivery", desc: "Nearby Hub", icon: Navigation },
     { id: 5, label: "Delivered", desc: "Handed Over", icon: CheckCircle2 },
@@ -311,7 +311,6 @@ export default function TrackOrderPageContent() {
                     <div className="grid grid-cols-5 gap-2 relative z-10">
                       {STAGES.map((stage) => {
                         const isCompleted = orderData.currentStep >= stage.id;
-                        const isCurrent = orderData.currentStep === stage.id;
                         const StageIcon = stage.icon;
 
                         return (
@@ -329,8 +328,6 @@ export default function TrackOrderPageContent() {
                               className={`w-9 h-9 mx-auto rounded-full flex items-center justify-center transition-all duration-500 relative z-10 ${
                                 isCompleted
                                   ? "bg-[#00C853] text-black shadow-[0_0_20px_rgba(0,200,83,0.35)]"
-                                  : isCurrent
-                                  ? "bg-[#C81E1E] text-white shadow-[0_0_20px_rgba(200,30,30,0.5)] ring-4 ring-[#C81E1E]/20"
                                   : "bg-white/8 text-white/30 border border-white/15"
                               }`}
                             >
@@ -342,7 +339,7 @@ export default function TrackOrderPageContent() {
                             </div>
                             <div>
                               <p className={`text-[11px] font-bold uppercase tracking-wider ${
-                                isCompleted || isCurrent ? "text-white" : "text-white/30"
+                                isCompleted ? "text-white" : "text-white/30"
                               }`}>
                                 {stage.label}
                               </p>
@@ -359,38 +356,64 @@ export default function TrackOrderPageContent() {
               )}
 
               {/* ── Courier & Address Details Grid ── */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 border-t border-white/10 text-xs">
-                <div className="space-y-1">
-                  <span className="text-[9px] text-white/40 uppercase tracking-widest font-bold block">Courier Partner</span>
-                  <p className="font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-                    <Truck size={14} className="text-[#00C853]" />
-                    {shiprocketData?.courierName || orderData.trackingCompany}
-                  </p>
-                </div>
+              {(() => {
+                const courierPartner = shiprocketData?.courierName || orderData.trackingCompany;
+                const trackingNumber = shiprocketData?.awbNumber || orderData.trackingNumber;
 
-                <div className="space-y-1">
-                  <span className="text-[9px] text-white/40 uppercase tracking-widest font-bold block">
-                    {shiprocketData ? "AWB Number" : "Tracking Number"}
-                  </span>
-                  <p className="font-mono text-white/90">{shiprocketData?.awbNumber || orderData.trackingNumber}</p>
-                  {orderData.trackingUrl && (
-                    <a
-                      href={orderData.trackingUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-[10px] text-[#00C853] hover:underline font-bold uppercase tracking-wider pt-1"
-                    >
-                      <span>Open Carrier Site</span>
-                      <ExternalLink size={10} />
-                    </a>
-                  )}
-                </div>
+                return (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 border-t border-white/10 text-xs">
+                    <div className="space-y-1.5">
+                      <span className="text-[9px] text-white/40 uppercase tracking-widest font-bold block">Courier Partner</span>
+                      {courierPartner ? (
+                        <p className="font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                          <Truck size={14} className="text-[#00C853]" />
+                          <span>{courierPartner}</span>
+                        </p>
+                      ) : (
+                        <div className="space-y-0.5">
+                          <p className="font-bold text-white/70 uppercase tracking-wider flex items-center gap-1.5 text-xs">
+                            <Clock size={13} className="text-amber-400" />
+                            <span>To be assigned</span>
+                          </p>
+                          <p className="text-[10px] text-white/40 font-medium">Assigned once package is picked up</p>
+                        </div>
+                      )}
+                    </div>
 
-                <div className="space-y-1">
-                  <span className="text-[9px] text-white/40 uppercase tracking-widest font-bold block">Destination</span>
-                  <p className="text-white/80 leading-relaxed font-medium">{orderData.shippingAddress}</p>
-                </div>
-              </div>
+                    <div className="space-y-1.5">
+                      <span className="text-[9px] text-white/40 uppercase tracking-widest font-bold block">
+                        {shiprocketData ? "AWB Number" : "Tracking Number"}
+                      </span>
+                      {trackingNumber ? (
+                        <>
+                          <p className="font-mono text-white/90 font-medium">{trackingNumber}</p>
+                          {orderData.trackingUrl && (
+                            <a
+                              href={orderData.trackingUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-[10px] text-[#00C853] hover:underline font-bold uppercase tracking-wider pt-1"
+                            >
+                              <span>Open Carrier Site</span>
+                              <ExternalLink size={10} />
+                            </a>
+                          )}
+                        </>
+                      ) : (
+                        <div className="space-y-0.5">
+                          <p className="font-mono text-xs text-white/70">Awaiting dispatch</p>
+                          <p className="text-[10px] text-white/40 font-medium">Tracking number will appear once shipped</p>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <span className="text-[9px] text-white/40 uppercase tracking-widest font-bold block">Destination</span>
+                      <p className="text-white/80 leading-relaxed font-medium">{orderData.shippingAddress}</p>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
 
             {/* ══════════════════════════════════════════════════════════════

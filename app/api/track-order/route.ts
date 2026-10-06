@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rateLimit";
 import { trackByAWB, isShiprocketConfigured } from "@/lib/shiprocket";
+import { getServerCustomerOrders } from "@/lib/serverOrderStore";
 
 export async function POST(req: NextRequest) {
   // Rate limiting
@@ -36,7 +37,7 @@ export async function POST(req: NextRequest) {
       try {
         const query = `
           query findOrder($queryStr: String!) {
-            orders(first: 5, query: $queryStr) {
+            orders(first: 10, query: $queryStr) {
               edges {
                 node {
                   id
@@ -56,10 +57,12 @@ export async function POST(req: NextRequest) {
                     firstName
                     lastName
                     address1
+                    address2
                     city
                     province
                     zip
                     country
+                    phone
                   }
                   fulfillments {
                     status
@@ -105,52 +108,80 @@ export async function POST(req: NextRequest) {
 
         if (shopifyRes.ok) {
           const shopifyData = await shopifyRes.json();
-          const orderNode = shopifyData.data?.orders?.edges?.[0]?.node;
+          const orderEdges = shopifyData.data?.orders?.edges || [];
+
+          // Find the matching order that also matches the customer's email or phone
+          const matchingEdge = orderEdges.find((e: any) => {
+            const node = e.node;
+            const nodeNameClean = (node.name || "").replace(/^#/, "");
+            if (nodeNameClean !== cleanOrderNumber) return false;
+
+            const orderEmail = (node.email || "").toLowerCase();
+            const orderPhone = (node.phone || "").replace(/\D/g, "");
+            const shippingPhone = (node.shippingAddress?.phone || "").replace(/\D/g, "");
+            const inputPhone = cleanContact.replace(/\D/g, "");
+
+            const isEmailMatch = orderEmail && orderEmail === cleanContact;
+            const isPhoneMatch =
+              inputPhone.length >= 7 &&
+              ((orderPhone && orderPhone.endsWith(inputPhone.slice(-10))) ||
+               (shippingPhone && shippingPhone.endsWith(inputPhone.slice(-10))));
+
+            return isEmailMatch || isPhoneMatch;
+          });
+
+          const orderNode = matchingEdge?.node;
 
           if (orderNode) {
-            // ── VERIFY EMAIL/PHONE MATCHES ORDER ──
-            // Prevent order enumeration by requiring the contact info to match
-            const orderEmail = (orderNode.email || "").toLowerCase();
-            const orderPhone = (orderNode.phone || "").replace(/\D/g, "");
-            const inputPhone = cleanContact.replace(/\D/g, "");
-            
-            const isEmailMatch = orderEmail && orderEmail === cleanContact;
-            const isPhoneMatch = orderPhone && inputPhone && orderPhone.endsWith(inputPhone.slice(-10));
-            
-            if (!isEmailMatch && !isPhoneMatch) {
-              // Return generic "not found" to prevent enumeration
-              return NextResponse.json(
-                { error: `No matching order found for #${cleanOrderNumber}. Please check your order number and contact details.` },
-                { status: 404 }
-              );
-            }
+            const fulfillments = orderNode.fulfillments || [];
+            const activeFulfillment = fulfillments.find((f: any) => f.trackingInfo && f.trackingInfo.length > 0) || fulfillments[0];
+            const tracking = activeFulfillment?.trackingInfo?.[0];
 
-            const fulfillment = orderNode.fulfillments?.[0];
-            const tracking = fulfillment?.trackingInfo?.[0];
+            const realTrackingNumber = tracking?.number?.trim() || null;
+            const realTrackingCompany = tracking?.company?.trim() || null;
+            const realTrackingUrl = tracking?.url?.trim() || null;
 
-            let step = 2; // Default: Order Processed
-            if (orderNode.displayFulfillmentStatus === "DELIVERED") {
+            const fulfillmentStatus = (orderNode.displayFulfillmentStatus || "").toUpperCase();
+
+            // ── ACCURATE LOGISTICS STEP ──
+            // 1: Order Placed (confirmed, awaiting dispatch)
+            // 2: Dispatched (assigned to courier / picked up)
+            // 3: In Transit (on the way)
+            // 4: Out for Delivery (nearby hub)
+            // 5: Delivered
+            let step = 1;
+
+            if (fulfillmentStatus === "DELIVERED") {
               step = 5;
-            } else if (orderNode.displayFulfillmentStatus === "IN_TRANSIT" || tracking?.number) {
-              step = 3;
-            } else if (orderNode.displayFulfillmentStatus === "FULFILLED") {
+            } else if (fulfillmentStatus === "OUT_FOR_DELIVERY") {
               step = 4;
+            } else if (fulfillmentStatus === "IN_TRANSIT") {
+              step = 3;
+            } else if (fulfillmentStatus === "FULFILLED") {
+              step = realTrackingNumber ? 2 : 2;
+            } else if (realTrackingNumber) {
+              step = 2;
+            } else {
+              // Unfulfilled order -> only Step 1 is active
+              step = 1;
             }
 
             // ── SHIPROCKET TRACKING INTEGRATION ──
-            // If we have an AWB/tracking number and Shiprocket is configured,
-            // fetch live tracking data with scan activities
             let shiprocketTracking = null;
 
-            if (tracking?.number && isShiprocketConfigured()) {
+            if (realTrackingNumber && isShiprocketConfigured()) {
               try {
-                const srData = await trackByAWB(tracking.number);
+                const srData = await trackByAWB(realTrackingNumber);
                 if (srData) {
                   shiprocketTracking = srData;
 
-                  // Override the step with more accurate Shiprocket status
                   switch (srData.currentStatusCode) {
+                    case "OP":
+                      step = 1;
+                      break;
                     case "PU":
+                    case "PPF":
+                    case "OFP":
                       step = 2;
                       break;
                     case "IT":
@@ -165,7 +196,6 @@ export async function POST(req: NextRequest) {
                     case "RTO":
                     case "CANCELED":
                     case "NDR":
-                      // Keep current step, special statuses handled on frontend
                       break;
                   }
                 }
@@ -174,6 +204,15 @@ export async function POST(req: NextRequest) {
               }
             }
 
+            const finalTrackingCompany = realTrackingCompany || shiprocketTracking?.courierName || null;
+            const finalTrackingNumber = realTrackingNumber || shiprocketTracking?.awbNumber || null;
+            let finalTrackingUrl = realTrackingUrl;
+            if (!finalTrackingUrl && shiprocketTracking?.awbNumber) {
+              finalTrackingUrl = `https://shiprocket.co/tracking/${shiprocketTracking.awbNumber}`;
+            }
+
+            const isDispatched = step >= 2 || Boolean(finalTrackingNumber);
+
             return NextResponse.json({
               success: true,
               order: {
@@ -181,15 +220,21 @@ export async function POST(req: NextRequest) {
                 orderNumber: orderNode.name,
                 processedAt: orderNode.processedAt,
                 totalPrice: orderNode.totalPriceSet?.shopMoney?.amount || "0.00",
-                fulfillmentStatus: orderNode.displayFulfillmentStatus || "PROCESSING",
+                fulfillmentStatus: orderNode.displayFulfillmentStatus || "UNFULFILLED",
                 financialStatus: orderNode.displayFinancialStatus || "PAID",
-                trackingCompany: tracking?.company || "Express Logistics",
-                trackingNumber: tracking?.number || `TRK${cleanOrderNumber}IN`,
-                trackingUrl: tracking?.url || "https://www.bluedart.com",
+                isDispatched,
+                trackingCompany: finalTrackingCompany,
+                trackingNumber: finalTrackingNumber,
+                trackingUrl: finalTrackingUrl,
                 currentStep: step,
-                estimatedDelivery: shiprocketTracking?.estimatedDelivery || "5 - 7 Business Days",
+                estimatedDelivery: shiprocketTracking?.estimatedDelivery || null,
                 shippingAddress: orderNode.shippingAddress
-                  ? `${orderNode.shippingAddress.address1}, ${orderNode.shippingAddress.city}, ${orderNode.shippingAddress.province} ${orderNode.shippingAddress.zip}`
+                  ? [
+                      orderNode.shippingAddress.address1,
+                      orderNode.shippingAddress.address2,
+                      orderNode.shippingAddress.city,
+                      [orderNode.shippingAddress.province, orderNode.shippingAddress.zip].filter(Boolean).join(" ")
+                    ].filter(Boolean).join(", ")
                   : "Address on file",
                 lineItems: orderNode.lineItems.edges.map((e: any) => ({
                   title: e.node.title,
@@ -205,6 +250,47 @@ export async function POST(req: NextRequest) {
       } catch (err) {
         console.warn("Shopify Admin API lookup error:", err);
       }
+    }
+
+    // ── FALLBACK TO LOCAL SERVER STORE ──
+    try {
+      const serverOrders = getServerCustomerOrders(cleanContact);
+      const match = serverOrders.find(
+        (o) =>
+          o.orderNumber.replace(/^#/, "") === cleanOrderNumber ||
+          o.orderNumber === cleanOrderNumber
+      );
+      if (match) {
+        return NextResponse.json({
+          success: true,
+          order: {
+            id: match.id,
+            orderNumber: match.orderNumber,
+            processedAt: match.processedAt,
+            totalPrice: match.totalPrice,
+            fulfillmentStatus: match.fulfillmentStatus || "UNFULFILLED",
+            financialStatus: match.financialStatus || "PAID",
+            isDispatched: false,
+            trackingCompany: null,
+            trackingNumber: null,
+            trackingUrl: null,
+            currentStep: 1,
+            estimatedDelivery: null,
+            shippingAddress: match.shippingAddress
+              ? `${match.shippingAddress.address || match.shippingAddress.address1 || ""}, ${match.shippingAddress.city || ""}, ${match.shippingAddress.state || ""} ${match.shippingAddress.pinCode || ""}`
+              : "Address on file",
+            lineItems: match.items.map((i: any) => ({
+              title: i.title,
+              quantity: i.quantity,
+              price: i.price,
+              image: i.image || null,
+            })),
+          },
+          shiprocketTracking: null,
+        });
+      }
+    } catch (storeErr) {
+      console.warn("Server order store fallback error:", storeErr);
     }
 
     return NextResponse.json(

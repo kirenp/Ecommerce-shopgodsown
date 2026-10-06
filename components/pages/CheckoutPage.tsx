@@ -745,7 +745,14 @@ export default function CheckoutPageContent() {
             </Link>
 
             <div className="flex items-center justify-center gap-3 text-xs text-white/45 pt-1">
-              <Link href={getPreviewPath("/track-order")} className="hover:text-white transition-colors underline underline-offset-4">
+              <Link
+                href={getPreviewPath(
+                  confirmedOrderNumber
+                    ? `/track-order?orderId=${encodeURIComponent(confirmedOrderNumber.startsWith('#') ? confirmedOrderNumber : `#${confirmedOrderNumber}`)}&contact=${encodeURIComponent(emailOrPhone || '')}`
+                    : "/track-order"
+                )}
+                className="hover:text-white transition-colors underline underline-offset-4"
+              >
                 Track Order
               </Link>
               <span>•</span>
