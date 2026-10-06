@@ -96,34 +96,107 @@ export async function POST(req: NextRequest) {
       return lineItem;
     });
 
+    // Indian state to ISO 3166-2 province code mapping for Shopify address resolution
+    const STATE_TO_CODE: Record<string, string> = {
+      "Andhra Pradesh": "AP",
+      "Arunachal Pradesh": "AR",
+      "Assam": "AS",
+      "Bihar": "BR",
+      "Chhattisgarh": "CG",
+      "Goa": "GA",
+      "Gujarat": "GJ",
+      "Haryana": "HR",
+      "Himachal Pradesh": "HP",
+      "Jharkhand": "JH",
+      "Karnataka": "KA",
+      "Kerala": "KL",
+      "Madhya Pradesh": "MP",
+      "Maharashtra": "MH",
+      "Manipur": "MN",
+      "Meghalaya": "ML",
+      "Mizoram": "MZ",
+      "Nagaland": "NL",
+      "Odisha": "OR",
+      "Punjab": "PB",
+      "Rajasthan": "RJ",
+      "Sikkim": "SK",
+      "Tamil Nadu": "TN",
+      "Telangana": "TG",
+      "Tripura": "TR",
+      "Uttar Pradesh": "UP",
+      "Uttarakhand": "UK",
+      "West Bengal": "WB",
+      "Andaman and Nicobar Islands": "AN",
+      "Chandigarh": "CH",
+      "Dadra and Nagar Haveli and Daman and Diu": "DH",
+      "Delhi": "DL",
+      "Jammu and Kashmir": "JK",
+      "Ladakh": "LA",
+      "Lakshadweep": "LD",
+      "Puducherry": "PY",
+    };
+
     // Format shipping address
-    const formatAddress = (addr: any) => ({
-      first_name: String(addr?.firstName || "").slice(0, 100),
-      last_name: String(addr?.lastName || "").slice(0, 100),
-      address1: String(addr?.address || "").slice(0, 256),
-      address2: String(addr?.apartment || "").slice(0, 256),
-      city: String(addr?.city || "").slice(0, 100),
-      province: String(addr?.state || "Kerala").slice(0, 100),
-      country: "India",
-      zip: String(addr?.pinCode || "").slice(0, 10),
-      phone: String(addr?.phone || phone || "").slice(0, 20),
-    });
+    // CRITICAL: Shopify REST Admin API drops the entire address object if last_name is empty ("")!
+    // We guarantee both first_name and last_name are populated, along with ISO codes.
+    const formatAddress = (addr: any) => {
+      const rawFirst = String(addr?.firstName || "").trim();
+      const rawLast = String(addr?.lastName || "").trim();
+
+      let firstName = rawFirst;
+      let lastName = rawLast;
+      if (!lastName && firstName.includes(" ")) {
+        const parts = firstName.split(/\s+/);
+        firstName = parts[0];
+        lastName = parts.slice(1).join(" ");
+      }
+      if (!firstName) firstName = "Customer";
+      if (!lastName) lastName = firstName; // Shopify strictly requires non-empty last_name
+
+      const state = String(addr?.state || "Kerala").trim();
+      const provinceCode = STATE_TO_CODE[state] || undefined;
+      const fullName = `${firstName} ${lastName}`.trim();
+
+      return {
+        first_name: firstName.slice(0, 100),
+        last_name: lastName.slice(0, 100),
+        name: fullName.slice(0, 200),
+        address1: String(addr?.address || "").trim().slice(0, 256),
+        address2: String(addr?.apartment || "").trim().slice(0, 256),
+        city: String(addr?.city || "").trim().slice(0, 100),
+        province: state.slice(0, 100),
+        province_code: provinceCode,
+        country: "India",
+        country_code: "IN",
+        zip: String(addr?.pinCode || "").trim().slice(0, 10),
+        phone: String(addr?.phone || phone || "").trim().slice(0, 20),
+      };
+    };
 
     const formattedShipping = formatAddress(shippingAddress);
     const formattedBilling = formatAddress(billingAddress || shippingAddress);
+
+    const deliveryNoteDetails = [
+      `Recipient: ${formattedShipping.first_name} ${formattedShipping.last_name}`,
+      `Address: ${formattedShipping.address1}${formattedShipping.address2 ? ", " + formattedShipping.address2 : ""}`,
+      `City: ${formattedShipping.city}, ${formattedShipping.province} - ${formattedShipping.zip}`,
+      `Phone: ${formattedShipping.phone || phone || "N/A"}`
+    ].join("\n");
+
+    const orderNotes = `Payment completed via Razorpay. Payment ID: ${paymentId || "N/A"}, Razorpay Order ID: ${orderId || "N/A"}\n\nDelivery Details:\n${deliveryNoteDetails}`;
 
     // 1. Save shipping address persistently to server store for customer account
     if (email && shippingAddress) {
       try {
         saveServerCustomerAddress(email, {
           id: `addr_checkout_${Date.now()}`,
-          firstName: shippingAddress.firstName || "",
-          lastName: shippingAddress.lastName || "",
-          address: [shippingAddress.address, shippingAddress.apartment].filter(Boolean).join(", "),
-          city: shippingAddress.city || "",
-          state: shippingAddress.state || "Kerala",
-          pinCode: shippingAddress.pinCode || "",
-          phone: shippingAddress.phone || phone || "",
+          firstName: formattedShipping.first_name,
+          lastName: formattedShipping.last_name,
+          address: [formattedShipping.address1, formattedShipping.address2].filter(Boolean).join(", "),
+          city: formattedShipping.city,
+          state: formattedShipping.province,
+          pinCode: formattedShipping.zip,
+          phone: formattedShipping.phone,
           isDefault: true,
         });
       } catch (e) {
@@ -155,16 +228,22 @@ export async function POST(req: NextRequest) {
           body: JSON.stringify({
             order: {
               email: email || undefined,
-              phone: phone || undefined,
+              phone: phone || formattedShipping.phone || undefined,
               financial_status: "paid",
               fulfillment_status: null,
               send_receipt: true,
               send_fulfillment_receipt: true,
               line_items: lineItems,
               discount_codes: formattedDiscount,
+              customer: {
+                first_name: formattedShipping.first_name,
+                last_name: formattedShipping.last_name,
+                email: email || undefined,
+                phone: phone || formattedShipping.phone || undefined,
+              },
               shipping_address: formattedShipping,
               billing_address: formattedBilling,
-              note: `Payment completed via Razorpay. Payment ID: ${paymentId || "N/A"}, Razorpay Order ID: ${orderId || "N/A"}`,
+              note: orderNotes,
               tags: "Razorpay, Online Order, Paid",
             },
           }),
@@ -190,16 +269,22 @@ export async function POST(req: NextRequest) {
             body: JSON.stringify({
               order: {
                 email: email || undefined,
-                phone: phone || undefined,
+                phone: phone || formattedShipping.phone || undefined,
                 financial_status: "paid",
                 fulfillment_status: null,
                 send_receipt: true,
                 send_fulfillment_receipt: true,
                 line_items: fallbackLineItems,
                 discount_codes: formattedDiscount,
+                customer: {
+                  first_name: formattedShipping.first_name,
+                  last_name: formattedShipping.last_name,
+                  email: email || undefined,
+                  phone: phone || formattedShipping.phone || undefined,
+                },
                 shipping_address: formattedShipping,
                 billing_address: formattedBilling,
-                note: `Payment completed via Razorpay. Payment ID: ${paymentId || "N/A"}, Razorpay Order ID: ${orderId || "N/A"}`,
+                note: orderNotes,
                 tags: "Razorpay, Online Order, Paid",
               },
             }),
@@ -401,6 +486,14 @@ async function sendOrderEmailAlerts({
               <span style="color: #888888;">Payment ID:</span>
               <span style="color: #aaaaaa; font-family: monospace;">${escapeHtml(paymentId || "N/A")}</span>
             </div>
+          </div>
+
+          <div style="background-color: #141414; padding: 16px; border-radius: 8px; font-size: 13px; margin-top: 14px;">
+            <p style="color: #888888; margin: 0 0 6px 0; font-weight: 700; text-transform: uppercase; font-size: 10px; letter-spacing: 0.1em;">Delivery Address</p>
+            <p style="color: #ffffff; margin: 0 0 4px 0; font-weight: 600;">${escapeHtml(shippingAddress?.first_name || "")} ${escapeHtml(shippingAddress?.last_name || "")}</p>
+            <p style="color: #cccccc; margin: 0 0 4px 0;">${escapeHtml(shippingAddress?.address1 || "")}${shippingAddress?.address2 ? ", " + escapeHtml(shippingAddress.address2) : ""}</p>
+            <p style="color: #cccccc; margin: 0 0 4px 0;">${escapeHtml(shippingAddress?.city || "")}, ${escapeHtml(shippingAddress?.province || "")} - ${escapeHtml(shippingAddress?.zip || "")}</p>
+            <p style="color: #aaaaaa; margin: 0;">Phone: ${escapeHtml(shippingAddress?.phone || "")}</p>
           </div>
         </div>
 

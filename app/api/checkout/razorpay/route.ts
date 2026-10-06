@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { items, discountAmount } = body;
+    const { items, discountAmount, contact, shippingAddress } = body;
 
     const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
     const keySecret = process.env.RAZORPAY_KEY_SECRET;
@@ -82,6 +82,56 @@ export async function POST(req: NextRequest) {
     if (!Array.isArray(items) || items.length === 0 || items.length > 50) {
       return NextResponse.json(
         { error: "Invalid cart items." },
+        { status: 400 }
+      );
+    }
+
+    // Validate contact and shipping address details
+    if (!contact || typeof contact !== "string" || !contact.trim()) {
+      return NextResponse.json(
+        { error: "Contact email or phone number is required." },
+        { status: 400 }
+      );
+    }
+    if (!shippingAddress || typeof shippingAddress !== "object") {
+      return NextResponse.json(
+        { error: "Shipping address is required." },
+        { status: 400 }
+      );
+    }
+    const cleanFirstName = String(shippingAddress.firstName || "").trim();
+    const cleanAddress = String(shippingAddress.address || "").trim();
+    const cleanCity = String(shippingAddress.city || "").trim();
+    const cleanPinCode = String(shippingAddress.pinCode || "").trim().replace(/\D/g, "");
+    const cleanPhone = String(shippingAddress.phone || (contact.includes("@") ? "" : contact)).trim().replace(/\D/g, "");
+
+    if (!cleanFirstName) {
+      return NextResponse.json(
+        { error: "First name is required." },
+        { status: 400 }
+      );
+    }
+    if (!cleanAddress) {
+      return NextResponse.json(
+        { error: "Delivery street address is required." },
+        { status: 400 }
+      );
+    }
+    if (!cleanCity) {
+      return NextResponse.json(
+        { error: "City is required." },
+        { status: 400 }
+      );
+    }
+    if (!cleanPinCode || cleanPinCode.length !== 6) {
+      return NextResponse.json(
+        { error: "A valid 6-digit PIN code is required." },
+        { status: 400 }
+      );
+    }
+    if (!cleanPhone || cleanPhone.length < 10) {
+      return NextResponse.json(
+        { error: "A valid 10-digit phone number is required for shipping." },
         { status: 400 }
       );
     }
