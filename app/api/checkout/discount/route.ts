@@ -8,7 +8,7 @@ const apiVersion = process.env.SHOPIFY_API_VERSION || "2024-01";
 
 export async function POST(req: NextRequest) {
   // Rate limit protection
-  const rateLimitResponse = checkRateLimit(req, RATE_LIMITS.auth);
+  const rateLimitResponse = checkRateLimit(req, RATE_LIMITS.discount);
   if (rateLimitResponse) return rateLimitResponse;
 
   try {

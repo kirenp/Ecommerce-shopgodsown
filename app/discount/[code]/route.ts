@@ -13,12 +13,17 @@ export async function GET(
     ? (redirectParam.startsWith("/") ? redirectParam : `/${redirectParam}`)
     : "/checkout";
 
-  const url = new URL(targetPath, req.url);
+  // Resolve public domain (handles reverse proxies, Docker containers, Cloudflare, etc.)
+  const forwardedHost = req.headers.get("x-forwarded-host");
+  const host = forwardedHost || req.headers.get("host") || "shopgodsown.com";
+  const proto = req.headers.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
+
+  const redirectUrl = new URL(targetPath, `${proto}://${host}`);
   if (code) {
-    url.searchParams.set("discount", code);
+    redirectUrl.searchParams.set("discount", code);
   }
 
-  const response = NextResponse.redirect(url, { status: 307 });
+  const response = NextResponse.redirect(redirectUrl.toString(), { status: 307 });
 
   if (code) {
     // Persist coupon code in cookie for 30 days

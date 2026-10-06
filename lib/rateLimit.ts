@@ -37,6 +37,10 @@ function cleanup(windowMs: number) {
  * Checks x-forwarded-for (reverse proxies), x-real-ip, then falls back to "unknown".
  */
 function getClientIp(req: NextRequest): string {
+  const cfIp = req.headers.get("cf-connecting-ip");
+  if (cfIp) return cfIp.trim();
+  const trueClientIp = req.headers.get("true-client-ip");
+  if (trueClientIp) return trueClientIp.trim();
   const xff = req.headers.get("x-forwarded-for");
   if (xff) {
     return xff.split(",")[0].trim();
@@ -103,6 +107,7 @@ export const RATE_LIMITS = {
   checkout: { maxRequests: 10, windowMs: 60_000, routeKey: "checkout" },
   contact: { maxRequests: 5, windowMs: 60_000, routeKey: "contact" },
   auth: { maxRequests: 15, windowMs: 60_000, routeKey: "auth" },
+  discount: { maxRequests: 60, windowMs: 60_000, routeKey: "discount" },
   earlyAccess: { maxRequests: 10, windowMs: 60_000, routeKey: "early-access" },
   trackOrder: { maxRequests: 15, windowMs: 60_000, routeKey: "track-order" },
   instagram: { maxRequests: 30, windowMs: 60_000, routeKey: "instagram" },

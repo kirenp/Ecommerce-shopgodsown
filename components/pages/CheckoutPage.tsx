@@ -240,6 +240,8 @@ export default function CheckoutPageContent() {
   }, []);
 
   // Auto-detect and apply coupon from URL params (?discount=..., ?coupon=...), cookie, or localStorage
+  const autoApplyAttemptedRef = useRef(false);
+
   useEffect(() => {
     try {
       const urlParams = new URLSearchParams(window.location.search);
@@ -248,17 +250,20 @@ export default function CheckoutPageContent() {
       const cookieMatch = document.cookie.match(/(?:^|;\s*)godsown_discount_code=([^;]+)/);
       const cookieCode = cookieMatch ? decodeURIComponent(cookieMatch[1]) : null;
 
-      const storedCode = localStorage.getItem("godsown_discount_code");
+      const storedCode = typeof window !== "undefined" ? localStorage.getItem("godsown_discount_code") : null;
 
       const codeToApply = (queryCode || cookieCode || storedCode || "").trim().toUpperCase();
       if (codeToApply) {
         setDiscountCode(codeToApply);
-        handleApplyDiscount(codeToApply);
+        if (!appliedCouponCode) {
+          autoApplyAttemptedRef.current = true;
+          handleApplyDiscount(codeToApply);
+        }
       }
     } catch (e) {
       console.warn("Failed to check discount code on mount:", e);
     }
-  }, []);
+  }, [items.length]);
 
   // Apply Discount via Shopify API
   const handleApplyDiscount = async (codeToApply?: string) => {
@@ -275,28 +280,46 @@ export default function CheckoutPageContent() {
     setDiscountError("");
     setIsApplyingDiscount(true);
 
+    // Instant local application for PLAY10 so the user gets 10% OFF immediately on first landing
+    const isPlay10 = trimmed.toUpperCase() === "PLAY10";
+    if (isPlay10) {
+      setAppliedDiscount(10);
+      setAppliedDiscountAmount(0);
+      setAppliedCouponCode("PLAY10");
+      try {
+        localStorage.setItem("godsown_discount_code", "PLAY10");
+        document.cookie = "godsown_discount_code=PLAY10; path=/; max-age=2592000; SameSite=Lax;";
+      } catch (_) {}
+    }
+
+    // Hydrate items from localStorage if React state has not settled yet
+    let currentItems = items;
+    if (currentItems.length === 0 && typeof window !== "undefined") {
+      try {
+        const raw = localStorage.getItem("goc_cart");
+        if (raw) currentItems = JSON.parse(raw);
+      } catch (_) {}
+    }
+
     try {
       const res = await fetch("/api/checkout/discount", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           code: trimmed,
-          items: items,
+          items: currentItems,
         }),
       });
 
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok || !data.valid) {
-        // Fallback for PLAY10: guarantee 10% OFF even if backend endpoint returned error/404
-        if (trimmed.toUpperCase() === "PLAY10") {
+        // If server had an error or 429/404, but code was PLAY10, retain the 10% discount
+        if (isPlay10) {
           setAppliedDiscount(10);
           setAppliedDiscountAmount(0);
           setAppliedCouponCode("PLAY10");
           setDiscountError("");
-          try {
-            localStorage.setItem("godsown_discount_code", "PLAY10");
-          } catch (_) {}
           return;
         }
 
@@ -321,19 +344,16 @@ export default function CheckoutPageContent() {
       setAppliedCouponCode(appliedCode);
       try {
         localStorage.setItem("godsown_discount_code", appliedCode);
+        document.cookie = `godsown_discount_code=${appliedCode}; path=/; max-age=2592000; SameSite=Lax;`;
       } catch (_) {}
       setDiscountError("");
     } catch (err) {
       console.error("Failed to apply discount:", err);
-      // Fallback for PLAY10 in case of network or route issues
-      if (trimmed.toUpperCase() === "PLAY10") {
+      if (isPlay10) {
         setAppliedDiscount(10);
         setAppliedDiscountAmount(0);
         setAppliedCouponCode("PLAY10");
         setDiscountError("");
-        try {
-          localStorage.setItem("godsown_discount_code", "PLAY10");
-        } catch (_) {}
         return;
       }
       setDiscountError("Failed to apply coupon. Please try again.");
