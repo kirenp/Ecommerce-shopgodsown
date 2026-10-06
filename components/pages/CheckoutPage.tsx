@@ -67,8 +67,26 @@ const loadRazorpayScript = () => {
 export default function CheckoutPageContent() {
   const { items, removeFromCart, updateQuantity, subtotal, clearCart } = useCart();
   const { openAccountSidebar } = useUI();
-  const { customer, isLoggedIn, savedAddresses, refreshCustomerData } = useCustomer();
+  const { customer, isLoggedIn, initiateAuth, savedAddresses, refreshCustomerData } = useCustomer();
   const { getPreviewPath } = usePreview();
+  const [isShopLoading, setIsShopLoading] = useState(false);
+
+  const handleContinueWithShop = async () => {
+    setIsShopLoading(true);
+    try {
+      const email = emailOrPhone?.includes("@") ? emailOrPhone.trim().toLowerCase() : undefined;
+      const res = await initiateAuth(email);
+      if (res.authorizationUrl) {
+        window.location.href = res.authorizationUrl;
+      } else {
+        openAccountSidebar();
+      }
+    } catch (e) {
+      openAccountSidebar();
+    } finally {
+      setIsShopLoading(false);
+    }
+  };
 
   // Shipping Form State
   const [emailOrPhone, setEmailOrPhone] = useState("");
@@ -645,7 +663,7 @@ export default function CheckoutPageContent() {
           {/* Top Brand Bar */}
           <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
             <Link href={getPreviewPath("/")} className="font-sans font-bold text-sm tracking-[0.22em] uppercase select-none hover:opacity-80 transition-opacity">
-              <span className="text-[#C81E1E]">GODS</span> <span className="text-white">OWN</span>
+              <span className="text-[#C81E1E]">GOD&apos;S</span> <span className="text-white">OWN</span>
             </Link>
             <Link
               href={getPreviewPath("/")}
@@ -750,7 +768,7 @@ export default function CheckoutPageContent() {
       {/* Top Header Bar — BLACK Background */}
       <header className="w-full border-b border-white/10 bg-black sticky top-0 z-40 py-5 px-6 md:px-12 flex justify-between items-center">
         <Link href={getPreviewPath("/")} className="font-sans font-bold text-lg sm:text-xl tracking-[0.2em] uppercase select-none hover:opacity-85 transition-opacity">
-          <span className="text-[#C81E1E]">GODS</span> <span className="text-white">OWN</span>
+          <span className="text-[#C81E1E]">GOD&apos;S</span> <span className="text-white">OWN</span>
         </Link>
         <Link href={getPreviewPath("/cart")} className="text-white/50 hover:text-white text-xs tracking-wider uppercase font-semibold flex items-center gap-1.5 transition-colors">
           <ArrowLeft size={13} /> Back to Cart
@@ -762,25 +780,71 @@ export default function CheckoutPageContent() {
         
         {/* Left Column: Form Fields (White Background) */}
         <div className="lg:col-span-7 px-6 md:px-12 py-12 md:py-16 space-y-12 bg-white">
-          <form onSubmit={handlePayNow} className="space-y-10">
+          <form onSubmit={handlePayNow} autoComplete="on" className="space-y-10">
             
             {/* Contact Section */}
             <div className="space-y-4">
-              <div className="flex justify-between items-baseline">
-                <h2 className="text-base font-bold text-black uppercase tracking-wider font-sans">Contact</h2>
-                <button
-                  type="button"
-                  onClick={openAccountSidebar}
-                  className="text-xs text-black/50 hover:text-black hover:underline transition-all font-medium"
-                >
-                  Already have an account? Log in
-                </button>
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
+                <h2 className="text-base font-bold text-black uppercase tracking-wider font-sans pt-0.5">Contact</h2>
+                <div className="flex flex-col sm:items-end gap-2">
+                  {isLoggedIn && customer ? (
+                    <div className="flex items-center gap-2 text-xs text-black/60">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      <span className="font-medium truncate max-w-[220px]">
+                        Logged in as <strong className="text-black">{customer.email}</strong>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={openAccountSidebar}
+                        className="text-[#C81E1E] font-bold hover:underline ml-1"
+                      >
+                        Change
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={openAccountSidebar}
+                        className="text-xs text-black/60 hover:text-black transition-all font-medium text-left sm:text-right"
+                      >
+                        Already have an account? <span className="text-[#C81E1E] font-bold hover:underline">Log in</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleContinueWithShop}
+                        disabled={isShopLoading}
+                        className="inline-flex items-center justify-center gap-2 px-3.5 py-1.5 bg-[#5A31F4] hover:bg-[#4825cf] text-white text-xs font-semibold rounded-lg shadow-sm hover:shadow transition-all active:scale-[0.98] disabled:opacity-70 group"
+                        title="Sign in with Shop to autofill your saved details"
+                      >
+                        {isShopLoading ? (
+                          <span className="inline-block w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        ) : (
+                          <>
+                            <span>Continue with</span>
+                            <span className="font-extrabold italic tracking-tight font-sans text-sm group-hover:scale-105 transition-transform">shop</span>
+                          </>
+                        )}
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
               <div>
                 <input
-                  type="text"
+                  id="checkout-email"
+                  name="email"
+                  type="email"
+                  autoComplete="shipping email"
                   placeholder="Email or mobile phone number"
                   value={emailOrPhone}
+                  onInput={(e) => {
+                    const val = (e.target as HTMLInputElement).value;
+                    setEmailOrPhone(val);
+                    if (validationErrors.emailOrPhone) {
+                      setValidationErrors(prev => ({ ...prev, emailOrPhone: "" }));
+                    }
+                  }}
                   onChange={(e) => {
                     setEmailOrPhone(e.target.value);
                     if (validationErrors.emailOrPhone) {
@@ -804,8 +868,11 @@ export default function CheckoutPageContent() {
               <div className="space-y-3.5">
                 {/* Country Selection */}
                 <div>
-                  <label className="text-[10px] text-black/45 uppercase tracking-widest font-bold block mb-1.5 pl-1">Country/Region</label>
+                  <label htmlFor="checkout-country" className="text-[10px] text-black/45 uppercase tracking-widest font-bold block mb-1.5 pl-1">Country/Region</label>
                   <select 
+                    id="checkout-country"
+                    name="country"
+                    autoComplete="shipping country-name"
                     value="India"
                     disabled
                     className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-4 text-sm text-black/50 outline-none cursor-not-allowed"
@@ -818,9 +885,19 @@ export default function CheckoutPageContent() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                   <div>
                     <input
+                      id="checkout-firstName"
+                      name="given-name"
                       type="text"
+                      autoComplete="shipping given-name"
                       placeholder="First name"
                       value={firstName}
+                      onInput={(e) => {
+                        const val = (e.target as HTMLInputElement).value;
+                        setFirstName(val);
+                        if (validationErrors.firstName) {
+                          setValidationErrors(prev => ({ ...prev, firstName: "" }));
+                        }
+                      }}
                       onChange={(e) => {
                         setFirstName(e.target.value);
                         if (validationErrors.firstName) {
@@ -836,9 +913,13 @@ export default function CheckoutPageContent() {
                     )}
                   </div>
                   <input
+                    id="checkout-lastName"
+                    name="family-name"
                     type="text"
+                    autoComplete="shipping family-name"
                     placeholder="Last name (optional)"
                     value={lastName}
+                    onInput={(e) => setLastName((e.target as HTMLInputElement).value)}
                     onChange={(e) => setLastName(e.target.value)}
                     className="w-full bg-white border border-gray-200 rounded-xl px-4 py-4 text-sm text-black placeholder:text-black/30 outline-none focus:border-black focus:ring-1 focus:ring-black transition-all"
                   />
@@ -847,9 +928,19 @@ export default function CheckoutPageContent() {
                 {/* Address (Mandatory) */}
                 <div>
                   <input
+                    id="checkout-address1"
+                    name="address-line1"
                     type="text"
+                    autoComplete="shipping address-line1"
                     placeholder="Address"
                     value={address}
+                    onInput={(e) => {
+                      const val = (e.target as HTMLInputElement).value;
+                      setAddress(val);
+                      if (validationErrors.address) {
+                        setValidationErrors(prev => ({ ...prev, address: "" }));
+                      }
+                    }}
                     onChange={(e) => {
                       setAddress(e.target.value);
                       if (validationErrors.address) {
@@ -867,9 +958,13 @@ export default function CheckoutPageContent() {
 
                 {/* Apartment */}
                 <input
+                  id="checkout-address2"
+                  name="address-line2"
                   type="text"
+                  autoComplete="shipping address-line2"
                   placeholder="Apartment, suite, etc. (optional)"
                   value={apartment}
+                  onInput={(e) => setApartment((e.target as HTMLInputElement).value)}
                   onChange={(e) => setApartment(e.target.value)}
                   className="w-full bg-white border border-gray-200 rounded-xl px-4 py-4 text-sm text-black placeholder:text-black/30 outline-none focus:border-black focus:ring-1 focus:ring-black transition-all"
                 />
@@ -878,9 +973,19 @@ export default function CheckoutPageContent() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                   <div>
                     <input
+                      id="checkout-city"
+                      name="address-level2"
                       type="text"
+                      autoComplete="shipping address-level2"
                       placeholder="City"
                       value={city}
+                      onInput={(e) => {
+                        const val = (e.target as HTMLInputElement).value;
+                        setCity(val);
+                        if (validationErrors.city) {
+                          setValidationErrors(prev => ({ ...prev, city: "" }));
+                        }
+                      }}
                       onChange={(e) => {
                         setCity(e.target.value);
                         if (validationErrors.city) {
@@ -898,6 +1003,9 @@ export default function CheckoutPageContent() {
 
                   <div>
                     <select
+                      id="checkout-state"
+                      name="address-level1"
+                      autoComplete="shipping address-level1"
                       value={state}
                       onChange={(e) => setState(e.target.value)}
                       className="w-full bg-white border border-gray-200 rounded-xl px-4 py-[17px] text-sm text-black outline-none focus:border-black focus:ring-1 focus:ring-black transition-all"
@@ -910,12 +1018,22 @@ export default function CheckoutPageContent() {
 
                   <div>
                     <input
+                      id="checkout-postal-code"
+                      name="postal-code"
                       type="text"
+                      autoComplete="shipping postal-code"
                       inputMode="numeric"
                       pattern="[0-9]*"
                       maxLength={6}
                       placeholder="PIN code"
                       value={pinCode}
+                      onInput={(e) => {
+                        const val = (e.target as HTMLInputElement).value.replace(/\D/g, "").slice(0, 6);
+                        setPinCode(val);
+                        if (validationErrors.pinCode) {
+                          setValidationErrors(prev => ({ ...prev, pinCode: "" }));
+                        }
+                      }}
                       onChange={(e) => {
                         const val = e.target.value.replace(/\D/g, "").slice(0, 6);
                         setPinCode(val);
@@ -936,12 +1054,22 @@ export default function CheckoutPageContent() {
                 {/* Phone (Mandatory) */}
                 <div>
                   <input
+                    id="checkout-phone"
+                    name="tel"
                     type="tel"
+                    autoComplete="shipping tel"
                     inputMode="numeric"
                     pattern="[0-9]*"
                     maxLength={10}
                     placeholder="Phone"
                     value={phone}
+                    onInput={(e) => {
+                      const val = (e.target as HTMLInputElement).value.replace(/\D/g, "").slice(0, 10);
+                      setPhone(val);
+                      if (validationErrors.phone) {
+                        setValidationErrors(prev => ({ ...prev, phone: "" }));
+                      }
+                    }}
                     onChange={(e) => {
                       const val = e.target.value.replace(/\D/g, "").slice(0, 10);
                       setPhone(val);
@@ -1106,8 +1234,11 @@ export default function CheckoutPageContent() {
                   
                   {/* Billing Country */}
                   <div>
-                    <label className="text-[9px] text-black/45 uppercase tracking-widest font-bold block mb-1 pl-1">Country/Region</label>
+                    <label htmlFor="checkout-billing-country" className="text-[9px] text-black/45 uppercase tracking-widest font-bold block mb-1 pl-1">Country/Region</label>
                     <select 
+                      id="checkout-billing-country"
+                      name="billing-country"
+                      autoComplete="billing country-name"
                       value="India"
                       disabled
                       className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3.5 text-xs text-black/50 outline-none cursor-not-allowed font-medium"
@@ -1120,9 +1251,19 @@ export default function CheckoutPageContent() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <input
+                        id="checkout-billing-firstName"
+                        name="billing-given-name"
                         type="text"
+                        autoComplete="billing given-name"
                         placeholder="First name"
                         value={billingFirstName}
+                        onInput={(e) => {
+                          const val = (e.target as HTMLInputElement).value;
+                          setBillingFirstName(val);
+                          if (validationErrors.billingFirstName) {
+                            setValidationErrors(prev => ({ ...prev, billingFirstName: "" }));
+                          }
+                        }}
                         onChange={(e) => {
                           setBillingFirstName(e.target.value);
                           if (validationErrors.billingFirstName) {
@@ -1138,9 +1279,13 @@ export default function CheckoutPageContent() {
                       )}
                     </div>
                     <input
+                      id="checkout-billing-lastName"
+                      name="billing-family-name"
                       type="text"
+                      autoComplete="billing family-name"
                       placeholder="Last name (optional)"
                       value={billingLastName}
+                      onInput={(e) => setBillingLastName((e.target as HTMLInputElement).value)}
                       onChange={(e) => setBillingLastName(e.target.value)}
                       className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3.5 text-xs text-black placeholder:text-black/30 outline-none focus:border-black focus:ring-1 focus:ring-black transition-all"
                     />
@@ -1149,9 +1294,19 @@ export default function CheckoutPageContent() {
                   {/* Billing Address */}
                   <div>
                     <input
+                      id="checkout-billing-address1"
+                      name="billing-address-line1"
                       type="text"
+                      autoComplete="billing address-line1"
                       placeholder="Address"
                       value={billingAddress}
+                      onInput={(e) => {
+                        const val = (e.target as HTMLInputElement).value;
+                        setBillingAddress(val);
+                        if (validationErrors.billingAddress) {
+                          setValidationErrors(prev => ({ ...prev, billingAddress: "" }));
+                        }
+                      }}
                       onChange={(e) => {
                         setBillingAddress(e.target.value);
                         if (validationErrors.billingAddress) {
@@ -1169,9 +1324,13 @@ export default function CheckoutPageContent() {
 
                   {/* Billing Apartment */}
                   <input
+                    id="checkout-billing-address2"
+                    name="billing-address-line2"
                     type="text"
+                    autoComplete="billing address-line2"
                     placeholder="Apartment, suite, etc. (optional)"
                     value={billingApartment}
+                    onInput={(e) => setBillingApartment((e.target as HTMLInputElement).value)}
                     onChange={(e) => setBillingApartment(e.target.value)}
                     className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3.5 text-xs text-black placeholder:text-black/30 outline-none focus:border-black focus:ring-1 focus:ring-black transition-all"
                   />
@@ -1180,9 +1339,19 @@ export default function CheckoutPageContent() {
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
                       <input
+                        id="checkout-billing-city"
+                        name="billing-address-level2"
                         type="text"
+                        autoComplete="billing address-level2"
                         placeholder="City"
                         value={billingCity}
+                        onInput={(e) => {
+                          const val = (e.target as HTMLInputElement).value;
+                          setBillingCity(val);
+                          if (validationErrors.billingCity) {
+                            setValidationErrors(prev => ({ ...prev, billingCity: "" }));
+                          }
+                        }}
                         onChange={(e) => {
                           setBillingCity(e.target.value);
                           if (validationErrors.billingCity) {
@@ -1200,6 +1369,9 @@ export default function CheckoutPageContent() {
 
                     <div>
                       <select
+                        id="checkout-billing-state"
+                        name="billing-address-level1"
+                        autoComplete="billing address-level1"
                         value={billingState}
                         onChange={(e) => setBillingState(e.target.value)}
                         className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3.5 text-xs text-black outline-none focus:border-black focus:ring-1 focus:ring-black transition-all"
@@ -1212,12 +1384,22 @@ export default function CheckoutPageContent() {
 
                     <div>
                       <input
+                        id="checkout-billing-postal-code"
+                        name="billing-postal-code"
                         type="text"
+                        autoComplete="billing postal-code"
                         inputMode="numeric"
                         pattern="[0-9]*"
                         maxLength={6}
                         placeholder="PIN code"
                         value={billingPinCode}
+                        onInput={(e) => {
+                          const val = (e.target as HTMLInputElement).value.replace(/\D/g, "").slice(0, 6);
+                          setBillingPinCode(val);
+                          if (validationErrors.billingPinCode) {
+                            setValidationErrors(prev => ({ ...prev, billingPinCode: "" }));
+                          }
+                        }}
                         onChange={(e) => {
                           const val = e.target.value.replace(/\D/g, "").slice(0, 6);
                           setBillingPinCode(val);
@@ -1238,12 +1420,22 @@ export default function CheckoutPageContent() {
                   {/* Billing Phone */}
                   <div>
                     <input
+                      id="checkout-billing-phone"
+                      name="billing-tel"
                       type="tel"
+                      autoComplete="billing tel"
                       inputMode="numeric"
                       pattern="[0-9]*"
                       maxLength={10}
                       placeholder="Phone"
                       value={billingPhone}
+                      onInput={(e) => {
+                        const val = (e.target as HTMLInputElement).value.replace(/\D/g, "").slice(0, 10);
+                        setBillingPhone(val);
+                        if (validationErrors.billingPhone) {
+                          setValidationErrors(prev => ({ ...prev, billingPhone: "" }));
+                        }
+                      }}
                       onChange={(e) => {
                         const val = e.target.value.replace(/\D/g, "").slice(0, 10);
                         setBillingPhone(val);
