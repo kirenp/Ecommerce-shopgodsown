@@ -138,6 +138,14 @@ export async function POST(req: NextRequest) {
     if (adminToken && domain) {
       try {
         const endpoint = `https://${domain}/admin/api/${apiVersion}/orders.json`;
+        const formattedDiscount = (discountCode && discountAmount && Number(discountAmount) > 0)
+          ? [{
+              code: String(discountCode),
+              amount: Number(discountAmount).toFixed(2),
+              type: "fixed_amount",
+            }]
+          : undefined;
+
         let shopifyRes = await fetch(endpoint, {
           method: "POST",
           headers: {
@@ -153,11 +161,7 @@ export async function POST(req: NextRequest) {
               send_receipt: true,
               send_fulfillment_receipt: true,
               line_items: lineItems,
-              discount_codes: discountCode ? [{
-                code: String(discountCode),
-                amount: discountAmount ? String(discountAmount) : undefined,
-                type: "percentage",
-              }] : undefined,
+              discount_codes: formattedDiscount,
               shipping_address: formattedShipping,
               billing_address: formattedBilling,
               note: `Payment completed via Razorpay. Payment ID: ${paymentId || "N/A"}, Razorpay Order ID: ${orderId || "N/A"}`,
@@ -192,11 +196,7 @@ export async function POST(req: NextRequest) {
                 send_receipt: true,
                 send_fulfillment_receipt: true,
                 line_items: fallbackLineItems,
-                discount_codes: discountCode ? [{
-                  code: String(discountCode),
-                  amount: discountAmount ? String(discountAmount) : undefined,
-                  type: "percentage",
-                }] : undefined,
+                discount_codes: formattedDiscount,
                 shipping_address: formattedShipping,
                 billing_address: formattedBilling,
                 note: `Payment completed via Razorpay. Payment ID: ${paymentId || "N/A"}, Razorpay Order ID: ${orderId || "N/A"}`,
