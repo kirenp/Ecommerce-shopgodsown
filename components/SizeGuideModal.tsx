@@ -17,20 +17,17 @@ interface SizeGuideModalProps {
 const TSHIRT_DATA = [
   { label: "Across Shoulder", s: "47.5", m: "49", l: "50.5", xl: "52" },
   { label: "1/2 Chest Width", s: "52.5", m: "55", l: "57.5", xl: "60" },
-  { label: "1/2 Bottom Width", s: "52.5", m: "55", l: "57.5", xl: "60" },
   { label: "Front Length", s: "64", m: "65", l: "66", xl: "67" },
   { label: "Sleeve Length", s: "22", m: "23", l: "24", xl: "25" },
   { label: "Sleeve Opening (flat)", s: "18.5", m: "19", l: "19.5", xl: "20" },
-  { label: "1/2 Bicep", s: "21", m: "22", l: "22.5", xl: "23.5" },
-  { label: "Armhole Straight", s: "24", m: "25", l: "26", xl: "27" },
 ];
 
 // Tank Top Measurements
 const TANK_TOP_DATA = [
-  { label: "Length", s: "24 1/4", m: "25 1/4", l: "26 1/4", xl: "27 1/4" },
-  { label: "Chest", s: "10 1/4", m: "10 3/4", l: "11 1/4", xl: "11 3/4" },
-  { label: "Bottom", s: "10 1/4", m: "10 3/4", l: "11 1/4", xl: "11 3/4" },
-  { label: "Shoulder", s: "9 3/4", m: "10", l: "10 1/2", xl: "10 3/4" },
+  { label: "Length", s: "61.6", m: "64.1", l: "66.7", xl: "69.2" },
+  { label: "Chest", s: "26.0", m: "27.3", l: "28.6", xl: "29.8" },
+  { label: "Bottom", s: "26.0", m: "27.3", l: "28.6", xl: "29.8" },
+  { label: "Shoulder", s: "24.8", m: "25.4", l: "26.7", xl: "27.3" },
 ];
 
 function detectProductType(product?: any): 'tshirt' | 'tanktop' {
@@ -96,7 +93,7 @@ export default function SizeGuideModal({ isOpen, onClose, product }: SizeGuideMo
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 pr-8">
           <div>
-            <h3 className="text-2xl font-brand font-semibold">Size Guide</h3>
+            <h3 className="text-2xl font-bold text-black">Size Guide</h3>
             <p className="text-xs uppercase tracking-wider text-gray-500 font-semibold mt-1">
               {isTshirt 
                 ? "260 GSM Cotton • Boxy Drop Shoulder T-Shirt" 
@@ -164,7 +161,7 @@ export default function SizeGuideModal({ isOpen, onClose, product }: SizeGuideMo
         <p className="text-xs text-gray-500 mt-5 text-center">
           {isTshirt 
             ? "All measurements in CM | Tolerance: +/- 0.5 cm"
-            : "All measurements are in inches"}
+            : "All measurements are in CM"}
         </p>
       </div>
     </div>

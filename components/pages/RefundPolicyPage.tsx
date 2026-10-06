@@ -86,10 +86,10 @@ export default function RefundPolicyPage() {
                                 <p>
                                     <span className="font-bold text-black">Email:</span>{" "}
                                     <a
-                                        href="mailto:godsownculture@gmail.com"
+                                        href="mailto:hello@shopgodsown.com"
                                         className="text-black hover:text-[#C81E1E] underline underline-offset-4 transition-colors font-semibold"
                                     >
-                                        godsownculture@gmail.com
+                                        hello@shopgodsown.com
                                     </a>
                                 </p>
                                 <p>

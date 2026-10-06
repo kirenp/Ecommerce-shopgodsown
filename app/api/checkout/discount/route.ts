@@ -192,6 +192,17 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // 3. First-purchase promo code fallback: PLAY10 (10% OFF)
+    if (cleanCode === "PLAY10") {
+      return NextResponse.json({
+        valid: true,
+        code: "PLAY10",
+        type: "percentage",
+        percentage: 10,
+        message: "PLAY10 applied (10% OFF)",
+      });
+    }
+
     // If code is not found or not active in Shopify
     return NextResponse.json(
       {

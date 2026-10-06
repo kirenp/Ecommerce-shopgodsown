@@ -239,12 +239,37 @@ export default function CheckoutPageContent() {
     }
   }, []);
 
+  // Auto-detect and apply coupon from URL params (?discount=..., ?coupon=...), cookie, or localStorage
+  useEffect(() => {
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const queryCode = urlParams.get("discount") || urlParams.get("coupon") || urlParams.get("code");
+      
+      const cookieMatch = document.cookie.match(/(?:^|;\s*)godsown_discount_code=([^;]+)/);
+      const cookieCode = cookieMatch ? decodeURIComponent(cookieMatch[1]) : null;
+
+      const storedCode = localStorage.getItem("godsown_discount_code");
+
+      const codeToApply = (queryCode || cookieCode || storedCode || "").trim().toUpperCase();
+      if (codeToApply) {
+        setDiscountCode(codeToApply);
+        handleApplyDiscount(codeToApply);
+      }
+    } catch (e) {
+      console.warn("Failed to check discount code on mount:", e);
+    }
+  }, []);
+
   // Apply Discount via Shopify API
-  const handleApplyDiscount = async () => {
-    const trimmed = discountCode.trim();
+  const handleApplyDiscount = async (codeToApply?: string) => {
+    const targetCode = typeof codeToApply === "string" ? codeToApply : discountCode;
+    const trimmed = targetCode.trim();
     if (!trimmed) {
       setDiscountError("Please enter a coupon code.");
       return;
+    }
+    if (typeof codeToApply === "string") {
+      setDiscountCode(codeToApply);
     }
 
     setDiscountError("");
@@ -263,6 +288,18 @@ export default function CheckoutPageContent() {
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok || !data.valid) {
+        // Fallback for PLAY10: guarantee 10% OFF even if backend endpoint returned error/404
+        if (trimmed.toUpperCase() === "PLAY10") {
+          setAppliedDiscount(10);
+          setAppliedDiscountAmount(0);
+          setAppliedCouponCode("PLAY10");
+          setDiscountError("");
+          try {
+            localStorage.setItem("godsown_discount_code", "PLAY10");
+          } catch (_) {}
+          return;
+        }
+
         setAppliedDiscount(0);
         setAppliedDiscountAmount(0);
         setAppliedCouponCode("");
@@ -280,14 +317,41 @@ export default function CheckoutPageContent() {
         setAppliedDiscount(0);
         setAppliedDiscountAmount(data.fixedAmount);
       }
-      setAppliedCouponCode(data.code || trimmed.toUpperCase());
+      const appliedCode = data.code || trimmed.toUpperCase();
+      setAppliedCouponCode(appliedCode);
+      try {
+        localStorage.setItem("godsown_discount_code", appliedCode);
+      } catch (_) {}
       setDiscountError("");
     } catch (err) {
       console.error("Failed to apply discount:", err);
+      // Fallback for PLAY10 in case of network or route issues
+      if (trimmed.toUpperCase() === "PLAY10") {
+        setAppliedDiscount(10);
+        setAppliedDiscountAmount(0);
+        setAppliedCouponCode("PLAY10");
+        setDiscountError("");
+        try {
+          localStorage.setItem("godsown_discount_code", "PLAY10");
+        } catch (_) {}
+        return;
+      }
       setDiscountError("Failed to apply coupon. Please try again.");
     } finally {
       setIsApplyingDiscount(false);
     }
+  };
+
+  const handleRemoveDiscount = () => {
+    setAppliedDiscount(0);
+    setAppliedDiscountAmount(0);
+    setAppliedCouponCode("");
+    setDiscountCode("");
+    setDiscountError("");
+    try {
+      localStorage.removeItem("godsown_discount_code");
+      document.cookie = "godsown_discount_code=; path=/; max-age=0;";
+    } catch (_) {}
   };
 
   const validateForm = () => {
@@ -550,173 +614,110 @@ export default function CheckoutPageContent() {
 
   if (isSuccess) {
     return (
-      <main className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center p-6">
-        <div className="max-w-[380px] w-full">
+      <main className="min-h-screen bg-[#070707] text-white flex items-center justify-center p-4 sm:p-6 relative overflow-hidden selection:bg-[#C81E1E]/20 selection:text-white">
+        {/* Ambient background lighting for glassmorphic refraction */}
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#C81E1E]/12 rounded-full blur-[140px] pointer-events-none" />
+        <div className="absolute bottom-1/4 right-1/4 w-[360px] h-[360px] bg-emerald-500/8 rounded-full blur-[130px] pointer-events-none" />
 
-          {/* ── PRINTER MACHINE (Order Complete) ── */}
-          <div className="bg-[#1a1a1a] rounded-2xl border border-white/8 p-5 relative overflow-hidden shadow-2xl">
-            <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/15 to-transparent" />
-            
-            {/* Machine Top Row */}
-            <div className="flex justify-between items-center mb-4">
-              <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 2L2 7l10 5 10-5-10-5z" fill="white" fillOpacity="0.9" />
-                  <path d="M2 17l10 5 10-5" stroke="white" strokeOpacity="0.5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                  <path d="M2 12l10 5 10-5" stroke="white" strokeOpacity="0.7" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </div>
-              <Link
-                href={getPreviewPath("/")}
-                className="flex items-center gap-1.5 bg-[#00C853]/15 hover:bg-[#00C853]/25 text-[#00C853] text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full transition-colors"
-              >
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
-                Home
-              </Link>
-            </div>
-
-            {/* Order Summary in Machine */}
-            <div className="bg-white/5 border border-white/8 rounded-xl p-4 space-y-3">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="text-sm font-bold text-white">Order Placed!</h3>
-                  <p className="text-[10px] text-white/40 mt-0.5 font-medium">Thank you for shopping with us</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-[10px] text-white/40 uppercase tracking-wider font-bold">Total</p>
-                  <p className="text-lg font-black text-white font-sans leading-tight">
-                    ₹{(finalPaidAmount || totalAmount).toLocaleString("en-IN")}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 pt-1">
-                <CheckCircle2 size={14} className="text-[#00C853]" />
-                <span className="text-[10px] text-[#00C853] font-bold uppercase tracking-wider">Order complete</span>
-              </div>
-            </div>
-
-            <div className="mt-4 mx-auto w-[90%] h-[3px] bg-black/60 rounded-full shadow-inner" />
+        {/* Rectangular Glassmorphism Frame */}
+        <div className="relative z-10 max-w-[460px] w-full bg-white/[0.04] backdrop-blur-2xl border border-white/[0.12] rounded-2xl sm:rounded-3xl p-6 sm:p-8 shadow-[0_30px_90px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.15)] space-y-6 animate-in fade-in zoom-in-95 duration-500">
+          
+          {/* Top Brand Bar */}
+          <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
+            <Link href={getPreviewPath("/")} className="font-sans font-bold text-sm tracking-[0.22em] uppercase select-none hover:opacity-80 transition-opacity">
+              <span className="text-[#C81E1E]">GODS</span> <span className="text-white">OWN</span>
+            </Link>
+            <Link
+              href={getPreviewPath("/")}
+              className="flex items-center gap-1.5 text-[11px] font-semibold text-white/70 hover:text-white px-3 py-1 rounded-full border border-white/10 hover:border-white/30 bg-white/[0.03] hover:bg-white/[0.08] transition-all"
+            >
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
+              </svg>
+              Home
+            </Link>
           </div>
 
-          {/* ── RECEIPT PAPER ── */}
-          <div className="relative">
-            <div className="absolute left-3 right-3 top-0 bottom-2 bg-black/20 rounded-b-lg blur-md -z-10" />
-            <div className="receipt-tear-edge" />
+          {/* Success Status Header */}
+          <div className="text-center space-y-3 pt-1">
+            <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center mx-auto shadow-[0_0_35px_rgba(16,185,129,0.25)]">
+              <CheckCircle2 size={32} className="text-[#00C853]" />
+            </div>
 
-            <div className="bg-[#fafaf5] px-6 pb-6 pt-2 shadow-lg receipt-paper-body" style={{ animation: 'receiptSlideDown 0.8s ease-out forwards' }}>
-              {/* Brand Mark */}
-              <div className="flex justify-center pt-2 pb-4">
-                <div className="w-10 h-10 bg-black rounded-lg flex items-center justify-center shadow-md">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                    <path d="M12 2L2 7l10 5 10-5-10-5z" fill="white" fillOpacity="0.95" />
-                    <path d="M2 17l10 5 10-5" stroke="white" strokeOpacity="0.5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M2 12l10 5 10-5" stroke="white" strokeOpacity="0.7" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </div>
+            <div className="space-y-1">
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                Order Confirmed!
+              </h1>
+              <p className="text-xs sm:text-sm text-white/55 font-normal">
+                Thank you for shopping with us. Your order is placed.
+              </p>
+            </div>
+
+            {confirmedOrderNumber && (
+              <div className="pt-1 flex justify-center">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#C81E1E]/15 border border-[#C81E1E]/30 text-[#ff4d4d] text-xs font-semibold tracking-wider uppercase font-mono">
+                  Order #{confirmedOrderNumber}
+                </span>
               </div>
+            )}
+          </div>
 
-              {/* Confirmation Text */}
-              <div className="text-center mb-4" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-                <p className="text-xs font-bold text-black uppercase tracking-wider">GOD&apos;S OWN</p>
-                <p className="text-[9px] text-black/40 mt-1">Your order has been confirmed</p>
-              </div>
+          {/* Order Details Inner Glass Card */}
+          <div className="bg-white/[0.025] border border-white/[0.07] rounded-xl p-4 sm:p-5 space-y-3">
+            <div className="flex justify-between items-center text-xs">
+              <span className="text-white/45 font-medium">Sent to</span>
+              <span className="text-white font-semibold truncate ml-3 max-w-[220px]" title={emailOrPhone}>
+                {emailOrPhone}
+              </span>
+            </div>
 
-              <div className="receipt-dashed-line" />
+            <div className="flex justify-between items-center text-xs">
+              <span className="text-white/45 font-medium">Payment</span>
+              <span className="text-[#00C853] font-semibold flex items-center gap-1">
+                <ShieldCheck size={13} /> Razorpay Secure ✓
+              </span>
+            </div>
 
-              {/* Order Details */}
-              <div className="py-3 space-y-2" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-                {confirmedOrderNumber && (
-                  <div className="flex justify-between text-[11px]">
-                    <span className="text-black/50">Order</span>
-                    <span className="font-bold text-[#C81E1E]">{confirmedOrderNumber}</span>
-                  </div>
-                )}
-                <div className="flex justify-between text-[11px] text-black/50">
-                  <span>Sent to</span>
-                  <span className="text-black font-bold truncate ml-4 max-w-[180px]">{emailOrPhone}</span>
-                </div>
-              </div>
+            <div className="flex justify-between items-center text-xs">
+              <span className="text-white/45 font-medium">Date</span>
+              <span className="text-white/70" suppressHydrationWarning>
+                {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} — {new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            </div>
 
-              <div className="receipt-dashed-line" />
+            <div className="h-[1px] bg-white/[0.08] my-2" />
 
-              {/* Total */}
-              <div className="py-4 flex justify-between items-center" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-                <span className="text-xs font-bold text-black uppercase tracking-wider">TOTAL PAID</span>
-                <span className="text-2xl font-black text-black tabular-nums">₹{(finalPaidAmount || totalAmount).toLocaleString("en-IN")}</span>
-              </div>
+            <div className="flex justify-between items-baseline pt-1">
+              <span className="text-xs sm:text-sm text-white/60 font-semibold uppercase tracking-wider">
+                Total Paid
+              </span>
+              <span className="text-2xl sm:text-3xl font-black text-white font-sans tabular-nums tracking-tight">
+                ₹{(finalPaidAmount || totalAmount).toLocaleString("en-IN")}
+              </span>
+            </div>
+          </div>
 
-              <div className="receipt-dashed-line" />
+          {/* Action Buttons */}
+          <div className="space-y-3 pt-1">
+            <Link
+              href={getPreviewPath("/catalog")}
+              className="block w-full py-3.5 bg-white hover:bg-white/90 text-black text-xs sm:text-[13px] font-bold uppercase tracking-[0.2em] rounded-xl transition-all text-center shadow-lg hover:shadow-white/10 active:scale-[0.99]"
+            >
+              Continue Shopping
+            </Link>
 
-              {/* Payment Meta */}
-              <div className="pt-3 pb-4 space-y-1.5" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-                <div className="flex justify-between text-[9px] text-black/35">
-                  <span>Payment</span>
-                  <span className="text-[#00C853] font-bold">Razorpay Secure ✓</span>
-                </div>
-                <div className="flex justify-between text-[9px] text-black/35">
-                  <span>Date</span>
-                  <span suppressHydrationWarning>{new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} — {new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
-                </div>
-              </div>
-
-              {/* Barcode */}
-              <div className="flex flex-col items-center pt-2 pb-1">
-                <div className="receipt-barcode" />
-                {confirmedOrderNumber && (
-                  <p className="text-[8px] text-black/25 mt-1.5 tracking-[0.3em] uppercase" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-                    <span>ORDER #{confirmedOrderNumber}</span>
-                  </p>
-                )}
-              </div>
-
-              {/* Continue Shopping */}
-              <div className="pt-4">
-                <Link
-                  href={getPreviewPath("/catalog")}
-                  className="block w-full py-3.5 bg-black hover:bg-black/90 text-white text-[10px] font-bold uppercase tracking-[0.25em] rounded-lg transition-all text-center"
-                >
-                  Continue Shopping
-                </Link>
-              </div>
+            <div className="flex items-center justify-center gap-3 text-xs text-white/45 pt-1">
+              <Link href={getPreviewPath("/track-order")} className="hover:text-white transition-colors underline underline-offset-4">
+                Track Order
+              </Link>
+              <span>•</span>
+              <Link href={getPreviewPath("/")} className="hover:text-white transition-colors underline underline-offset-4">
+                Return to Home
+              </Link>
             </div>
           </div>
 
         </div>
-
-        {/* Receipt Printer CSS */}
-        <style dangerouslySetInnerHTML={{ __html: `
-          @keyframes receiptSlideDown {
-            0% { opacity: 0; transform: translateY(-40px); max-height: 0; }
-            30% { opacity: 1; }
-            100% { transform: translateY(0); max-height: 2000px; }
-          }
-          .receipt-tear-edge {
-            height: 12px;
-            background: #fafaf5;
-            clip-path: polygon(
-              0% 100%,
-              2% 60%, 4% 100%, 6% 55%, 8% 100%, 10% 65%, 12% 100%, 14% 50%,
-              16% 100%, 18% 70%, 20% 100%, 22% 55%, 24% 100%, 26% 60%, 28% 100%,
-              30% 50%, 32% 100%, 34% 65%, 36% 100%, 38% 55%, 40% 100%, 42% 70%,
-              44% 100%, 46% 50%, 48% 100%, 50% 60%, 52% 100%, 54% 55%, 56% 100%,
-              58% 65%, 60% 100%, 62% 50%, 64% 100%, 66% 70%, 68% 100%, 70% 55%,
-              72% 100%, 74% 60%, 76% 100%, 78% 50%, 80% 100%, 82% 65%, 84% 100%,
-              86% 55%, 88% 100%, 90% 70%, 92% 100%, 94% 50%, 96% 100%, 98% 60%,
-              100% 100%
-            );
-            position: relative; z-index: 1; margin-top: -1px;
-          }
-          .receipt-dashed-line { border: none; border-top: 1.5px dashed rgba(0,0,0,0.15); margin: 0; }
-          .receipt-barcode {
-            width: 140px; height: 32px;
-            background: repeating-linear-gradient(90deg, #000 0px, #000 1.5px, transparent 1.5px, transparent 3px, #000 3px, #000 4px, transparent 4px, transparent 7px, #000 7px, #000 8.5px, transparent 8.5px, transparent 10px, #000 10px, #000 11px, transparent 11px, transparent 14px, #000 14px, #000 16px, transparent 16px, transparent 18px, #000 18px, #000 19px, transparent 19px, transparent 21px);
-            opacity: 0.7; border-radius: 1px;
-          }
-          .receipt-paper-body {
-            background-image: linear-gradient(180deg, rgba(0,0,0,0.01) 0%, transparent 3%), linear-gradient(0deg, rgba(0,0,0,0.02) 0%, transparent 5%);
-            border-bottom-left-radius: 4px; border-bottom-right-radius: 4px;
-          }
-        ` }} />
       </main>
     );
   }
@@ -1709,17 +1710,45 @@ export default function CheckoutPageContent() {
                             />
                             <button
                               type="button"
-                              onClick={handleApplyDiscount}
+                              onClick={() => handleApplyDiscount()}
                               disabled={isApplyingDiscount || !discountCode.trim()}
                             >
                               {isApplyingDiscount ? "..." : "Apply"}
                             </button>
                           </div>
-                          {discountError && <p className="receipt-coupon-err">{discountError}</p>}
-                          {(appliedDiscount > 0 || appliedDiscountAmount > 0) && (
-                            <p className="receipt-coupon-ok">
-                              ✓ {appliedCouponCode} applied ({appliedDiscount > 0 ? `${appliedDiscount}% OFF` : `-₹${discountAmount.toLocaleString("en-IN")}`})
+
+                          {/* First purchase coupon suggestion */}
+                          {!appliedCouponCode && (
+                            <p className="receipt-coupon-hint">
+                              Use{" "}
+                              <button
+                                type="button"
+                                onClick={() => handleApplyDiscount("PLAY10")}
+                                className="receipt-coupon-tag"
+                                title="Click to apply PLAY10 coupon code"
+                              >
+                                PLAY10
+                              </button>{" "}
+                              coupon code on your first purchase
                             </p>
+                          )}
+
+                          {discountError && <p className="receipt-coupon-err">{discountError}</p>}
+
+                          {(appliedDiscount > 0 || appliedDiscountAmount > 0) && (
+                            <div className="receipt-coupon-ok-wrap">
+                              <p className="receipt-coupon-ok">
+                                ✓ {appliedCouponCode} applied ({appliedDiscount > 0 ? `${appliedDiscount}% OFF` : `-₹${discountAmount.toLocaleString("en-IN")}`})
+                              </p>
+                              <button
+                                type="button"
+                                onClick={handleRemoveDiscount}
+                                className="receipt-coupon-remove-btn"
+                                title="Remove coupon code"
+                              >
+                                Remove
+                              </button>
+                            </div>
                           )}
                         </td>
                       </tr>
@@ -2114,11 +2143,62 @@ export default function CheckoutPageContent() {
           font-weight: 600;
           margin-top: 4px;
         }
+        .receipt-coupon-hint {
+          margin-top: 6px;
+          font-size: 11px;
+          color: #666;
+          display: flex;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 4px;
+          line-height: 1.4;
+        }
+        .receipt-coupon-tag {
+          font-family: inherit;
+          font-weight: 700;
+          color: #111;
+          background: #eee8de;
+          border: 1px dashed rgba(0, 0, 0, 0.4);
+          border-radius: 4px;
+          padding: 1px 6px;
+          font-size: 10px;
+          letter-spacing: 0.05em;
+          cursor: pointer;
+          transition: all 0.15s ease;
+          display: inline-flex;
+          align-items: center;
+        }
+        .receipt-coupon-tag:hover {
+          background: #111;
+          color: #fff;
+          border-color: #111;
+        }
+        .receipt-coupon-ok-wrap {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-top: 5px;
+        }
         .receipt-coupon-ok {
           color: #16a34a;
           font-size: 11px;
           font-weight: 700;
-          margin-top: 4px;
+          margin-top: 0;
+        }
+        .receipt-coupon-remove-btn {
+          font-family: inherit;
+          background: none;
+          border: none;
+          color: #888;
+          font-size: 10px;
+          text-decoration: underline;
+          cursor: pointer;
+          padding: 0;
+          margin-left: 8px;
+          transition: color 0.15s;
+        }
+        .receipt-coupon-remove-btn:hover {
+          color: #dc2626;
         }
 
         /* Subtotal / total rows */

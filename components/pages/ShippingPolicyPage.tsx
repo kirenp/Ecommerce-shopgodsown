@@ -47,10 +47,10 @@ export default function ShippingPolicyPage() {
                         <p className="text-base text-[#1a1a1a]">
                             If your package is lost or damaged during transit, please contact us immediately at{" "}
                             <a
-                                href="mailto:godsownculture@gmail.com"
+                                href="mailto:hello@shopgodsown.com"
                                 className="text-black hover:text-[#C81E1E] underline underline-offset-4 transition-colors font-semibold"
                             >
-                                godsownculture@gmail.com
+                                hello@shopgodsown.com
                             </a>{" "}
                             or via WhatsApp at{" "}
                             <a

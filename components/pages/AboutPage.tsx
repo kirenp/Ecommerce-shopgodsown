@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import ShimmerImage from "@/components/ShimmerImage";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ourstoryPicHero3 from "@/public/images/ourstorypic-hero3.png";
@@ -57,11 +57,12 @@ export default function AboutPageContent() {
             <div className="lg:col-span-6 grid grid-cols-12 grid-rows-6 gap-2 min-h-[420px] md:min-h-[520px]">
               {/* Large hero image — top left area */}
               <div className="col-span-8 row-span-4 bg-black/10 rounded-sm overflow-hidden relative group cursor-pointer">
-                <Image
+                <ShimmerImage
                   src={ourstoryPic1}
                   alt="God's Own Story - For those who don't play to lose"
                   fill
                   priority
+                  theme="light"
                   className="object-cover object-center animate-color-blink group-hover:scale-105 transition-all duration-700 ease-out"
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 40vw"
                 />
@@ -85,19 +86,21 @@ export default function AboutPageContent() {
 
               {/* Bottom image strip */}
               <div className="col-span-6 row-span-2 bg-black/10 rounded-sm overflow-hidden relative group cursor-pointer">
-                <Image
+                <ShimmerImage
                   src="/images/ourstorypic-2.png"
                   alt="God's Own - More Than A Label"
                   fill
+                  theme="light"
                   className="object-cover object-center grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700 ease-out"
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 30vw, 20vw"
                 />
               </div>
               <div className="col-span-6 row-span-2 bg-black/10 rounded-sm overflow-hidden relative group cursor-pointer">
-                <Image
+                <ShimmerImage
                   src="/images/ourstory-pic3.png"
                   alt="God's Own - Culture & Lifestyle"
                   fill
+                  theme="light"
                   className="object-cover object-center grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700 ease-out"
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 30vw, 20vw"
                 />
@@ -125,10 +128,11 @@ export default function AboutPageContent() {
 
             {/* Vertical dark image strip with GOD'S OWN text */}
             <div className="flex-1 mx-5 my-6 bg-white/5 rounded-sm relative overflow-hidden flex items-center justify-center group cursor-pointer">
-              <Image
+              <ShimmerImage
                 src="/images/ourstorypic-4.png"
                 alt="God's Own - Details Make Difference"
                 fill
+                theme="dark"
                 className="object-cover object-center grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700 ease-out"
                 sizes="(max-width: 1024px) 100vw, 20vw"
               />
@@ -186,10 +190,11 @@ export default function AboutPageContent() {
             {/* Row 1 — Image + "BUILT DIFFERENT FOR REAL LIFE" */}
             <div className="flex gap-4 items-center">
               <div className="w-[55%] aspect-[4/3] bg-white/5 rounded-sm overflow-hidden relative group cursor-pointer shrink-0">
-                <Image
+                <ShimmerImage
                   src="/images/ourstorypic-5.png"
                   alt="God's Own - Built Different for Real Life"
                   fill
+                  theme="dark"
                   className="object-cover object-center grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700 ease-out"
                   sizes="(max-width: 1024px) 60vw, 25vw"
                 />
@@ -202,10 +207,11 @@ export default function AboutPageContent() {
             {/* Row 2 — Image + "SAME WARDROBE DIFFERENT STORIES" (red-themed, no grayscale) */}
             <div className="flex gap-4 items-center">
               <div className="w-[55%] aspect-[4/3] bg-white/5 rounded-sm overflow-hidden relative group cursor-pointer shrink-0">
-                <Image
+                <ShimmerImage
                   src="/images/ourstorypic-6.png"
                   alt="God's Own - Same Wardrobe Different Stories"
                   fill
+                  theme="dark"
                   className="object-cover object-center group-hover:scale-105 transition-all duration-700 ease-out"
                   sizes="(max-width: 1024px) 60vw, 25vw"
                 />
@@ -220,10 +226,11 @@ export default function AboutPageContent() {
             {/* Row 3 — Image + "LIFE MOVES SO DO WE" */}
             <div className="flex gap-4 items-center">
               <div className="w-[55%] aspect-[4/3] bg-white/5 rounded-sm overflow-hidden relative group cursor-pointer shrink-0">
-                <Image
+                <ShimmerImage
                   src="/images/ourstorypic-7.png"
                   alt="God's Own - Life Moves So Do We"
                   fill
+                  theme="dark"
                   className="object-cover object-center grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700 ease-out"
                   sizes="(max-width: 1024px) 60vw, 25vw"
                 />
@@ -279,22 +286,24 @@ export default function AboutPageContent() {
               <div className="lg:hidden flex items-center gap-1.5 overflow-x-auto pb-1 mt-6">
                 <div className="w-4 h-[1.5px] bg-black/40 shrink-0" />
                 <div className="relative w-[96px] h-[68px] overflow-hidden shrink-0 group cursor-pointer">
-                  <Image
+                  <ShimmerImage
                     src={ourstoryPic8}
                     alt="Urban"
                     fill
+                    theme="light"
                     className="object-cover thumb-color-reveal grayscale group-hover:grayscale-0 hover:grayscale-0 transition-all duration-500"
                     sizes="96px"
                   />
                 </div>
                 <div className="relative w-[96px] h-[68px] overflow-hidden shrink-0">
-                  <Image src={ourstoryPic9} alt="Nature" fill className="object-cover grayscale" sizes="96px" />
+                  <ShimmerImage src={ourstoryPic9} alt="Nature" fill theme="light" className="object-cover grayscale" sizes="96px" />
                 </div>
                 <div className="relative w-[96px] h-[68px] overflow-hidden shrink-0 group cursor-pointer">
-                  <Image
+                  <ShimmerImage
                     src={ourstoryPic10}
                     alt="Indoors"
                     fill
+                    theme="light"
                     className="object-cover animate-color-blink transition-all duration-500"
                     sizes="96px"
                   />
@@ -311,10 +320,11 @@ export default function AboutPageContent() {
             <div className="flex-1 flex flex-row items-stretch min-h-[360px] sm:min-h-[400px] md:min-h-[430px] lg:min-h-[450px] xl:min-h-[470px] relative">
               {/* Cinematic hero image — NO ZOOM EFFECT, same level as red strip */}
               <div className="relative flex-1 overflow-hidden h-full">
-                <Image
+                <ShimmerImage
                   src={ourstoryPicHero3}
                   alt="God's Own - Made For Real Life"
                   fill
+                  theme="light"
                   className="object-cover object-center"
                   sizes="(max-width: 1024px) 100vw, 55vw"
                   priority
@@ -330,10 +340,11 @@ export default function AboutPageContent() {
 
                   {/* Thumb 1: Man in cap — reveals original color on hover */}
                   <div className="relative w-[108px] xl:w-[120px] h-[80px] xl:h-[88px] overflow-hidden shrink-0 group cursor-pointer">
-                    <Image
+                    <ShimmerImage
                       src={ourstoryPic8}
                       alt="Made for real life - Urban"
                       fill
+                      theme="light"
                       className="object-cover thumb-color-reveal grayscale group-hover:grayscale-0 hover:grayscale-0 transition-all duration-500"
                       sizes="120px"
                     />
@@ -341,10 +352,11 @@ export default function AboutPageContent() {
 
                   {/* Thumb 2: Palm trees */}
                   <div className="relative w-[108px] xl:w-[120px] h-[80px] xl:h-[88px] overflow-hidden shrink-0">
-                    <Image
+                    <ShimmerImage
                       src={ourstoryPic9}
                       alt="Made for real life - Nature"
                       fill
+                      theme="light"
                       className="object-cover grayscale"
                       sizes="120px"
                     />
@@ -352,10 +364,11 @@ export default function AboutPageContent() {
 
                   {/* Thumb 3: Silhouette by window / embroidery — automatically blinks between color and black & white */}
                   <div className="relative w-[108px] xl:w-[120px] h-[80px] xl:h-[88px] overflow-hidden shrink-0 group cursor-pointer">
-                    <Image
+                    <ShimmerImage
                       src={ourstoryPic10}
                       alt="Made for real life - Indoors"
                       fill
+                      theme="light"
                       className="object-cover animate-color-blink transition-all duration-500"
                       sizes="120px"
                     />

@@ -8,6 +8,19 @@
   }
 }
 
+@keyframes shimmer-sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer-sweep {
+  animation: shimmer-sweep 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
 /* Apple Liquid Glass left-to-right glare sweep — fires once then pauses */
 @keyframes glass-shine {
   0%    { transform: translateX(-130%) skewX(-20deg); opacity: 0; }

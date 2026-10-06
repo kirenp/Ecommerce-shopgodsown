@@ -187,7 +187,7 @@ export default function EarlyAccessFooter() {
                 </svg>
               </a>
               <a
-                href="mailto:Godsownculture@gmail.com"
+                href="mailto:hello@shopgodsown.com"
                 aria-label="Email"
               >
                 <Mail />

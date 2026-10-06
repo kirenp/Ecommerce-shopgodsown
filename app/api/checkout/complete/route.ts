@@ -331,7 +331,7 @@ async function sendOrderEmailAlerts({
   items: any[];
   shippingAddress: any;
 }) {
-  const adminEmail = process.env.CONTACT_RECEIVER_EMAIL || "godsownculture@gmail.com";
+  const adminEmail = process.env.CONTACT_RECEIVER_EMAIL || "hello@shopgodsown.com";
   const smtpHost = process.env.SMTP_HOST || "smtp.gmail.com";
   const smtpPort = parseInt(process.env.SMTP_PORT || "465", 10);
   const smtpUser = process.env.SMTP_USER || process.env.EMAIL_USER;

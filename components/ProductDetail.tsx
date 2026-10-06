@@ -61,12 +61,26 @@ function renderProductTitle(title: string) {
   return title;
 }
 
+function getProductPieceType(product?: any): 'tshirt' | 'tanktop' | null {
+  if (!product) return null;
+  const text = `${product.title || ''} ${product.category || ''} ${product.handle || ''}`.toLowerCase();
+  if (text.includes('tank') || text.includes('tank top') || text.includes('tank-top')) {
+    return 'tanktop';
+  }
+  if (text.includes('t-shirt') || text.includes('tshirt') || text.includes('tee')) {
+    return 'tshirt';
+  }
+  return 'tshirt';
+}
+
 export default function ProductDetail({ product }: ProductDetailProps) {
   const { items, addToCart } = useCart();
   const { addRecentlyViewed } = useRecentlyViewed();
   const { wishlistItems, toggleWishlist, isInWishlist } = useWishlist();
   const { getPreviewPath } = usePreview();
   const router = useRouter();
+
+  const pieceType = useMemo(() => getProductPieceType(product), [product]);
 
   const availableColors = product.colors || [];
 
@@ -681,11 +695,62 @@ export default function ProductDetail({ product }: ProductDetailProps) {
       {/* Bottom Section: Same Alignment for About This Piece & Free Shipping */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 pt-8 border-t border-white/10">
         {/* Left: About This Piece */}
-        <div className="space-y-3">
-          <h3 className="text-[10px] text-white uppercase tracking-[0.3em] font-semibold">About This Piece</h3>
-          <p className="text-white/75 leading-relaxed font-normal text-sm max-w-xl">
-            {product.description || "A luxury piece designed to disrupt. Precision-tailored for the modern presence."}
-          </p>
+        <div className="space-y-6">
+          <div className="space-y-3">
+            <h3 className="text-[10px] text-white uppercase tracking-[0.3em] font-semibold">About This Piece</h3>
+            <p className="text-white/75 leading-relaxed font-normal text-sm max-w-xl">
+              {product.description || "A luxury piece designed to disrupt. Precision-tailored for the modern presence."}
+            </p>
+          </div>
+
+          {/* Product Specifications / Piece Details */}
+          {pieceType === 'tshirt' && (
+            <div className="pt-6 border-t border-white/10 space-y-3 max-w-xl text-xs sm:text-[13px] leading-relaxed">
+              <div>
+                <span className="font-semibold text-white tracking-wider uppercase text-[11px] sm:text-xs">MATERIAL:</span>{" "}
+                <span className="text-white/75 font-normal">100% cotton</span>
+              </div>
+              <div>
+                <span className="font-semibold text-white tracking-wider uppercase text-[11px] sm:text-xs">FABRIC WEIGHT:</span>{" "}
+                <span className="text-white/75 font-normal">260 GSM</span>
+              </div>
+              <div>
+                <span className="font-semibold text-white tracking-wider uppercase text-[11px] sm:text-xs">FIT:</span>{" "}
+                <span className="text-white/75 font-normal">Boxy</span>
+              </div>
+              <div>
+                <span className="font-semibold text-white tracking-wider uppercase text-[11px] sm:text-xs">DESIGN:</span>{" "}
+                <span className="text-white/75 font-normal">
+                  Boxy-fit black T-shirt designed with a relaxed, structured silhouette and a clean minimal front. Features a small embroidered-style GOD’S OWN chest graphic with contrasting red and white detailing, paired with a bold oversized gothic GOD’S OWN graphic across the back. The back also incorporates “GOD’S OWN CULTURE” typography and geographic coordinates, adding a distinct Kerala-inspired identity.
+                </span>
+              </div>
+              <div>
+                <span className="font-semibold text-white tracking-wider uppercase text-[11px] sm:text-xs">MODEL:</span>{" "}
+                <span className="text-white/75 font-normal">
+                  The model in the first photo is wearing a size Medium. Weight: 90 kgs Height: 5&apos;10
+                </span>
+              </div>
+            </div>
+          )}
+
+          {pieceType === 'tanktop' && (
+            <div className="pt-6 border-t border-white/10 space-y-3 max-w-xl text-xs sm:text-[13px] leading-relaxed">
+              <div>
+                <span className="font-semibold text-white tracking-wider uppercase text-[11px] sm:text-xs">DESIGN:</span>{" "}
+                <span className="text-white/75 font-normal">
+                  Sleeveless oversized-cut athletic tank designed with a relaxed, boxy silhouette for unrestricted movement. Features a clean black base with a subtle GOD’S OWN chest mark and bold vertical “MALAYALI DEPT.” typography running down the back in contrasting yellow. The lower back is finished with “GOD’S OWN ATHLETE” lettering, creating a strong athletic identity while maintaining a minimal streetwear aesthetic.
+                </span>
+              </div>
+              <div>
+                <span className="font-semibold text-white tracking-wider uppercase text-[11px] sm:text-xs">FIT:</span>{" "}
+                <span className="text-white/75 font-normal">
+                  Model is wearing Medium (M) — model height: 5&apos;6&quot; (168 cm).
+                  <br className="hidden sm:inline" />{" "}
+                  The fit sits relaxed through the body with dropped shoulders and a wide sleeveless opening for a structured, oversized appearance.
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Right: Free Shipping & Secure Payment + Please Note */}
