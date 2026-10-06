@@ -5,6 +5,7 @@ import { saveServerCustomerAddress } from "@/lib/serverCustomerStore";
 import { saveServerCustomerOrder } from "@/lib/serverOrderStore";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rateLimit";
 import { escapeHtml } from "@/lib/security";
+import { sendMetaPurchaseEvent } from "@/lib/metaConversionsApi";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +37,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { items, contact, shippingAddress, billingAddress, amount, paymentId, orderId, razorpaySignature } = body;
+    const { items, contact, shippingAddress, billingAddress, amount, paymentId, orderId, razorpaySignature, discountCode, discountAmount } = body;
 
     if (!items || !Array.isArray(items) || items.length === 0 || items.length > 50) {
       return NextResponse.json({ error: "Invalid cart items." }, { status: 400 });
@@ -152,6 +153,11 @@ export async function POST(req: NextRequest) {
               send_receipt: true,
               send_fulfillment_receipt: true,
               line_items: lineItems,
+              discount_codes: discountCode ? [{
+                code: String(discountCode),
+                amount: discountAmount ? String(discountAmount) : undefined,
+                type: "percentage",
+              }] : undefined,
               shipping_address: formattedShipping,
               billing_address: formattedBilling,
               note: `Payment completed via Razorpay. Payment ID: ${paymentId || "N/A"}, Razorpay Order ID: ${orderId || "N/A"}`,
@@ -186,6 +192,11 @@ export async function POST(req: NextRequest) {
                 send_receipt: true,
                 send_fulfillment_receipt: true,
                 line_items: fallbackLineItems,
+                discount_codes: discountCode ? [{
+                  code: String(discountCode),
+                  amount: discountAmount ? String(discountAmount) : undefined,
+                  type: "percentage",
+                }] : undefined,
                 shipping_address: formattedShipping,
                 billing_address: formattedBilling,
                 note: `Payment completed via Razorpay. Payment ID: ${paymentId || "N/A"}, Razorpay Order ID: ${orderId || "N/A"}`,
@@ -249,10 +260,43 @@ export async function POST(req: NextRequest) {
       shippingAddress: formattedShipping,
     }).catch((err) => console.error("Async order email send error:", err));
 
+    // 5. Send Purchase event to Meta Conversions API (Server CAPI)
+    const eventId = String(shopifyOrderResult?.id || orderId || orderNumber);
+    const clientIp = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || req.headers.get("x-real-ip");
+    const userAgent = req.headers.get("user-agent");
+    const fbp = req.cookies.get("_fbp")?.value || null;
+    const fbc = req.cookies.get("_fbc")?.value || null;
+
+    sendMetaPurchaseEvent({
+      orderId: eventId,
+      orderNumber,
+      amount,
+      currency: "INR",
+      items,
+      customer: {
+        email,
+        phone,
+        firstName: shippingAddress?.firstName,
+        lastName: shippingAddress?.lastName,
+        city: shippingAddress?.city,
+        state: shippingAddress?.state,
+        zip: shippingAddress?.pinCode,
+        country: "in",
+      },
+      reqContext: {
+        ip: clientIp,
+        userAgent,
+        fbp,
+        fbc,
+        url: req.headers.get("referer") || "https://shopgodsown.com/checkout",
+      },
+    }).catch((err) => console.error("Async Meta CAPI Purchase send error:", err));
+
     return NextResponse.json({
       success: true,
       orderId: shopifyOrderResult?.id || `local_${Date.now()}`,
       orderNumber: orderNumber,
+      eventId: eventId,
       message: shopifyOrderResult
         ? "Order placed and recorded in Shopify successfully."
         : "Order saved to local server store.",
@@ -287,7 +331,7 @@ async function sendOrderEmailAlerts({
   items: any[];
   shippingAddress: any;
 }) {
-  const adminEmail = process.env.CONTACT_RECEIVER_EMAIL || "godsownculture@gmail.com";
+  const adminEmail = process.env.CONTACT_RECEIVER_EMAIL || "hello@shopgodsown.com";
   const smtpHost = process.env.SMTP_HOST || "smtp.gmail.com";
   const smtpPort = parseInt(process.env.SMTP_PORT || "465", 10);
   const smtpUser = process.env.SMTP_USER || process.env.EMAIL_USER;
@@ -361,7 +405,7 @@ async function sendOrderEmailAlerts({
         </div>
 
         <div style="text-align: center; padding-top: 20px; border-top: 1px solid #1f1f1f; font-size: 11px; color: #666666;">
-          GODS OWN CULTURE &bull; Streetwear Born from Kerala Heritage
+          GOD'S OWN CULTURE &bull; Streetwear Born from Kerala Heritage
         </div>
       </div>
     </body>
@@ -370,9 +414,9 @@ async function sendOrderEmailAlerts({
 
   if (targetEmail) {
     await transporter.sendMail({
-      from: `"GODS OWN CULTURE" <${smtpUser}>`,
+      from: `"GOD'S OWN CULTURE" <${smtpUser}>`,
       to: targetEmail,
-      subject: `Order Confirmation — ${orderNumber} (GODS OWN CULTURE)`,
+      subject: `Order Confirmation — ${orderNumber} (GOD'S OWN CULTURE)`,
       html: customerHtml,
     });
     console.log(`[Order Email] Confirmation sent to customer: ${targetEmail}`);

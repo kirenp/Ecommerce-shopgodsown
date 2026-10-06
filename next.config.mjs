@@ -17,6 +17,15 @@ const nextConfig = {
     ],
   },
 
+  async rewrites() {
+    return [
+      {
+        source: "/services/:path*",
+        destination: "https://godsown-9751.myshopify.com/services/:path*",
+      },
+    ];
+  },
+
   async headers() {
     const securityHeaders = [
       {

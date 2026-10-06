@@ -8,6 +8,19 @@
   }
 }
 
+@keyframes shimmer-sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer-sweep {
+  animation: shimmer-sweep 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
 /* Apple Liquid Glass left-to-right glare sweep — fires once then pauses */
 @keyframes glass-shine {
   0%    { transform: translateX(-130%) skewX(-20deg); opacity: 0; }
@@ -20,6 +33,39 @@
 .animate-glass-shine {
   animation: glass-shine 7s ease-in-out infinite;
   animation-delay: 1.5s;
+}
+
+/* Color reveal for section 03 thumbnails (grayscale -> full original color) */
+.thumb-color-reveal {
+  filter: grayscale(100%);
+  transition: filter 0.45s ease-out, transform 0.45s ease-out;
+  will-change: filter;
+}
+
+.group:hover .thumb-color-reveal,
+.thumb-color-reveal:hover {
+  filter: grayscale(0%) !important;
+}
+
+/* Automatic blinking animation between original color and black & white */
+@keyframes color-blink {
+  0%, 100% {
+    filter: grayscale(100%);
+  }
+  40%, 65% {
+    filter: grayscale(0%);
+  }
+}
+
+.animate-color-blink {
+  animation: color-blink 2.6s ease-in-out infinite;
+  will-change: filter;
+}
+
+.group:hover .animate-color-blink,
+.animate-color-blink:hover {
+  animation-play-state: paused;
+  filter: grayscale(0%) !important;
 }
 
 

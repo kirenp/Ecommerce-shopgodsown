@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { trackAddToCart } from "@/lib/metaPixel";
 
 export interface CartItem {
   id: string;
@@ -81,6 +82,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
       } catch (e) {
         console.error("Failed to save cart to localStorage:", e);
       }
+
+      // Track AddToCart for Meta Pixel
+      trackAddToCart({
+        id: item.id,
+        variantId: item.variantId,
+        title: item.title,
+        price: item.price,
+        currency: item.currencyCode || "INR",
+        quantity: item.quantity || 1,
+      });
+
       return nextItems;
     });
   };

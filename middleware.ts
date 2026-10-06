@@ -6,8 +6,9 @@ export function middleware(request: NextRequest) {
 
   // =========================================================================
   // CSRF PROTECTION — Validate Origin/Referer for POST requests to API routes
+  // (Exempt server-to-server webhook endpoints like /api/webhooks which use HMAC)
   // =========================================================================
-  if (request.method === "POST" && pathname.startsWith("/api")) {
+  if (request.method === "POST" && pathname.startsWith("/api") && !pathname.startsWith("/api/webhooks")) {
     const origin = request.headers.get("origin");
     const referer = request.headers.get("referer");
     const host = request.headers.get("host") || request.headers.get("x-forwarded-host") || "";
@@ -37,44 +38,27 @@ export function middleware(request: NextRequest) {
   }
 
   // =========================================================================
-  // PRE-LAUNCH WEBSITE ROUTING MIDDLEWARE
+  // RETIRE /dev-preview — Redirect all preview routes to canonical paths
   // =========================================================================
-  //
-  // 1. PUBLIC ROUTES ARE LOCKED BEHIND EARLY ACCESS.
-  //    All public traffic requesting standard pages (e.g. "/", "/catalog", "/about",
-  //    "/contact") will be redirected to the "/early-access" landing page.
-  //
-  // 2. DEVELOPER PREVIEW ROUTES ARE ACCESSIBLE ONLY THROUGH "/dev-preview/*".
-  //    Routes starting with "/dev-preview" (e.g. "/dev-preview/products", 
-  //    "/dev-preview/about", "/dev-preview/contact") will bypass the early-access redirect.
-  //
-  // 3. LAUNCH DAY ONLY REQUIRES DISABLING THE MIDDLEWARE REDIRECT.
-  //    On launch day, to open the site to the public, disable the redirect logic below
-  //    or delete this middleware file.
-  //
-  // =========================================================================
-
-  // Define allowed paths that should bypass the early-access redirect
-  const isAllowedPath =
-    pathname === '/early-access' ||
-    pathname === '/dev-preview' ||
-    pathname.startsWith('/dev-preview/') ||
-    pathname.startsWith('/api') ||
-    pathname.startsWith('/_next') ||
-    pathname === '/favicon.ico' ||
-    pathname === '/sitemap.xml' ||
-    pathname === '/robots.txt' ||
-    pathname.startsWith('/images') ||
-    pathname.startsWith('/videos') ||
-    pathname.startsWith('/static');
-
-  if (isAllowedPath) {
-    return NextResponse.next();
+  if (pathname === '/dev-preview' || pathname === '/dev-preview/') {
+    const url = request.nextUrl.clone();
+    url.pathname = '/';
+    return NextResponse.redirect(url, 308);
   }
 
-  // Pre-launch mode: redirect all public visitors to early-access landing page
-  const earlyAccessUrl = new URL('/early-access', request.url);
-  return NextResponse.redirect(earlyAccessUrl);
+  if (pathname.startsWith('/dev-preview/')) {
+    const targetSubpath = pathname.replace(/^\/dev-preview/, '');
+    const url = request.nextUrl.clone();
+    // Route /dev-preview/products to /catalog, and others to direct subpath
+    if (targetSubpath === '/products') {
+      url.pathname = '/catalog';
+    } else {
+      url.pathname = targetSubpath;
+    }
+    return NextResponse.redirect(url, 308);
+  }
+
+  return NextResponse.next();
 }
 
 export const config = {

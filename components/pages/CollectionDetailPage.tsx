@@ -41,6 +41,7 @@ export default async function CollectionDetailPage({ params }: { params: { handl
               key={product.id}
               handle={product.handle}
               image={product.image}
+              secondaryImage={product.secondaryImage}
               title={product.title}
               price={product.price}
             />

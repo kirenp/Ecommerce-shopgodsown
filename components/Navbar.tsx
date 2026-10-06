@@ -18,7 +18,7 @@ export default function Navbar() {
   const { itemCount } = useCart();
   const { isPreview, getPreviewPath } = usePreview();
   const { openAccountSidebar } = useUI();
-  const isHomePage = pathname === "/" || pathname === "/dev-preview" || pathname === getPreviewPath("/");
+  const isHomePage = pathname === "/";
 
   useEffect(() => {
     if (searchOpen) inputRef.current?.focus();
@@ -36,8 +36,6 @@ export default function Navbar() {
   const navLinks = [
     { label: "Home", href: "/" },
     { label: "Shop", href: "/catalog" },
-    { label: "OUR STORY", href: "/about" },
-    { label: "Contact", href: "/contact" },
   ];
 
   return (
@@ -102,7 +100,7 @@ export default function Navbar() {
             const segment = (
               <span className="font-bold tracking-[0.35em] uppercase whitespace-nowrap">
                 <span style={whiteStyle}>JOIN THE </span>
-                <span style={redStyle}>GODS OWN </span>
+                <span style={redStyle}>GOD&apos;S OWN </span>
                 <span style={whiteStyle}>CLUB</span>
                 <span style={redStyle}> · </span>
                 <span style={whiteStyle}>LIMITED RELEASES</span>
@@ -173,7 +171,7 @@ export default function Navbar() {
           {/* Logo (centered inside the header bar) */}
           <div className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 mt-1 sm:mt-1.5 md:mt-2 z-30 pointer-events-auto">
             <Link href={getPreviewPath("/")} className="font-sans font-bold text-lg sm:text-2xl md:text-[34px] tracking-[0.12em] sm:tracking-[0.2em] md:tracking-[0.25em] uppercase whitespace-nowrap select-none">
-              <span className="text-[#C81E1E]">GODS</span> <span className="text-[#111111]">OWN</span>
+              <span className="text-[#C81E1E]">GOD&apos;S</span> <span className="text-[#111111]">OWN</span>
             </Link>
           </div>
 

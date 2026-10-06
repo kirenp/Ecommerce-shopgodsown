@@ -8,6 +8,7 @@ export async function GET(req: NextRequest) {
   const rateLimitResponse = checkRateLimit(req, RATE_LIMITS.instagram);
   if (rateLimitResponse) return rateLimitResponse;
 
+  /*
   const accessToken =
     process.env.INSTAGRAM_ACCESS_TOKEN ||
     process.env.NEXT_PUBLIC_INSTAGRAM_ACCESS_TOKEN;
@@ -68,4 +69,11 @@ export async function GET(req: NextRequest) {
       { status: 500 }
     );
   }
+  */
+
+  return NextResponse.json({
+    success: true,
+    posts: [],
+    message: "Live Instagram API temporarily disabled; using fallback posts.",
+  });
 }

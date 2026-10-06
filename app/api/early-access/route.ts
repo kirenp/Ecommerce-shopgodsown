@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
       console.log('[Klaviyo] Added to Early Access list');
       return NextResponse.json({
         success: true,
-        message: 'Successfully joined GODS OWN Early Access',
+        message: "Successfully joined GOD'S OWN Early Access",
       });
     }
 

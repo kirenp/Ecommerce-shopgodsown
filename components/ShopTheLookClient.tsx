@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { usePreview } from '@/lib/preview';
 import type { LookSlide } from './ShopTheLook';
 
 interface ShopTheLookClientProps {
@@ -10,6 +11,7 @@ interface ShopTheLookClientProps {
 }
 
 export default function ShopTheLookClient({ slides }: ShopTheLookClientProps) {
+  const { getPreviewPath } = usePreview();
   const [activePopup, setActivePopup] = useState<number | null>(null);
   const [isLocked, setIsLocked] = useState(false); // locked = clicked open
   const hideTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -88,7 +90,7 @@ export default function ShopTheLookClient({ slides }: ShopTheLookClientProps) {
     >
       {/* Section Header — Minimal, editorial */}
       <div className="px-6 md:px-12 lg:px-16 pt-4 md:pt-6 pb-6 md:pb-8">
-        <p className="text-[9px] text-gray-500 tracking-[0.5em] uppercase mb-2">
+        <p className="text-xs md:text-sm font-semibold text-neutral-800 tracking-[0.25em] uppercase mb-2">
           Editorial
         </p>
         <h2 className="text-2xl md:text-3xl font-light text-black tracking-tight">
@@ -178,17 +180,13 @@ export default function ShopTheLookClient({ slides }: ShopTheLookClientProps) {
                   {/* Desktop Product Popup Card — positioned relative to hotspot */}
                   {isPopupOpen && product && (
                     <div
-                      className={`hidden md:block absolute z-40 ${
-                        index === 0
-                          ? 'left-full ml-3 top-1/2 -translate-y-1/2'
-                          : 'right-full mr-3 top-1/2 -translate-y-1/2'
-                      }`}
+                      className="hidden md:block absolute z-40 right-full mr-3 top-1/2 -translate-y-1/2"
                       style={{
                         animation: 'stlCardIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards',
                       }}
                     >
                       <Link
-                        href={`/dev-preview/products/${product.handle}`}
+                        href={getPreviewPath(`/products/${product.handle}`)}
                         className="flex w-[260px] bg-white rounded-xl overflow-hidden p-2 gap-3 items-center
                           shadow-[0_8px_40px_rgba(0,0,0,0.6)] hover:shadow-[0_16px_60px_rgba(0,0,0,0.7)] 
                           transition-all duration-300 group/card"
@@ -210,9 +208,9 @@ export default function ShopTheLookClient({ slides }: ShopTheLookClientProps) {
                           <p className="text-xs font-semibold text-black leading-tight line-clamp-2 mb-1">
                             {product.title}
                           </p>
-                          {product.price && product.price !== '0.0' && (
+                          {product.price !== undefined && product.price !== null && (
                             <p className="text-xs text-black font-bold mb-2">
-                              ₹{parseFloat(product.price).toLocaleString('en-IN')}
+                              ₹ {parseFloat(product.price).toLocaleString('en-IN')}
                             </p>
                           )}
                           <div className="inline-block text-[9px] bg-black text-white px-3 py-1.5 rounded uppercase tracking-widest font-semibold group-hover/card:bg-[#C81E1E] transition-colors">
@@ -234,7 +232,7 @@ export default function ShopTheLookClient({ slides }: ShopTheLookClientProps) {
                     onClick={(e) => e.stopPropagation()}
                   >
                     <Link
-                      href={`/dev-preview/products/${product.handle}`}
+                      href={getPreviewPath(`/products/${product.handle}`)}
                       className="flex items-center p-3 gap-4"
                     >
                       <div className="relative w-16 h-20 bg-gray-100 rounded-lg overflow-hidden shrink-0">
@@ -253,9 +251,9 @@ export default function ShopTheLookClient({ slides }: ShopTheLookClientProps) {
                         <p className="text-xs font-semibold text-black leading-tight line-clamp-2">
                           {product.title}
                         </p>
-                        {product.price && product.price !== '0.0' && (
+                        {product.price !== undefined && product.price !== null && (
                           <p className="text-xs text-black font-bold mt-1">
-                            ₹{parseFloat(product.price).toLocaleString('en-IN')}
+                            ₹ {parseFloat(product.price).toLocaleString('en-IN')}
                           </p>
                         )}
                       </div>

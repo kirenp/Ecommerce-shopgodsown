@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { items } = body;
+    const { items, discountAmount } = body;
 
     const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
     const keySecret = process.env.RAZORPAY_KEY_SECRET;
@@ -113,7 +113,10 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    if (serverTotal <= 0) {
+    const numericDiscount = typeof discountAmount === "number" && discountAmount > 0 ? discountAmount : 0;
+    const finalTotal = Math.max(1, serverTotal - numericDiscount);
+
+    if (finalTotal <= 0) {
       return NextResponse.json(
         { error: "Order total must be greater than ₹0." },
         { status: 400 }
@@ -121,7 +124,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Razorpay expects amount in paise (Rupees * 100)
-    const amountInPaise = Math.round(serverTotal * 100);
+    const amountInPaise = Math.round(finalTotal * 100);
 
     // Basic Auth header for Razorpay API
     const authHeader = `Basic ${Buffer.from(`${keyId}:${keySecret}`).toString("base64")}`;

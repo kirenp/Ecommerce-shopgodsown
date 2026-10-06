@@ -18,7 +18,7 @@ export default function Footer() {
         <div className="lg:w-[400px] flex flex-col justify-between">
           <div>
             <h2 className="font-sans font-bold text-4xl md:text-5xl tracking-[0.25em] uppercase leading-none mb-4">
-              <span className="text-[#C81E1E]">GODS</span> <span className="text-[#111111]">OWN</span>
+              <span className="text-[#C81E1E]">GOD&apos;S</span> <span className="text-[#111111]">OWN</span>
             </h2>
             <p className="text-black/60 text-xs tracking-wider leading-relaxed font-medium mb-6">
               The new standard of streetwear.<br />
@@ -56,7 +56,7 @@ export default function Footer() {
             <div className="w-6 h-[2px] bg-[#C81E1E] mt-4 mb-6"></div>
             <ul className="space-y-3">
               {[
-                { label: "About", href: "/about" },
+                { label: "Our Story", href: "/about" },
                 { label: "Contact", href: "/contact" },
               ].map((item) => (
                 <li key={item.label}>
@@ -76,7 +76,7 @@ export default function Footer() {
               {[
                 { label: "Track Order", href: "/track-order" },
                 { label: "Shipping Policy", href: "/shipping-policy" },
-                // { label: "Refund Policy", href: "/refund-policy" },
+                { label: "Refunds & Exchanges", href: "/refund-policy" },
                 { label: "Terms of Service", href: "/terms-of-service" },
               ].map((item) => (
                 <li key={item.label}>
@@ -105,7 +105,13 @@ export default function Footer() {
               <a href="#" className="text-black hover:text-[#C81E1E] transition-colors">
                 <Facebook size={22} strokeWidth={1.5} />
               </a>
-              <a href="#" className="text-black hover:text-[#C81E1E] transition-colors">
+              <a
+                href="https://wa.me/917907478189"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Chat with us on WhatsApp"
+                className="text-black hover:text-[#C81E1E] transition-colors"
+              >
                 {/* WhatsApp Custom SVG for accuracy */}
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21" />

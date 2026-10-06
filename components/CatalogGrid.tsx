@@ -31,6 +31,7 @@ export default async function CatalogGrid({ search }: CatalogGridProps) {
           key={product.id}
           handle={product.handle}
           image={product.image}
+          secondaryImage={product.secondaryImage}
           title={product.title}
           price={product.price}
         />

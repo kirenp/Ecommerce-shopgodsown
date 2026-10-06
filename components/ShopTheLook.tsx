@@ -19,20 +19,37 @@ export interface LookSlide {
 
 const SLIDE_CONFIG = [
   {
-    lifestyleImage: '/images/productnavig-2.png',
-    productHandle: 'malayali-dept-oversized-tank-top-limited-edition',
-    plusPosition: { x: 0.52, y: 0.62 },
-    objectPosition: { x: 0.5, y: 0.4 },
+    lifestyleImage: '/images/shopthelook-1.png',
+    productHandle: 'malayali-dept-tank-top',
+    plusPosition: { x: 0.63, y: 0.43 },
+    objectPosition: { x: 0.55, y: 0.4 },
     layoutClass: 'md:w-[40%]',
   },
   {
-    lifestyleImage: '/images/IMG_9026.JPG.jpeg',
-    productHandle: 'gods-own-limited-edition-tees',
+    lifestyleImage: '/images/shopthelook-2.png',
+    productHandle: 'god-s-own-culture-t-shirt',
     plusPosition: { x: 0.68, y: 0.42 },
-    objectPosition: { x: 0.6, y: 0.5 },
+    objectPosition: { x: 0.6, y: 0.4 },
     layoutClass: 'md:w-[60%]',
   },
 ];
+
+const FALLBACK_PRODUCTS: Record<string, ProductInfo> = {
+  'malayali-dept-tank-top': {
+    handle: 'malayali-dept-tank-top',
+    title: 'MALAYALI DEPT. Tank Top',
+    price: '0.0',
+    images: [{ url: 'https://cdn.shopify.com/s/files/1/0653/4610/9534/files/ChatGPTImageSep8_2026_02_51_15PM.png?v=1789541482', altText: 'MALAYALI DEPT. Tank Top', type: 'IMAGE' }],
+    colors: [{ label: 'Black', color: '#000000' }],
+  },
+  'god-s-own-culture-t-shirt': {
+    handle: 'god-s-own-culture-t-shirt',
+    title: 'GOD’S OWN CULTURE T-Shirt',
+    price: '1.0',
+    images: [{ url: 'https://cdn.shopify.com/s/files/1/0653/4610/9534/files/ChatGPT_Image_Sep_16_2026_12_22_50_PM.png?v=1789541590', altText: 'GOD’S OWN CULTURE T-Shirt', type: 'IMAGE' }],
+    colors: [{ label: 'Black', color: '#000000' }],
+  },
+};
 
 export default async function ShopTheLook() {
   const slides: LookSlide[] = await Promise.all(
@@ -54,7 +71,7 @@ export default async function ShopTheLook() {
                   .slice(0, 4),
                 colors: product.colors || [],
               }
-            : null,
+            : FALLBACK_PRODUCTS[config.productHandle] || null,
         };
       } catch (e) {
         console.error(`Failed to fetch product: ${config.productHandle}`, e);
@@ -63,7 +80,7 @@ export default async function ShopTheLook() {
           plusPosition: config.plusPosition,
           objectPosition: config.objectPosition,
           layoutClass: config.layoutClass,
-          product: null,
+          product: FALLBACK_PRODUCTS[config.productHandle] || null,
         };
       }
     })

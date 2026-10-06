@@ -10,6 +10,7 @@ import { CustomerProvider } from "@/lib/customerContext";
 import QuickViewModal from "@/components/QuickViewModal";
 import CartSidebar from "@/components/CartSidebar";
 import AccountSidebar from "@/components/AccountSidebar";
+import MetaPixel from "@/components/MetaPixel";
 import Script from "next/script";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -25,18 +26,18 @@ const cormorant = Cormorant_Garamond({
 });
 
 const siteUrl = "https://shopgodsown.com";
-const siteName = "Gods Own Culture";
+const siteName = "God's Own Culture";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
 
   title: {
-    default: "GODS OWN | Luxury Streetwear — Shop Gods Own Culture",
-    template: "%s | GODS OWN",
+    default: "GOD'S OWN | Luxury Streetwear — Shop God's Own Culture",
+    template: "%s | GOD'S OWN",
   },
 
   description:
-    "Shop Gods Own Culture — premium limited-release streetwear born from Kerala's heritage. Exclusive drops, gym & street-ready fits. ShopGodsOwn, GodsOwn, GodsOwnCulture.",
+    "Shop God's Own Culture — premium limited-release streetwear born from Kerala's heritage. Exclusive drops, gym & street-ready fits. ShopGodsOwn, GodsOwn, GodsOwnCulture.",
 
   keywords: [
     "shopgodsown",
@@ -61,9 +62,9 @@ export const metadata: Metadata = {
     "shopgodsown.com",
   ],
 
-  authors: [{ name: "Gods Own Culture", url: siteUrl }],
-  creator: "Gods Own Culture",
-  publisher: "Gods Own Culture",
+  authors: [{ name: "God's Own Culture", url: siteUrl }],
+  creator: "God's Own Culture",
+  publisher: "God's Own Culture",
 
   alternates: {
     canonical: siteUrl,
@@ -73,7 +74,7 @@ export const metadata: Metadata = {
     type: "website",
     url: siteUrl,
     siteName,
-    title: "GODS OWN | Luxury Streetwear",
+    title: "GOD'S OWN | Luxury Streetwear",
     description:
       "Premium limited-release streetwear born from Kerala's cultural heritage. Exclusive drops — gym & street ready.",
     images: [
@@ -81,7 +82,7 @@ export const metadata: Metadata = {
         url: "/images/Gods Own (1).png",
         width: 1200,
         height: 630,
-        alt: "Gods Own Culture — Luxury Streetwear",
+        alt: "God's Own Culture — Luxury Streetwear",
       },
     ],
     locale: "en_IN",
@@ -89,7 +90,7 @@ export const metadata: Metadata = {
 
   twitter: {
     card: "summary_large_image",
-    title: "GODS OWN | Luxury Streetwear",
+    title: "GOD'S OWN | Luxury Streetwear",
     description:
       "Premium limited-release streetwear. Exclusive drops — gym & street ready.",
     images: ["/images/Gods Own (1).png"],
@@ -132,8 +133,8 @@ const jsonLd = {
     {
       "@type": "Organization",
       "@id": `${siteUrl}/#organization`,
-      name: "Gods Own Culture",
-      alternateName: ["ShopGodsOwn", "GodsOwn", "GodsOwnCulture", "Gods Own"],
+      name: "God's Own Culture",
+      alternateName: ["ShopGodsOwn", "GodsOwn", "GodsOwnCulture", "God's Own", "GOD'S OWN"],
       url: siteUrl,
       logo: {
         "@type": "ImageObject",
@@ -146,9 +147,11 @@ const jsonLd = {
       sameAs: [
         "https://www.instagram.com/godsownculture",
         "https://shopgodsown.com",
+        "https://wa.me/917907478189",
       ],
       contactPoint: {
         "@type": "ContactPoint",
+        telephone: "+91-7907478189",
         contactType: "customer service",
         url: `${siteUrl}/contact`,
       },
@@ -157,9 +160,9 @@ const jsonLd = {
       "@type": "WebSite",
       "@id": `${siteUrl}/#website`,
       url: siteUrl,
-      name: "Gods Own Culture",
+      name: "God's Own Culture",
       description:
-        "Shop Gods Own Culture — premium limited-release streetwear. ShopGodsOwn.",
+        "Shop God's Own Culture — premium limited-release streetwear. ShopGodsOwn.",
       publisher: { "@id": `${siteUrl}/#organization` },
       potentialAction: {
         "@type": "SearchAction",
@@ -173,7 +176,7 @@ const jsonLd = {
     {
       "@type": "ClothingStore",
       "@id": `${siteUrl}/#store`,
-      name: "Gods Own Culture",
+      name: "God's Own Culture",
       url: siteUrl,
       image: `${siteUrl}/images/Gods Own (1).png`,
       description: "Luxury streetwear — exclusive drops and limited releases.",
@@ -210,6 +213,7 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased font-sans">
+        <MetaPixel />
         <CustomerProvider>
           <WishlistProvider>
             <RecentlyViewedProvider>

@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Early Access — Join the Gods Own Club',
+  title: "Early Access — Join the God's Own Club",
   description:
-    'Get exclusive early access to Gods Own Culture drops. Be the first to discover limited-release streetwear born from Kerala heritage. ShopGodsOwn — join the club.',
+    "Get exclusive early access to God's Own Culture drops. Be the first to discover limited-release streetwear born from Kerala heritage. ShopGodsOwn — join the club.",
   keywords: [
     'shopgodsown early access',
     'gods own early access',
@@ -13,10 +13,10 @@ export const metadata: Metadata = {
     'gods own club',
   ],
   openGraph: {
-    title: 'GODS OWN | Early Access',
+    title: "GOD'S OWN | Early Access",
     description:
-      'Be first. Join the Gods Own Club for exclusive early-access drops and limited releases.',
-    images: [{ url: '/images/Gods Own (1).png', alt: 'Gods Own Early Access' }],
+      "Be first. Join the God's Own Club for exclusive early-access drops and limited releases.",
+    images: [{ url: '/images/Gods Own (1).png', alt: "God's Own Early Access" }],
   },
 };
 

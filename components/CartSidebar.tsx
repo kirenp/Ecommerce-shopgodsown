@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { getRecommendedProducts } from "@/app/actions";
 import { usePreview } from "@/lib/preview";
+import { Plus, Minus } from "lucide-react";
 
 const SIZE_ORDER: Record<string, number> = {
   "XXS": 1,
@@ -216,10 +217,8 @@ export default function CartSidebar() {
                                     {/* Details */}
                                     <div className="flex flex-col justify-between py-1 pr-6 flex-1">
                                         <div>
-                                            <div className="flex items-end gap-2 mb-1">
-                                                <span className="text-sm font-bold text-black">₹{parseFloat(item.price).toLocaleString('en-IN')}</span>
-                                                <span className="text-[10px] line-through text-black/40">₹{(parseFloat(item.price) * 1.5).toLocaleString('en-IN')}</span>
-                                                <span className="text-[10px] text-[#00C853] font-bold">33% OFF</span>
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <span className="text-sm font-bold text-black">₹ {parseFloat(item.price).toLocaleString('en-IN')}</span>
                                             </div>
                                             <h3 className="text-xs font-medium text-black leading-tight mb-2 line-clamp-2">{item.title}</h3>
                                             <p className="text-[10px] text-black/50 mb-3">
@@ -227,7 +226,7 @@ export default function CartSidebar() {
                                             </p>
                                         </div>
 
-                                        <div className="flex gap-2">
+                                        <div className="flex items-center gap-2">
                                             {/* Size select dropdown */}
                                             <div className="relative border border-gray-200 rounded text-[10px] font-medium text-black bg-white flex items-center">
                                                 <span className="pl-2 pointer-events-none select-none uppercase">SIZE:</span>
@@ -256,26 +255,33 @@ export default function CartSidebar() {
                                                 </svg>
                                             </div>
 
-                                            {/* Quantity select dropdown */}
-                                            <div className="relative border border-gray-200 rounded text-[10px] font-medium text-black bg-white flex items-center">
-                                                <span className="pl-2 pointer-events-none select-none uppercase">QTY:</span>
-                                                <select
-                                                    value={item.quantity}
-                                                    onChange={(e) => updateQuantity(item.variantId, parseInt(e.target.value))}
-                                                    className="bg-transparent pl-1 pr-6 py-1 text-[10px] font-medium text-black outline-none cursor-pointer appearance-none"
+                                            {/* Quantity Plus / Minus Stepper */}
+                                            <div className="inline-flex items-center border border-gray-200 rounded text-[10px] font-medium text-black bg-white overflow-hidden">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => updateQuantity(item.variantId, item.quantity - 1)}
+                                                    disabled={item.quantity <= 1}
+                                                    aria-label="Decrease quantity"
+                                                    className={`px-2 py-1 text-black/70 transition-colors ${
+                                                        item.quantity <= 1 ? "opacity-25 cursor-not-allowed" : "hover:bg-gray-100 hover:text-black cursor-pointer active:scale-95"
+                                                    }`}
                                                 >
-                                                    {(() => {
-                                                        const maxStock = Math.max(1, Math.min(10, item.quantityAvailable ?? 10));
-                                                        return Array.from({ length: maxStock }, (_, i) => i + 1).map((q) => (
-                                                            <option key={q} value={q}>
-                                                                {q}
-                                                            </option>
-                                                        ));
-                                                    })()}
-                                                </select>
-                                                <svg viewBox="0 0 24 24" className="w-2.5 h-2.5 text-black/50 absolute right-1.5 pointer-events-none" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                                    <path d="M6 9l6 6 6-6" />
-                                                </svg>
+                                                    <Minus size={11} strokeWidth={2.5} />
+                                                </button>
+                                                <span className="w-6 text-center text-[10px] font-bold text-black select-none">
+                                                    {item.quantity}
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => updateQuantity(item.variantId, item.quantity + 1)}
+                                                    disabled={item.quantity >= Math.max(1, Math.min(10, item.quantityAvailable ?? 10))}
+                                                    aria-label="Increase quantity"
+                                                    className={`px-2 py-1 text-black/70 transition-colors ${
+                                                        item.quantity >= Math.max(1, Math.min(10, item.quantityAvailable ?? 10)) ? "opacity-25 cursor-not-allowed" : "hover:bg-gray-100 hover:text-black cursor-pointer active:scale-95"
+                                                    }`}
+                                                >
+                                                    <Plus size={11} strokeWidth={2.5} />
+                                                </button>
                                             </div>
                                         </div>
                                     </div>

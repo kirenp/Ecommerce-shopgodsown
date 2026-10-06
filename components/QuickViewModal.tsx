@@ -4,6 +4,8 @@ import { useState, useMemo, useEffect } from "react";
 import Image from "next/image";
 import { useCart } from "@/lib/cartContext";
 import { useUI } from "@/lib/uiContext";
+import { Plus, Minus } from "lucide-react";
+import SizeGuideModal from "@/components/SizeGuideModal";
 
 const SIZE_ORDER: Record<string, number> = {
   "XXS": 1,
@@ -37,11 +39,37 @@ function sortSizesList(sizes: any[]) {
   });
 }
 
+function renderProductTitle(title: string) {
+  if (!title) return null;
+  const match = title.match(/^(.*?)[\s]+((?:OVERSIZED\s+)?(?:T-SHIRT|T-Shirt|TANK TOP|Tank Top|HOODIE|Hoodie|SWEATSHIRT|Sweatshirt))$/i);
+  if (match) {
+    return (
+      <>
+        <span className="block">{match[1]}</span>
+        <span className="block whitespace-nowrap mt-1">{match[2]}</span>
+      </>
+    );
+  }
+  return title;
+}
+
 export default function QuickViewModal() {
     const { isQuickViewOpen, closeQuickView, quickViewProduct, openCartSidebar } = useUI();
     const { addToCart } = useCart();
 
-    const [selectedColor, setSelectedColor] = useState<string | null>(null);
+    const availableColors = quickViewProduct?.colors || [];
+
+    const defaultColor = useMemo(() => {
+        if (!quickViewProduct) return null;
+        if (quickViewProduct.colors && quickViewProduct.colors.length > 0) {
+            const first = quickViewProduct.colors[0];
+            return typeof first === 'string' ? first : (first?.label || first?.name || "Black");
+        }
+        const colorOpt = quickViewProduct.variants?.[0]?.options?.find((o: any) => o.name?.toLowerCase() === "color");
+        return colorOpt?.value || "Black";
+    }, [quickViewProduct]);
+
+    const [selectedColor, setSelectedColor] = useState<string | null>(defaultColor);
     const [selectedSize, setSelectedSize] = useState<string | null>(null);
     const [selectedQty, setSelectedQty] = useState<number>(1);
     const [displayImage, setDisplayImage] = useState("/images/placeholder.png");
@@ -50,49 +78,52 @@ export default function QuickViewModal() {
     // Reset state when product changes
     useEffect(() => {
         if (quickViewProduct) {
-            setSelectedColor(null);
+            setSelectedColor(defaultColor);
             setSelectedSize(null);
             setSelectedQty(1);
             setDisplayImage(quickViewProduct.images[0]?.url || "/images/placeholder.png");
         }
-    }, [quickViewProduct]);
+    }, [quickViewProduct, defaultColor]);
 
     // Update image when color changes
     useEffect(() => {
         if (selectedColor && quickViewProduct) {
             const variantWithImage = quickViewProduct.variants.find((v: any) =>
-                v.image && v.options.some((opt: any) => opt.name.toLowerCase() === "color" && opt.value === selectedColor)
+                v.image && v.options.some((opt: any) => opt.name.toLowerCase() === "color" && opt.value.toLowerCase() === selectedColor.toLowerCase())
             );
             if (variantWithImage?.image) setDisplayImage(variantWithImage.image);
         }
     }, [selectedColor, quickViewProduct]);
 
-    const availableColors = quickViewProduct?.colors || [];
-
     const availableSizesForColor = useMemo(() => {
         if (!quickViewProduct) return [];
         if (!selectedColor) return sortSizesList(quickViewProduct.sizes || []);
         const sizes = quickViewProduct.variants
-            .filter((v: any) => v.options.some((opt: any) => opt.name.toLowerCase() === "color" && opt.value === selectedColor))
+            .filter((v: any) => {
+                const colorOpt = v.options.find((opt: any) => opt.name.toLowerCase() === "color");
+                return !colorOpt || colorOpt.value.toLowerCase() === selectedColor.toLowerCase();
+            })
             .map((v: any) => {
                 const sizeOpt = v.options.find((opt: any) => opt.name.toLowerCase() === "size");
                 return sizeOpt ? sizeOpt.value : null;
             })
             .filter(Boolean);
-        return sortSizesList(Array.from(new Set(sizes)).map((s) => ({ label: s })));
+        const sorted = sortSizesList(Array.from(new Set(sizes)).map((s) => ({ label: s })));
+        return sorted.length > 0 ? sorted : sortSizesList(quickViewProduct.sizes || []);
     }, [selectedColor, quickViewProduct]);
 
     const currentVariant = useMemo(() => {
         if (!quickViewProduct) return null;
         return quickViewProduct.variants.find((v: any) => {
-            const colorMatch = !selectedColor || v.options.some((opt: any) => opt.name.toLowerCase() === "color" && opt.value === selectedColor);
-            const sizeMatch = !selectedSize || v.options.some((opt: any) => opt.name.toLowerCase() === "size" && opt.value === selectedSize);
+            const colorMatch = !selectedColor || v.options.some((opt: any) => opt.name.toLowerCase() === "color" && opt.value.toLowerCase() === selectedColor.toLowerCase());
+            const sizeMatch = !selectedSize || v.options.some((opt: any) => opt.name.toLowerCase() === "size" && opt.value.toLowerCase() === selectedSize.toLowerCase());
             return colorMatch && sizeMatch;
         });
     }, [quickViewProduct, selectedColor, selectedSize]);
 
-    const isVariantSelected = (availableColors.length === 0 || selectedColor !== null) &&
-        ((availableSizesForColor.length === 0 && !quickViewProduct?.sizes?.length) || selectedSize !== null);
+    const isColorSelected = availableColors.length <= 1 || selectedColor !== null;
+    const isSizeRequired = (quickViewProduct?.sizes && quickViewProduct.sizes.length > 0) || availableSizesForColor.length > 0;
+    const isVariantSelected = Boolean(quickViewProduct) && isColorSelected && (!isSizeRequired || selectedSize !== null);
     const isAvailable = currentVariant ? currentVariant.available : quickViewProduct?.available;
     const availableStock = currentVariant?.quantityAvailable ?? 999;
 
@@ -105,7 +136,7 @@ export default function QuickViewModal() {
     }, [selectedSize, selectedColor, availableStock]);
 
     const handleAddToCart = () => {
-        if (!quickViewProduct || !isVariantSelected || !isAvailable) return;
+        if (!quickViewProduct || !isVariantSelected || !isAvailable || availableStock <= 0) return;
 
         addToCart({
             id: quickViewProduct.id,
@@ -113,7 +144,7 @@ export default function QuickViewModal() {
             handle: quickViewProduct.handle,
             title: quickViewProduct.title,
             image: displayImage,
-            color: selectedColor || "",
+            color: selectedColor || defaultColor || "Black",
             size: selectedSize || "",
             price: currentVariant?.price || quickViewProduct.price,
             currencyCode: quickViewProduct.currencyCode || "INR",
@@ -166,19 +197,20 @@ export default function QuickViewModal() {
                 {/* Right: Details */}
                 <div className="w-full md:w-1/2 p-8 md:p-10 flex flex-col overflow-y-auto">
                     <div className="mb-6">
-                        <h2 className="font-brand text-3xl text-black font-semibold leading-tight mb-2">
-                            {quickViewProduct.title}
+                        <h2 className="font-sans text-2xl md:text-3xl text-black font-bold uppercase tracking-tight leading-tight mb-3 [hyphens:none]">
+                            {renderProductTitle(quickViewProduct.title)}
                         </h2>
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-baseline gap-4">
                             <p className="text-xl font-medium text-black">
-                                ₹{parseFloat(currentVariant?.price || quickViewProduct.price).toLocaleString("en-IN")}
+                                ₹ {parseFloat(currentVariant?.price || quickViewProduct.price).toLocaleString("en-IN")}
                             </p>
+                            <span className="text-xs font-normal text-black/60 tracking-[0.25em] uppercase">{quickViewProduct.currencyCode || "INR"}</span>
                         </div>
                     </div>
 
                     <div className="space-y-6 flex-1">
                         {/* Colors */}
-                        {availableColors.length > 0 && (
+                        {availableColors.length > 1 && (
                             <div className="space-y-3">
                                 <h4 className="text-xs font-bold text-black uppercase tracking-wider">
                                     Color {selectedColor && <span className="font-normal text-black/60 capitalize">— {selectedColor}</span>}
@@ -214,7 +246,30 @@ export default function QuickViewModal() {
                                     <h4 className="text-xs font-bold text-black uppercase tracking-wider">
                                         Size {selectedSize && <span className="font-normal text-black/60 uppercase">— {selectedSize}</span>}
                                     </h4>
-                                    <button onClick={() => setShowSizeGuide(true)} className="text-[10px] text-gray-500 hover:text-black uppercase tracking-wider underline underline-offset-4 transition-colors">Size Guide</button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowSizeGuide(true)}
+                                        className="inline-flex items-center gap-1.5 text-[10px] text-gray-500 hover:text-black uppercase tracking-wider underline underline-offset-4 transition-colors group cursor-pointer"
+                                    >
+                                        <svg
+                                            viewBox="0 0 24 16"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeWidth="1.75"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            className="w-3.5 h-2.5 shrink-0 text-gray-500 group-hover:text-black transition-colors"
+                                            aria-hidden="true"
+                                        >
+                                            <rect x="1.5" y="1.5" width="21" height="13" rx="1.5" />
+                                            <line x1="5.5" y1="1.5" x2="5.5" y2="6.5" />
+                                            <line x1="9" y1="1.5" x2="9" y2="5" />
+                                            <line x1="12" y1="1.5" x2="12" y2="7.5" />
+                                            <line x1="15.5" y1="1.5" x2="15.5" y2="5" />
+                                            <line x1="18.5" y1="1.5" x2="18.5" y2="6.5" />
+                                        </svg>
+                                        <span>Size Guide</span>
+                                    </button>
                                 </div>
                                 <div className="flex flex-wrap gap-2">
                                     {sortSizesList(availableSizesForColor.length > 0 ? availableSizesForColor : quickViewProduct.sizes || []).map((s: any, i: number) => (
@@ -234,25 +289,42 @@ export default function QuickViewModal() {
                         )}
 
                         {isVariantSelected && isAvailable && availableStock > 0 && (
-                            <div className="space-y-3">
+                            <div className="space-y-2">
                                 <h4 className="text-xs font-bold text-black uppercase tracking-wider">
-                                    Quantity
+                                    ADD TO BAG
                                 </h4>
-                                <div className="relative border border-gray-200 rounded text-xs font-medium text-black bg-white inline-flex items-center">
-                                    <select
-                                        value={selectedQty}
-                                        onChange={(e) => setSelectedQty(parseInt(e.target.value))}
-                                        className="bg-transparent pl-3 pr-8 py-2 text-xs font-bold text-black outline-none cursor-pointer appearance-none"
+                                <div className="inline-flex items-center border border-gray-300 rounded-lg bg-gray-50 overflow-hidden">
+                                    <button
+                                        type="button"
+                                        onClick={() => setSelectedQty((prev) => Math.max(1, prev - 1))}
+                                        disabled={selectedQty <= 1}
+                                        aria-label="Decrease quantity"
+                                        className={`px-3 py-2 text-black/70 transition-all ${
+                                            selectedQty <= 1
+                                                ? "opacity-25 cursor-not-allowed"
+                                                : "hover:bg-black/10 hover:text-black cursor-pointer active:scale-95"
+                                        }`}
                                     >
-                                        {Array.from({ length: Math.max(1, Math.min(10, availableStock)) }, (_, i) => i + 1).map((q) => (
-                                            <option key={q} value={q}>
-                                                {q}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <svg viewBox="0 0 24 24" className="w-3 h-3 text-black/50 absolute right-2.5 pointer-events-none" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                        <path d="M6 9l6 6 6-6" />
-                                    </svg>
+                                        <Minus size={13} strokeWidth={2.5} />
+                                    </button>
+
+                                    <span className="w-10 text-center text-xs font-bold tracking-wider text-black select-none">
+                                        {selectedQty}
+                                    </span>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => setSelectedQty((prev) => Math.min(Math.max(1, Math.min(10, availableStock)), prev + 1))}
+                                        disabled={selectedQty >= Math.max(1, Math.min(10, availableStock))}
+                                        aria-label="Increase quantity"
+                                        className={`px-3 py-2 text-black/70 transition-all ${
+                                            selectedQty >= Math.max(1, Math.min(10, availableStock))
+                                                ? "opacity-25 cursor-not-allowed"
+                                                : "hover:bg-black/10 hover:text-black cursor-pointer active:scale-95"
+                                        }`}
+                                    >
+                                        <Plus size={13} strokeWidth={2.5} />
+                                    </button>
                                 </div>
                             </div>
                         )}
@@ -261,7 +333,7 @@ export default function QuickViewModal() {
                             <p className="text-red-500 text-xs font-medium">Please select all options before adding to cart.</p>
                         )}
 
-                        {!isAvailable && isVariantSelected && (
+                        {(!isAvailable || availableStock <= 0) && isVariantSelected && (
                             <p className="text-red-500 text-xs font-medium">This variant is currently out of stock.</p>
                         )}
                     </div>
@@ -269,86 +341,20 @@ export default function QuickViewModal() {
                     <div className="mt-8 pt-6 border-t border-gray-100">
                         <button
                             onClick={handleAddToCart}
-                            disabled={!isVariantSelected || !isAvailable}
-                            className={`w-full py-4 rounded-lg font-bold uppercase tracking-wider text-sm transition-all ${!isVariantSelected || !isAvailable
+                            disabled={!isVariantSelected || !isAvailable || availableStock <= 0}
+                            className={`w-full py-4 rounded-lg font-bold uppercase tracking-wider text-sm transition-all ${!isVariantSelected || !isAvailable || availableStock <= 0
                                 ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                                 : "bg-black hover:bg-black/90 text-white hover:-translate-y-0.5"
                                 }`}
                         >
-                            Add To Cart
+                            {!isVariantSelected ? "Add To Cart" : (!isAvailable || availableStock <= 0) ? "Out of Stock" : "Add To Cart"}
                         </button>
                     </div>
                 </div>
             </div>
 
             {/* Size Guide Modal Overlay */}
-            {showSizeGuide && (
-                <div className="fixed inset-0 z-[200] flex items-center justify-center px-4">
-                    <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowSizeGuide(false)}></div>
-                    <div className="relative bg-white text-black p-8 rounded-2xl w-full max-w-2xl shadow-2xl animate-in zoom-in-95 duration-300">
-                        <button
-                            onClick={() => setShowSizeGuide(false)}
-                            className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
-                        >
-                            <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
-                        <h3 className="text-2xl font-brand font-semibold mb-6">Size Guide</h3>
-                        <div className="overflow-x-auto">
-                            <table className="w-full border-collapse text-sm text-center">
-                                <thead>
-                                    <tr className="border-b-2 border-gray-200 bg-gray-50/50">
-                                        <th className="p-4 font-bold text-gray-700">Size</th>
-                                        <th className="p-4 font-bold text-gray-700">Chest (in)</th>
-                                        <th className="p-4 font-bold text-gray-700">Chest (cm)</th>
-                                        <th className="p-4 font-bold text-gray-700">Length (in)</th>
-                                        <th className="p-4 font-bold text-gray-700">Length (cm)</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr className="border-b border-gray-100 hover:bg-gray-50/50">
-                                        <td className="p-4 font-bold">S</td>
-                                        <td className="p-4 text-gray-600">21</td>
-                                        <td className="p-4 text-gray-600">53.34</td>
-                                        <td className="p-4 text-gray-600">29</td>
-                                        <td className="p-4 text-gray-600">73.66</td>
-                                    </tr>
-                                    <tr className="border-b border-gray-100 hover:bg-gray-50/50">
-                                        <td className="p-4 font-bold">M</td>
-                                        <td className="p-4 text-gray-600">22</td>
-                                        <td className="p-4 text-gray-600">55.88</td>
-                                        <td className="p-4 text-gray-600">29.5</td>
-                                        <td className="p-4 text-gray-600">74.93</td>
-                                    </tr>
-                                    <tr className="border-b border-gray-100 hover:bg-gray-50/50">
-                                        <td className="p-4 font-bold">L</td>
-                                        <td className="p-4 text-gray-600">23</td>
-                                        <td className="p-4 text-gray-600">58.42</td>
-                                        <td className="p-4 text-gray-600">30</td>
-                                        <td className="p-4 text-gray-600">76.20</td>
-                                    </tr>
-                                    <tr className="border-b border-gray-100 hover:bg-gray-50/50">
-                                        <td className="p-4 font-bold">XL</td>
-                                        <td className="p-4 text-gray-600">24</td>
-                                        <td className="p-4 text-gray-600">60.96</td>
-                                        <td className="p-4 text-gray-600">30.5</td>
-                                        <td className="p-4 text-gray-600">77.47</td>
-                                    </tr>
-                                    <tr className="hover:bg-gray-50/50">
-                                        <td className="p-4 font-bold">XXL</td>
-                                        <td className="p-4 text-gray-600">25</td>
-                                        <td className="p-4 text-gray-600">63.50</td>
-                                        <td className="p-4 text-gray-600">31</td>
-                                        <td className="p-4 text-gray-600">78.74</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                        <p className="text-xs text-gray-500 mt-6 text-center">Measurements may vary up to 1 inch due to manual calculation.</p>
-                    </div>
-                </div>
-            )}
+            <SizeGuideModal isOpen={showSizeGuide} onClose={() => setShowSizeGuide(false)} product={quickViewProduct} />
         </div>
     );
 }

@@ -16,7 +16,7 @@ export default function PromiseBanner() {
         {/* 1. Background image */}
         <Image
           src="/images/promise-banner-bg.png"
-          alt="Gods Own — Made with Purpose"
+          alt="God's Own — Made with Purpose"
           fill
           className="object-cover object-center"
           priority
