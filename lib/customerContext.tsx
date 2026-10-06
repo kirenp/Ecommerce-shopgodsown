@@ -73,11 +73,25 @@ function getCookie(name: string): string | null {
   return match ? decodeURIComponent(match[2]) : null;
 }
 
+function getCookieDomain(): string | undefined {
+  if (typeof window === 'undefined') return undefined;
+  const hostname = window.location.hostname;
+  if (hostname.endsWith('shopgodsown.com')) {
+    return '.shopgodsown.com';
+  }
+  return undefined;
+}
+
 function setCookie(name: string, value: string, maxAge: number) {
-  document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAge}; SameSite=Lax`;
+  const domain = getCookieDomain();
+  const domainAttr = domain ? `; domain=${domain}` : '';
+  document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAge}; SameSite=Lax${domainAttr}`;
 }
 
 function deleteCookie(name: string) {
+  const domain = getCookieDomain();
+  const domainAttr = domain ? `; domain=${domain}` : '';
+  document.cookie = `${name}=; path=/; max-age=0${domainAttr}`;
   document.cookie = `${name}=; path=/; max-age=0`;
 }
 

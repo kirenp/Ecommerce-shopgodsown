@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { exchangeCodeForTokens, fetchCustomerProfile, buildLogoutUrl } from "@/lib/shopifyAuth";
+import {
+  exchangeCodeForTokens,
+  fetchCustomerProfile,
+  buildLogoutUrl,
+  getCanonicalAuthOrigin,
+  getAuthCookieDomain,
+} from "@/lib/shopifyAuth";
 
 export const dynamic = 'force-dynamic';
 
@@ -55,10 +61,11 @@ export async function GET(req: NextRequest) {
     }
 
     // Determine redirect URI (must match what was used in authorize)
-    // Priority: 1) Cookie stored during initiation, 2) env config, 3) computed from origin
+    // Priority: 1) Cookie stored during initiation, 2) env config, 3) computed from canonical origin
     const storedRedirectUri = req.cookies.get("goc_auth_redirect_uri")?.value;
     const configuredRedirect = process.env.SHOPIFY_CUSTOMER_ACCOUNT_REDIRECT_URI;
-    const redirectUri = storedRedirectUri || configuredRedirect || `${savedOrigin}/api/auth/callback`;
+    const canonicalSavedOrigin = getCanonicalAuthOrigin(savedOrigin);
+    const redirectUri = storedRedirectUri || configuredRedirect || `${canonicalSavedOrigin}/api/auth/callback`;
 
     console.log('[Auth Callback] Token exchange params:', {
       hasCode: !!code,
@@ -138,7 +145,7 @@ export async function GET(req: NextRequest) {
         `Shopify session for ${authenticatedEmail} has been cleared. Please re-enter ${intendedEmail} to receive your OTP.`
       );
       
-      const postLogoutRedirectUri = `${savedOrigin}/api/auth/logout`;
+      const postLogoutRedirectUri = `${getCanonicalAuthOrigin(savedOrigin)}/api/auth/logout`;
 
       const logoutUrl = buildLogoutUrl({
         shopId,
@@ -147,14 +154,23 @@ export async function GET(req: NextRequest) {
       });
 
       const mismatchResponse = NextResponse.redirect(logoutUrl);
-      mismatchResponse.cookies.delete("goc_pkce_verifier");
-      mismatchResponse.cookies.delete("goc_pkce_state");
-      mismatchResponse.cookies.delete("goc_auth_return_url");
-      mismatchResponse.cookies.delete("goc_auth_origin");
-      mismatchResponse.cookies.delete("goc_auth_intended_email");
-      mismatchResponse.cookies.delete("goc_auth_redirect_uri");
-      mismatchResponse.cookies.delete("goc_auth_session");
-      mismatchResponse.cookies.delete("goc_auth_customer");
+      const cookieDomain = getAuthCookieDomain(savedOrigin || headerHost || "");
+      const clearAuthCookies = [
+        "goc_pkce_verifier",
+        "goc_pkce_state",
+        "goc_auth_return_url",
+        "goc_auth_origin",
+        "goc_auth_intended_email",
+        "goc_auth_redirect_uri",
+        "goc_auth_session",
+        "goc_auth_customer",
+      ];
+      for (const name of clearAuthCookies) {
+        mismatchResponse.cookies.delete(name);
+        if (cookieDomain) {
+          mismatchResponse.cookies.set(name, "", { maxAge: 0, path: "/", domain: cookieDomain });
+        }
+      }
       return mismatchResponse;
     }
 
@@ -171,6 +187,7 @@ export async function GET(req: NextRequest) {
     returnUrl.searchParams.set("auth_success", "true");
 
     const response = NextResponse.redirect(returnUrl);
+    const cookieDomain = getAuthCookieDomain(savedOrigin || headerHost || "");
 
     // Store sensitive tokens in httpOnly cookie (inaccessible to JavaScript / XSS)
     response.cookies.set("goc_auth_session", JSON.stringify(sessionData), {
@@ -179,6 +196,7 @@ export async function GET(req: NextRequest) {
       sameSite: "lax",
       maxAge: tokens.expires_in || 7200,
       path: "/",
+      ...(cookieDomain ? { domain: cookieDomain } : {}),
     });
 
     // Store non-sensitive display data in a JS-accessible cookie for client UI
@@ -192,15 +210,24 @@ export async function GET(req: NextRequest) {
       sameSite: "lax",
       maxAge: tokens.expires_in || 7200,
       path: "/",
+      ...(cookieDomain ? { domain: cookieDomain } : {}),
     });
 
     // Clear PKCE cookies
-    response.cookies.delete("goc_pkce_verifier");
-    response.cookies.delete("goc_pkce_state");
-    response.cookies.delete("goc_auth_return_url");
-    response.cookies.delete("goc_auth_origin");
-    response.cookies.delete("goc_auth_intended_email");
-    response.cookies.delete("goc_auth_redirect_uri");
+    const clearTempCookies = [
+      "goc_pkce_verifier",
+      "goc_pkce_state",
+      "goc_auth_return_url",
+      "goc_auth_origin",
+      "goc_auth_intended_email",
+      "goc_auth_redirect_uri",
+    ];
+    for (const name of clearTempCookies) {
+      response.cookies.delete(name);
+      if (cookieDomain) {
+        response.cookies.set(name, "", { maxAge: 0, path: "/", domain: cookieDomain });
+      }
+    }
 
     return response;
   } catch (error: any) {

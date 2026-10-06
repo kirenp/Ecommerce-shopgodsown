@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getAuthCookieDomain } from "@/lib/shopifyAuth";
 
 export const dynamic = 'force-dynamic';
 
@@ -28,16 +29,26 @@ export async function GET(req: NextRequest) {
     }
 
     const response = NextResponse.redirect(targetUrl);
+    const cookieDomain = getAuthCookieDomain(savedOrigin || headerHost || "");
 
-    // Delete all auth session cookies
-    response.cookies.delete("goc_auth_session");
-    response.cookies.delete("goc_auth_customer");
-    response.cookies.delete("goc_pkce_verifier");
-    response.cookies.delete("goc_pkce_state");
-    response.cookies.delete("goc_auth_return_url");
-    response.cookies.delete("goc_auth_origin");
-    response.cookies.delete("goc_auth_intended_email");
-    response.cookies.delete("goc_auth_redirect_uri");
+    // Delete all auth session cookies (both host-only and domain-scoped)
+    const authCookies = [
+      "goc_auth_session",
+      "goc_auth_customer",
+      "goc_pkce_verifier",
+      "goc_pkce_state",
+      "goc_auth_return_url",
+      "goc_auth_origin",
+      "goc_auth_intended_email",
+      "goc_auth_redirect_uri",
+    ];
+
+    for (const name of authCookies) {
+      response.cookies.delete(name);
+      if (cookieDomain) {
+        response.cookies.set(name, "", { maxAge: 0, path: "/", domain: cookieDomain });
+      }
+    }
 
     return response;
   } catch (error: any) {

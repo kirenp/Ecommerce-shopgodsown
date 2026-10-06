@@ -288,3 +288,38 @@ export async function fetchCustomerProfile({
     return null;
   }
 }
+
+/**
+ * Normalizes the public origin for Shopify Customer Account API OAuth.
+ * Ensures production always matches the registered callback domain (https://shopgodsown.com),
+ * while preserving localhost / 127.0.0.1 for local development.
+ */
+export function getCanonicalAuthOrigin(rawOrigin?: string): string {
+  if (!rawOrigin) return "https://shopgodsown.com";
+  const origin = rawOrigin.replace(/\/$/, "");
+  if (origin.includes("localhost") || origin.includes("127.0.0.1")) {
+    return origin;
+  }
+  if (origin.includes("shopgodsown.com")) {
+    return "https://shopgodsown.com";
+  }
+  return origin;
+}
+
+/**
+ * Returns the cookie domain (.shopgodsown.com) for production to share
+ * auth cookies across apex and subdomains (e.g. www.shopgodsown.com).
+ * Returns undefined for localhost / preview domains.
+ */
+export function getAuthCookieDomain(hostOrOrigin?: string): string | undefined {
+  if (!hostOrOrigin) return undefined;
+  try {
+    const hostname = hostOrOrigin.startsWith("http")
+      ? new URL(hostOrOrigin).hostname
+      : hostOrOrigin.split(":")[0];
+    if (hostname.endsWith("shopgodsown.com")) {
+      return ".shopgodsown.com";
+    }
+  } catch {}
+  return undefined;
+}

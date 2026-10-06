@@ -6,6 +6,7 @@ import {
   generateCodeChallenge,
   buildAuthorizationUrl,
   buildLogoutUrl,
+  getCanonicalAuthOrigin,
 } from "@/lib/shopifyAuth";
 import {
   getServerCustomerAddresses,
@@ -305,7 +306,8 @@ export async function POST(req: NextRequest) {
       const referer = req.headers.get("referer") || "";
       const rawOrigin = body.origin || req.headers.get("origin") || (referer ? new URL(referer).origin : "http://localhost:3000");
       const origin = rawOrigin.replace(/\/$/, "");
-      const redirectUri = configuredRedirect || `${origin}/api/auth/callback`;
+      const canonicalOrigin = getCanonicalAuthOrigin(origin);
+      const redirectUri = configuredRedirect || `${canonicalOrigin}/api/auth/callback`;
 
       // Extract return path from referer if on dev-preview
       let returnPath = body.returnPath || "/";
@@ -333,7 +335,7 @@ export async function POST(req: NextRequest) {
         loginHint: email?.trim(),
       });
 
-      console.log('[Auth] Initiated OAuth flow:', { redirectUri, origin, returnPath, hasEmail: !!email });
+      console.log('[Auth] Initiated OAuth flow:', { redirectUri, origin, canonicalOrigin, returnPath, hasEmail: !!email });
 
       return NextResponse.json({
         authorizationUrl,
@@ -350,8 +352,10 @@ export async function POST(req: NextRequest) {
     // Generate Shopify Customer Account logout URL to clear domain session
     if (action === "get-logout-url") {
       const referer = req.headers.get("referer") || "";
-      const origin = body.origin || req.headers.get("origin") || (referer ? new URL(referer).origin : "http://localhost:3000");
-      const postLogoutRedirectUri = `${origin}/api/auth/logout`;
+      const rawOrigin = body.origin || req.headers.get("origin") || (referer ? new URL(referer).origin : "http://localhost:3000");
+      const origin = rawOrigin.replace(/\/$/, "");
+      const canonicalOrigin = getCanonicalAuthOrigin(origin);
+      const postLogoutRedirectUri = `${canonicalOrigin}/api/auth/logout`;
       const idTokenHint = body.idToken;
 
       const logoutUrl = buildLogoutUrl({
