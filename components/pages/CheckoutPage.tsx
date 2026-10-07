@@ -396,7 +396,17 @@ export default function CheckoutPageContent() {
     const errors: Record<string, string> = {};
     
     // Validate Shipping details
-    if (!emailOrPhone.trim()) errors.emailOrPhone = "Email or mobile number is required";
+    const trimmedContact = emailOrPhone.trim();
+    if (!trimmedContact) {
+      errors.emailOrPhone = "Email or mobile phone number is required";
+    } else {
+      const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedContact);
+      const cleanPhone = trimmedContact.replace(/[\s\-\+\(\)]/g, "");
+      const isPhone = /^\d{10,12}$/.test(cleanPhone);
+      if (!isEmail && !isPhone) {
+        errors.emailOrPhone = "Please enter a valid email address or 10-digit mobile number";
+      }
+    }
     if (!firstName.trim()) errors.firstName = "First name is required";
     if (!lastName.trim()) errors.lastName = "Last name is required";
     if (!address.trim()) errors.address = "Address is required";
@@ -1270,7 +1280,7 @@ export default function CheckoutPageContent() {
         
         {/* Left Column: Form Fields (White Background) */}
         <div className="lg:col-span-7 px-6 md:px-12 py-12 md:py-16 space-y-12 bg-white">
-          <form onSubmit={handlePayNow} autoComplete="on" className="space-y-10">
+          <form onSubmit={handlePayNow} noValidate autoComplete="on" className="space-y-10">
             
             {/* Contact Section */}
             <div className="space-y-4">
@@ -1324,8 +1334,9 @@ export default function CheckoutPageContent() {
                 <input
                   id="checkout-email"
                   name="email"
-                  type="email"
-                  autoComplete="shipping email"
+                  type="text"
+                  inputMode="text"
+                  autoComplete="shipping email tel"
                   placeholder="Email or mobile phone number"
                   value={emailOrPhone}
                   onInput={(e) => {
