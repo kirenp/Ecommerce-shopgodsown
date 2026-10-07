@@ -172,6 +172,7 @@ export async function GET(req: NextRequest) {
               `,
               variables: { queryStr: `email:${resolvedEmail}` },
             }),
+            signal: AbortSignal.timeout(4000),
             cache: "no-store",
           });
           const adminData = await adminRes.json();
@@ -197,12 +198,9 @@ export async function GET(req: NextRequest) {
       intendedEmail,
     });
 
-    // Build customer session data
+    // Build customer session data - keep compact to stay strictly under RFC 6265 cookie limits (<4KB) and proxy buffer limits
     const sessionData = {
-      accessToken: tokens.access_token,
-      refreshToken: tokens.refresh_token,
-      idToken: tokens.id_token,
-      expiresAt: Date.now() + (tokens.expires_in * 1000),
+      expiresAt: Date.now() + ((tokens.expires_in || 7200) * 1000),
       customer: customerObj.email ? customerObj : null,
     };
 
@@ -236,7 +234,7 @@ export async function GET(req: NextRequest) {
       ...(cookieDomain ? { domain: cookieDomain } : {}),
     });
 
-    // Clear PKCE cookies
+    // Clear PKCE cookies cleanly
     const clearTempCookies = [
       "goc_pkce_verifier",
       "goc_pkce_state",
@@ -247,10 +245,11 @@ export async function GET(req: NextRequest) {
       "goc_auth_mismatch_notice",
     ];
     for (const name of clearTempCookies) {
-      response.cookies.delete(name);
-      if (cookieDomain) {
-        response.cookies.set(name, "", { maxAge: 0, path: "/", domain: cookieDomain });
-      }
+      response.cookies.set(name, "", {
+        path: "/",
+        maxAge: 0,
+        ...(cookieDomain ? { domain: cookieDomain } : {}),
+      });
     }
 
     return response;

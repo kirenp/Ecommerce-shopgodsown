@@ -139,6 +139,7 @@ export async function exchangeCodeForTokens({
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: body.toString(),
+    signal: AbortSignal.timeout(8000),
   });
 
   if (!res.ok) {
@@ -263,6 +264,7 @@ export async function fetchCustomerProfile({
         'Authorization': authHeader,
       },
       body: JSON.stringify({ query }),
+      signal: AbortSignal.timeout(8000),
     });
 
     if (!res.ok && res.status === 404) {
@@ -274,6 +276,7 @@ export async function fetchCustomerProfile({
           'Authorization': authHeader,
         },
         body: JSON.stringify({ query }),
+        signal: AbortSignal.timeout(8000),
       });
     }
 

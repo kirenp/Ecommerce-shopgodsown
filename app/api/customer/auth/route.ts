@@ -328,6 +328,7 @@ export async function POST(req: NextRequest) {
         returnPath,
         origin,
         redirectUri,
+        codeVerifier,
       });
 
       const cookieDomain = getAuthCookieDomain(origin);
