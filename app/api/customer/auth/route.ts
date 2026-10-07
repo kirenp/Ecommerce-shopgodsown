@@ -16,6 +16,7 @@ import {
 } from "@/lib/serverCustomerStore";
 import { getServerCustomerOrders } from "@/lib/serverOrderStore";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rateLimit";
+import { getVerifiedSession, getVerifiedSessionEmail } from "@/lib/authSession";
 
 export const dynamic = 'force-dynamic';
 
@@ -24,24 +25,6 @@ const adminToken = process.env.SHOPIFY_ADMIN_ACCESS_TOKEN || (process.env.SHOPIF
 const apiVersion = process.env.SHOPIFY_API_VERSION || "2026-01";
 const shopId = process.env.SHOPIFY_SHOP_ID || "";
 const clientId = process.env.SHOPIFY_CUSTOMER_ACCOUNT_CLIENT_ID || "";
-
-/**
- * Extract and validate auth session from cookie.
- * Returns the session email if valid, or null if missing/expired.
- */
-function getSessionEmail(req: NextRequest): string | null {
-  try {
-    const sessionCookie = req.cookies.get("goc_auth_session")?.value;
-    if (!sessionCookie) return null;
-    const session = JSON.parse(sessionCookie);
-    if (!session?.customer?.email) return null;
-    // Check expiration
-    if (session.expiresAt && Date.now() > session.expiresAt) return null;
-    return session.customer.email.toLowerCase();
-  } catch {
-    return null;
-  }
-}
 
 // Admin API helper
 async function adminFetch(query: string, variables = {}) {
@@ -340,7 +323,6 @@ export async function POST(req: NextRequest) {
 
       const response = NextResponse.json({
         authorizationUrl,
-        codeVerifier,
         state,
         nonce,
         returnPath,
@@ -358,7 +340,11 @@ export async function POST(req: NextRequest) {
         ...(cookieDomain ? { domain: cookieDomain } : {}),
       };
 
-      response.cookies.set("goc_pkce_verifier", codeVerifier, cookieOpts);
+      // Store PKCE verifier as httpOnly cookie so it cannot be extracted via client-side scripts/XSS
+      response.cookies.set("goc_pkce_verifier", codeVerifier, {
+        ...cookieOpts,
+        httpOnly: true,
+      });
       response.cookies.set("goc_pkce_state", state, cookieOpts);
       response.cookies.set("goc_auth_origin", origin, cookieOpts);
       response.cookies.set("goc_auth_return_url", returnPath, cookieOpts);
@@ -379,13 +365,10 @@ export async function POST(req: NextRequest) {
       const canonicalOrigin = getCanonicalAuthOrigin(origin);
       let idTokenHint = body.idToken;
       if (!idTokenHint) {
-        try {
-          const sessionCookie = req.cookies.get("goc_auth_session")?.value;
-          if (sessionCookie) {
-            const sess = JSON.parse(sessionCookie);
-            if (sess?.idToken) idTokenHint = sess.idToken;
-          }
-        } catch {}
+        const verifiedSess = getVerifiedSession(req);
+        if (verifiedSess?.idToken) {
+          idTokenHint = verifiedSess.idToken;
+        }
       }
       const postLogoutRedirectUri = `${canonicalOrigin}/api/auth/logout`;
 
@@ -401,19 +384,15 @@ export async function POST(req: NextRequest) {
     // ─── ACTION: GET-CUSTOMER-DATA ───────────────────────────────────
     // Fetch customer orders/profile from Admin API by email (post-auth)
     if (action === "get-customer-data") {
-      if (!email?.trim()) {
-        return NextResponse.json({ error: "Email is required." }, { status: 400 });
-      }
-      const cleanEmail = email.trim().toLowerCase();
-
-      // ── AUTH CHECK: Require valid session matching the requested email ──
-      const sessionEmail = getSessionEmail(req);
-      if (!sessionEmail || sessionEmail !== cleanEmail) {
+      // ── AUTH CHECK: Authenticated customer identity derived strictly from cryptographically signed session ──
+      const verifiedEmail = getVerifiedSessionEmail(req);
+      if (!verifiedEmail) {
         return NextResponse.json(
           { error: "Authentication required. Please sign in." },
           { status: 401 }
         );
       }
+      const cleanEmail = verifiedEmail;
 
       let customer: any = null;
       let orders: any[] = [];
@@ -541,17 +520,17 @@ export async function POST(req: NextRequest) {
     // ─── ACTION: SAVE-ADDRESS ────────────────────────────────────────
     // Save customer address to server database & sync to Shopify Admin DB
     if (action === "save-address") {
-      const { email, address } = body;
-      if (!email?.trim() || !address) {
-        return NextResponse.json({ error: "Email and address are required." }, { status: 400 });
+      const { address } = body;
+      if (!address) {
+        return NextResponse.json({ error: "Address is required." }, { status: 400 });
       }
-      const cleanEmail = email.trim().toLowerCase();
 
-      // ── AUTH CHECK ──
-      const sessionEmail = getSessionEmail(req);
-      if (!sessionEmail || sessionEmail !== cleanEmail) {
+      // ── AUTH CHECK: Authenticated customer identity derived strictly from cryptographically signed session ──
+      const verifiedEmail = getVerifiedSessionEmail(req);
+      if (!verifiedEmail) {
         return NextResponse.json({ error: "Authentication required." }, { status: 401 });
       }
+      const cleanEmail = verifiedEmail;
 
       // Save persistently to server customer store
       const updatedAddrs = saveServerCustomerAddress(cleanEmail, address);
@@ -591,17 +570,17 @@ export async function POST(req: NextRequest) {
 
     // ─── ACTION: REMOVE-ADDRESS ──────────────────────────────────────
     if (action === "remove-address") {
-      const { email, addressId } = body;
-      if (!email?.trim() || !addressId) {
-        return NextResponse.json({ error: "Email and addressId are required." }, { status: 400 });
+      const { addressId } = body;
+      if (!addressId) {
+        return NextResponse.json({ error: "addressId is required." }, { status: 400 });
       }
-      const cleanEmail = email.trim().toLowerCase();
 
-      // ── AUTH CHECK ──
-      const sessionEmail = getSessionEmail(req);
-      if (!sessionEmail || sessionEmail !== cleanEmail) {
+      // ── AUTH CHECK: Authenticated customer identity derived strictly from cryptographically signed session ──
+      const verifiedEmail = getVerifiedSessionEmail(req);
+      if (!verifiedEmail) {
         return NextResponse.json({ error: "Authentication required." }, { status: 401 });
       }
+      const cleanEmail = verifiedEmail;
 
       const updatedAddrs = removeServerCustomerAddress(cleanEmail, addressId);
       return NextResponse.json({ success: true, addresses: updatedAddrs });

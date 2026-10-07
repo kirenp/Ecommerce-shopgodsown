@@ -11,25 +11,47 @@ export function middleware(request: NextRequest) {
   if (request.method === "POST" && pathname.startsWith("/api") && !pathname.startsWith("/api/webhooks")) {
     const origin = request.headers.get("origin");
     const referer = request.headers.get("referer");
-    const host = request.headers.get("host") || request.headers.get("x-forwarded-host") || "";
+    const host = request.headers.get("x-forwarded-host") || request.headers.get("host") || "";
 
-    // Determine if the request is from the same origin
-    let isSameOrigin = false;
+    const TRUSTED_PRODUCTION_HOSTS = new Set(["shopgodsown.com", "www.shopgodsown.com"]);
+    const TRUSTED_DEV_HOSTS = new Set(["localhost", "127.0.0.1"]);
+
+    const isHostAllowed = (candidateHost: string, targetHost: string): boolean => {
+      const cleanCandidate = candidateHost.split(":")[0].toLowerCase();
+      const cleanTarget = targetHost.split(":")[0].toLowerCase();
+
+      if (cleanCandidate === cleanTarget) return true;
+
+      // Allow cross-communication between explicitly authorized production aliases
+      if (TRUSTED_PRODUCTION_HOSTS.has(cleanCandidate) && TRUSTED_PRODUCTION_HOSTS.has(cleanTarget)) {
+        return true;
+      }
+
+      // Allow local development port variations
+      if (TRUSTED_DEV_HOSTS.has(cleanCandidate) && TRUSTED_DEV_HOSTS.has(cleanTarget)) {
+        return true;
+      }
+
+      return false;
+    };
+
+    let isAllowed = false;
     if (origin) {
       try {
         const originHost = new URL(origin).host;
-        isSameOrigin = originHost === host;
+        isAllowed = isHostAllowed(originHost, host);
       } catch {}
     } else if (referer) {
       try {
         const refererHost = new URL(referer).host;
-        isSameOrigin = refererHost === host;
+        isAllowed = isHostAllowed(refererHost, host);
       } catch {}
+    } else {
+      // Allow requests without Origin/Referer (e.g. server-to-server, curl, non-browser)
+      isAllowed = true;
     }
 
-    // Allow requests without Origin header (e.g., server-to-server, same-origin form posts in some browsers)
-    // Block requests with a known cross-origin Origin header
-    if (origin && !isSameOrigin) {
+    if (origin && !isAllowed) {
       return NextResponse.json(
         { error: "Cross-origin request blocked." },
         { status: 403 }

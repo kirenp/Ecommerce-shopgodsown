@@ -32,7 +32,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
 
   title: {
-    default: "GOD'S OWN | Luxury Streetwear — Shop God's Own Culture",
+    default: "GOD'S OWN | For Everyday Lifestyle",
     template: "%s | GOD'S OWN",
   },
 
@@ -74,7 +74,7 @@ export const metadata: Metadata = {
     type: "website",
     url: siteUrl,
     siteName,
-    title: "GOD'S OWN | Luxury Streetwear",
+    title: "GOD'S OWN | For Everyday Lifestyle",
     description:
       "Premium limited-release streetwear born from Kerala's cultural heritage. Exclusive drops — gym & street ready.",
     images: [
@@ -82,7 +82,7 @@ export const metadata: Metadata = {
         url: "/images/Gods Own (1).png",
         width: 1200,
         height: 630,
-        alt: "God's Own Culture — Luxury Streetwear",
+        alt: "God's Own Culture — For Everyday Lifestyle",
       },
     ],
     locale: "en_IN",
@@ -90,7 +90,7 @@ export const metadata: Metadata = {
 
   twitter: {
     card: "summary_large_image",
-    title: "GOD'S OWN | Luxury Streetwear",
+    title: "GOD'S OWN | For Everyday Lifestyle",
     description:
       "Premium limited-release streetwear. Exclusive drops — gym & street ready.",
     images: ["/images/Gods Own (1).png"],

@@ -5,6 +5,7 @@ import {
   getCanonicalAuthOrigin,
   getAuthCookieDomain,
 } from "@/lib/shopifyAuth";
+import { createSignedSessionToken } from "@/lib/authSession";
 
 export const dynamic = 'force-dynamic';
 
@@ -211,8 +212,8 @@ export async function GET(req: NextRequest) {
     const response = NextResponse.redirect(returnUrl);
     const cookieDomain = getAuthCookieDomain(savedOrigin || headerHost || "");
 
-    // Store sensitive tokens in httpOnly cookie (inaccessible to JavaScript / XSS)
-    response.cookies.set("goc_auth_session", JSON.stringify(sessionData), {
+    // Store sensitive tokens in cryptographically signed httpOnly cookie (tamper-proof & inaccessible to JS/XSS)
+    response.cookies.set("goc_auth_session", createSignedSessionToken(sessionData), {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",

@@ -23,6 +23,9 @@ export interface ServerCustomerOrder {
   paymentId?: string;
 }
 
+const memoryStore = new Map<string, ServerCustomerOrder[]>();
+let hasLoadedFromDisk = false;
+
 const DATA_DIR = path.join(process.cwd(), 'data');
 const STORE_FILE = path.join(DATA_DIR, 'customer_orders.json');
 
@@ -35,43 +38,55 @@ function ensureStoreFile() {
       fs.writeFileSync(STORE_FILE, JSON.stringify({}), 'utf8');
     }
   } catch (e) {
-    console.warn("Failed to initialize server customer order store file:", e);
+    // Non-blocking in serverless / restricted container environments
   }
 }
 
 function readStore(): Record<string, ServerCustomerOrder[]> {
-  ensureStoreFile();
   try {
+    ensureStoreFile();
     if (!fs.existsSync(STORE_FILE)) return {};
     const content = fs.readFileSync(STORE_FILE, 'utf8');
     return content ? JSON.parse(content) : {};
   } catch (e) {
-    console.warn("Failed to read customer order store:", e);
     return {};
   }
 }
 
 function writeStore(store: Record<string, ServerCustomerOrder[]>) {
-  ensureStoreFile();
   try {
+    ensureStoreFile();
     fs.writeFileSync(STORE_FILE, JSON.stringify(store, null, 2), 'utf8');
   } catch (e) {
-    console.warn("Failed to write customer order store:", e);
+    // Non-blocking write failure; in-memory store remains active
   }
+}
+
+function loadInitialMemoryStore() {
+  if (hasLoadedFromDisk) return;
+  hasLoadedFromDisk = true;
+  try {
+    const diskData = readStore();
+    for (const [email, orders] of Object.entries(diskData)) {
+      if (Array.isArray(orders)) {
+        memoryStore.set(email.toLowerCase(), orders);
+      }
+    }
+  } catch {}
 }
 
 export function getServerCustomerOrders(email: string): ServerCustomerOrder[] {
   if (!email) return [];
+  loadInitialMemoryStore();
   const cleanEmail = email.trim().toLowerCase();
-  const store = readStore();
-  return store[cleanEmail] || [];
+  return memoryStore.get(cleanEmail) || [];
 }
 
 export function saveServerCustomerOrder(order: ServerCustomerOrder): ServerCustomerOrder[] {
   if (!order.email) return [];
+  loadInitialMemoryStore();
   const cleanEmail = order.email.trim().toLowerCase();
-  const store = readStore();
-  const currentOrders = store[cleanEmail] || [];
+  const currentOrders = memoryStore.get(cleanEmail) || [];
 
   const existingIndex = currentOrders.findIndex(o => o.orderNumber === order.orderNumber || o.id === order.id);
 
@@ -83,7 +98,14 @@ export function saveServerCustomerOrder(order: ServerCustomerOrder): ServerCusto
     newOrders = [order, ...currentOrders];
   }
 
-  store[cleanEmail] = newOrders;
-  writeStore(store);
+  memoryStore.set(cleanEmail, newOrders);
+
+  // Guarded background file sync
+  try {
+    const diskStore = readStore();
+    diskStore[cleanEmail] = newOrders;
+    writeStore(diskStore);
+  } catch {}
+
   return newOrders;
 }

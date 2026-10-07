@@ -588,10 +588,10 @@ export default function CheckoutPageContent() {
                 razorpaySignature: response.razorpay_signature,
               }),
             });
-            const completeData = await completeRes.json();
-            if (completeData.orderNumber) {
-              setConfirmedOrderNumber(completeData.orderNumber);
-            }
+            const completeData = await completeRes.json().catch(() => ({}));
+            const resolvedOrderNumber = completeData.orderNumber || `#PAY-${String(response.razorpay_payment_id).slice(-8).toUpperCase()}`;
+            setConfirmedOrderNumber(resolvedOrderNumber);
+
             const userEmail = emailOrPhone.includes("@") ? emailOrPhone.trim().toLowerCase() : (customer?.email || "");
             if (userEmail) {
               refreshCustomerData(userEmail);
@@ -601,17 +601,22 @@ export default function CheckoutPageContent() {
             const purchaseEventId = completeData.eventId || String(completeData.orderId || response.razorpay_order_id);
             trackPurchase({
               orderId: purchaseEventId,
-              orderNumber: completeData.orderNumber,
+              orderNumber: resolvedOrderNumber,
               amount: totalAmount,
               currency: "INR",
               items,
             });
+
+            clearCart();
+            setIsSuccess(true);
           } catch (err) {
             console.error("Order complete sync error:", err);
-          } finally {
+            // Fallback display with Razorpay payment reference so customer is never stranded
+            setConfirmedOrderNumber(`#PAY-${String(response.razorpay_payment_id).slice(-8).toUpperCase()}`);
             clearCart();
-            setIsSubmitting(false);
             setIsSuccess(true);
+          } finally {
+            setIsSubmitting(false);
           }
         },
         prefill: {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createHmac } from "crypto";
+import { createHmac, timingSafeEqual } from "crypto";
 import { sendMetaPurchaseEvent } from "@/lib/metaConversionsApi";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +19,9 @@ function verifyShopifyHmac(rawBody: string, hmacHeader: string | null): boolean 
     .update(rawBody, "utf8")
     .digest("base64");
 
-  return generatedHmac === hmacHeader;
+  const genBuf = Buffer.from(generatedHmac, "utf8");
+  const hdrBuf = Buffer.from(hmacHeader, "utf8");
+  return genBuf.length === hdrBuf.length && timingSafeEqual(genBuf, hdrBuf);
 }
 
 export async function POST(req: NextRequest) {
