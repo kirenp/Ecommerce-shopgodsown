@@ -15,6 +15,8 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const returnPathCookie = req.cookies.get("goc_auth_return_url")?.value || searchParams.get("returnPath") || "/";
     const authError = searchParams.get("auth_error");
+    const rawMismatchNotice = req.cookies.get("goc_auth_mismatch_notice")?.value;
+    const mismatchNotice = rawMismatchNotice ? decodeURIComponent(rawMismatchNotice) : null;
     
     // Determine public origin
     const cookieOrigin = req.cookies.get("goc_auth_origin")?.value;
@@ -24,7 +26,9 @@ export async function GET(req: NextRequest) {
     const savedOrigin = (cookieOrigin && !cookieOrigin.includes("b2591201c62c")) ? cookieOrigin : fallbackOrigin;
 
     const targetUrl = new URL(returnPathCookie, savedOrigin);
-    if (authError) {
+    if (mismatchNotice) {
+      targetUrl.searchParams.set("auth_error", mismatchNotice);
+    } else if (authError) {
       targetUrl.searchParams.set("auth_error", authError);
     }
 
@@ -41,6 +45,7 @@ export async function GET(req: NextRequest) {
       "goc_auth_origin",
       "goc_auth_intended_email",
       "goc_auth_redirect_uri",
+      "goc_auth_mismatch_notice",
     ];
 
     for (const name of authCookies) {

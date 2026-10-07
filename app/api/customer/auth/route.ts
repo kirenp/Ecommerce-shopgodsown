@@ -355,8 +355,17 @@ export async function POST(req: NextRequest) {
       const rawOrigin = body.origin || req.headers.get("origin") || (referer ? new URL(referer).origin : "http://localhost:3000");
       const origin = rawOrigin.replace(/\/$/, "");
       const canonicalOrigin = getCanonicalAuthOrigin(origin);
+      let idTokenHint = body.idToken;
+      if (!idTokenHint) {
+        try {
+          const sessionCookie = req.cookies.get("goc_auth_session")?.value;
+          if (sessionCookie) {
+            const sess = JSON.parse(sessionCookie);
+            if (sess?.idToken) idTokenHint = sess.idToken;
+          }
+        } catch {}
+      }
       const postLogoutRedirectUri = `${canonicalOrigin}/api/auth/logout`;
-      const idTokenHint = body.idToken;
 
       const logoutUrl = buildLogoutUrl({
         shopId,

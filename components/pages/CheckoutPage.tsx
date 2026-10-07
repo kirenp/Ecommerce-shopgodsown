@@ -398,6 +398,7 @@ export default function CheckoutPageContent() {
     // Validate Shipping details
     if (!emailOrPhone.trim()) errors.emailOrPhone = "Email or mobile number is required";
     if (!firstName.trim()) errors.firstName = "First name is required";
+    if (!lastName.trim()) errors.lastName = "Last name is required";
     if (!address.trim()) errors.address = "Address is required";
     if (!city.trim()) errors.city = "City is required";
     if (!pinCode.trim()) {
@@ -414,6 +415,7 @@ export default function CheckoutPageContent() {
     // Validate Billing details conditionally
     if (!billingSame) {
       if (!billingFirstName.trim()) errors.billingFirstName = "Billing first name is required";
+      if (!billingLastName.trim()) errors.billingLastName = "Billing last name is required";
       if (!billingAddress.trim()) errors.billingAddress = "Billing address is required";
       if (!billingCity.trim()) errors.billingCity = "Billing city is required";
       if (!billingPinCode.trim()) {
@@ -888,7 +890,7 @@ export default function CheckoutPageContent() {
                   </select>
                 </div>
 
-                {/* Names: First name (mandatory) / Last name (optional) */}
+                {/* Names: First name (mandatory) / Last name (mandatory) */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                   <div>
                     <input
@@ -919,17 +921,35 @@ export default function CheckoutPageContent() {
                       <p className="text-xs text-[#C81E1E] mt-1.5">{validationErrors.firstName}</p>
                     )}
                   </div>
-                  <input
-                    id="checkout-lastName"
-                    name="family-name"
-                    type="text"
-                    autoComplete="shipping family-name"
-                    placeholder="Last name (optional)"
-                    value={lastName}
-                    onInput={(e) => setLastName((e.target as HTMLInputElement).value)}
-                    onChange={(e) => setLastName(e.target.value)}
-                    className="w-full bg-white border border-gray-200 rounded-xl px-4 py-4 text-sm text-black placeholder:text-black/30 outline-none focus:border-black focus:ring-1 focus:ring-black transition-all"
-                  />
+                  <div>
+                    <input
+                      id="checkout-lastName"
+                      name="family-name"
+                      type="text"
+                      autoComplete="shipping family-name"
+                      placeholder="Last name"
+                      value={lastName}
+                      onInput={(e) => {
+                        const val = (e.target as HTMLInputElement).value;
+                        setLastName(val);
+                        if (validationErrors.lastName) {
+                          setValidationErrors(prev => ({ ...prev, lastName: "" }));
+                        }
+                      }}
+                      onChange={(e) => {
+                        setLastName(e.target.value);
+                        if (validationErrors.lastName) {
+                          setValidationErrors(prev => ({ ...prev, lastName: "" }));
+                        }
+                      }}
+                      className={`w-full bg-white border rounded-xl px-4 py-4 text-sm text-black placeholder:text-black/30 outline-none transition-all ${
+                        validationErrors.lastName ? "border-[#C81E1E] focus:ring-1 focus:ring-[#C81E1E]" : "border-gray-200 focus:border-black focus:ring-1 focus:ring-black"
+                      }`}
+                    />
+                    {validationErrors.lastName && (
+                      <p className="text-xs text-[#C81E1E] mt-1.5">{validationErrors.lastName}</p>
+                    )}
+                  </div>
                 </div>
 
                 {/* Address (Mandatory) */}
@@ -1285,17 +1305,35 @@ export default function CheckoutPageContent() {
                         <p className="text-[10px] text-[#C81E1E] mt-1 pl-1 font-bold">{validationErrors.billingFirstName}</p>
                       )}
                     </div>
-                    <input
-                      id="checkout-billing-lastName"
-                      name="billing-family-name"
-                      type="text"
-                      autoComplete="billing family-name"
-                      placeholder="Last name (optional)"
-                      value={billingLastName}
-                      onInput={(e) => setBillingLastName((e.target as HTMLInputElement).value)}
-                      onChange={(e) => setBillingLastName(e.target.value)}
-                      className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3.5 text-xs text-black placeholder:text-black/30 outline-none focus:border-black focus:ring-1 focus:ring-black transition-all"
-                    />
+                    <div>
+                      <input
+                        id="checkout-billing-lastName"
+                        name="billing-family-name"
+                        type="text"
+                        autoComplete="billing family-name"
+                        placeholder="Last name"
+                        value={billingLastName}
+                        onInput={(e) => {
+                          const val = (e.target as HTMLInputElement).value;
+                          setBillingLastName(val);
+                          if (validationErrors.billingLastName) {
+                            setValidationErrors(prev => ({ ...prev, billingLastName: "" }));
+                          }
+                        }}
+                        onChange={(e) => {
+                          setBillingLastName(e.target.value);
+                          if (validationErrors.billingLastName) {
+                            setValidationErrors(prev => ({ ...prev, billingLastName: "" }));
+                          }
+                        }}
+                        className={`w-full bg-white border rounded-xl px-4 py-3.5 text-xs text-black placeholder:text-black/30 outline-none transition-all ${
+                          validationErrors.billingLastName ? "border-[#C81E1E] focus:ring-1 focus:ring-[#C81E1E]" : "border-gray-200 focus:border-black focus:ring-1 focus:ring-black"
+                        }`}
+                      />
+                      {validationErrors.billingLastName && (
+                        <p className="text-[10px] text-[#C81E1E] mt-1 pl-1 font-bold">{validationErrors.billingLastName}</p>
+                      )}
+                    </div>
                   </div>
 
                   {/* Billing Address */}

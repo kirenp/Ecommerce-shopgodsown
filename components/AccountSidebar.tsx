@@ -215,7 +215,7 @@ export default function AccountSidebar() {
 
   const handleSaveNewAddress = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newFirstName || !newAddrStr || !newCity || !newPin || !newPhone) return;
+    if (!newFirstName || !newLastName || !newAddrStr || !newCity || !newPin || !newPhone) return;
 
     if (editingAddressId) {
       updateAddress(editingAddressId, {
@@ -396,7 +396,7 @@ export default function AccountSidebar() {
                   {authError && (
                     <div className="bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl p-3.5 font-medium space-y-2.5">
                       <div>{authError}</div>
-                      {authError.includes("Shopify authenticated as") && (
+                      {(authError.includes("Shopify authenticated as") || authError.includes("Shopify session for")) && (
                         <button
                           type="button"
                           onClick={() => logout(true)}
@@ -677,10 +677,11 @@ export default function AccountSidebar() {
                         />
                         <input
                           type="text"
-                          placeholder="Last Name"
+                          placeholder="Last Name *"
                           value={newLastName}
                           onChange={(e) => setNewLastName(e.target.value)}
                           className="bg-gray-50 border border-gray-200 rounded-lg p-2 text-xs text-black placeholder:text-gray-400 outline-none focus:border-black transition-colors"
+                          required
                         />
                       </div>
                       <input

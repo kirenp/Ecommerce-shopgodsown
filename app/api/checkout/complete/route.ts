@@ -145,17 +145,22 @@ export async function POST(req: NextRequest) {
 
       let firstName = rawFirst;
       let lastName = rawLast;
+
+      // Only attempt to extract last name if last name is missing and first name has multiple words
       if (!lastName && firstName.includes(" ")) {
         const parts = firstName.split(/\s+/);
         firstName = parts[0];
-        lastName = parts.slice(1).join(" ");
+        lastName = parts.slice(1).join(" ").trim();
       }
+
       if (!firstName) firstName = "Customer";
-      if (!lastName) lastName = firstName; // Shopify strictly requires non-empty last_name
+      // Never duplicate firstName into lastName (which creates duplicate names like "Vishnu Vishnu").
+      // If lastName is still empty, use "." to satisfy Shopify REST Admin API's mandatory last_name requirement cleanly.
+      if (!lastName) lastName = ".";
 
       const state = String(addr?.state || "Kerala").trim();
       const provinceCode = STATE_TO_CODE[state] || undefined;
-      const fullName = `${firstName} ${lastName}`.trim();
+      const fullName = lastName === "." ? firstName : `${firstName} ${lastName}`.trim();
 
       return {
         first_name: firstName.slice(0, 100),
@@ -177,7 +182,7 @@ export async function POST(req: NextRequest) {
     const formattedBilling = formatAddress(billingAddress || shippingAddress);
 
     const deliveryNoteDetails = [
-      `Recipient: ${formattedShipping.first_name} ${formattedShipping.last_name}`,
+      `Recipient: ${formattedShipping.name}`,
       `Address: ${formattedShipping.address1}${formattedShipping.address2 ? ", " + formattedShipping.address2 : ""}`,
       `City: ${formattedShipping.city}, ${formattedShipping.province} - ${formattedShipping.zip}`,
       `Phone: ${formattedShipping.phone || phone || "N/A"}`

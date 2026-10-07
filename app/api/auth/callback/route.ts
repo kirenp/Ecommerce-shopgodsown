@@ -134,18 +134,17 @@ export async function GET(req: NextRequest) {
     };
 
     // Validate that the authenticated email matches what the user typed
-    const intendedEmail = req.cookies.get("goc_auth_intended_email")?.value?.toLowerCase();
-    const authenticatedEmail = customerObj.email?.toLowerCase();
+    const intendedEmail = req.cookies.get("goc_auth_intended_email")?.value?.trim().toLowerCase();
+    const authenticatedEmail = customerObj.email?.trim().toLowerCase();
     
     if (intendedEmail && authenticatedEmail && intendedEmail !== authenticatedEmail) {
       // Shopify auto-authenticated a different account due to a cached domain cookie on shopify.com.
       // Automatically redirect to Shopify's logout endpoint using the newly issued id_token so that
       // Shopify's domain session is cleanly invalidated without any "Invalid id_token" errors.
-      returnUrl.searchParams.set("auth_error", 
-        `Shopify session for ${authenticatedEmail} has been cleared. Please re-enter ${intendedEmail} to receive your OTP.`
-      );
+      const mismatchNotice = `Shopify session for ${authenticatedEmail} was cleared. Please re-enter ${intendedEmail} to receive your OTP.`;
       
-      const postLogoutRedirectUri = `${getCanonicalAuthOrigin(savedOrigin)}/api/auth/logout`;
+      const canonicalSavedOrigin = getCanonicalAuthOrigin(savedOrigin);
+      const postLogoutRedirectUri = `${canonicalSavedOrigin}/api/auth/logout`;
 
       const logoutUrl = buildLogoutUrl({
         shopId,
@@ -155,11 +154,21 @@ export async function GET(req: NextRequest) {
 
       const mismatchResponse = NextResponse.redirect(logoutUrl);
       const cookieDomain = getAuthCookieDomain(savedOrigin || headerHost || "");
+
+      // Store notice in a short-lived cookie so /api/auth/logout can display it upon return
+      mismatchResponse.cookies.set("goc_auth_mismatch_notice", encodeURIComponent(mismatchNotice), {
+        path: "/",
+        maxAge: 300,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        ...(cookieDomain ? { domain: cookieDomain } : {}),
+      });
+
+      // Clear PKCE and auth session cookies, but preserve goc_auth_return_url and goc_auth_origin
+      // so /api/auth/logout knows where to return the user
       const clearAuthCookies = [
         "goc_pkce_verifier",
         "goc_pkce_state",
-        "goc_auth_return_url",
-        "goc_auth_origin",
         "goc_auth_intended_email",
         "goc_auth_redirect_uri",
         "goc_auth_session",

@@ -100,6 +100,7 @@ export async function POST(req: NextRequest) {
       );
     }
     const cleanFirstName = String(shippingAddress.firstName || "").trim();
+    const cleanLastName = String(shippingAddress.lastName || "").trim();
     const cleanAddress = String(shippingAddress.address || "").trim();
     const cleanCity = String(shippingAddress.city || "").trim();
     const cleanPinCode = String(shippingAddress.pinCode || "").trim().replace(/\D/g, "");
@@ -108,6 +109,12 @@ export async function POST(req: NextRequest) {
     if (!cleanFirstName) {
       return NextResponse.json(
         { error: "First name is required." },
+        { status: 400 }
+      );
+    }
+    if (!cleanLastName) {
+      return NextResponse.json(
+        { error: "Last name is required." },
         { status: 400 }
       );
     }
