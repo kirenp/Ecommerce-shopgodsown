@@ -187,17 +187,15 @@ export async function hasCustomerPlacedOrders(email?: string, phone?: string): P
  * Validates a discount code server-side against Shopify and internal business logic.
  * Enforces first-order restrictions for PLAY10.
  */
-export async function validateCouponCode({
-  code,
-  items,
-  customerEmail,
-  customerPhone,
-}: {
-  code: string;
-  items?: Array<{ variantId: string; quantity: number }>;
-  customerEmail?: string;
-  customerPhone?: string;
-}): Promise<{
+export async function validateCouponCode(
+  paramsOrCode: string | {
+    code: string;
+    items?: Array<{ variantId: string; quantity: number }>;
+    customerEmail?: string;
+    customerPhone?: string;
+  },
+  maybeSubtotal?: number
+): Promise<{
   valid: boolean;
   code?: string;
   type?: "percentage" | "fixed_amount";
@@ -206,6 +204,11 @@ export async function validateCouponCode({
   message?: string;
   error?: string;
 }> {
+  const code = typeof paramsOrCode === "string" ? paramsOrCode : paramsOrCode?.code;
+  const items = typeof paramsOrCode === "object" ? paramsOrCode?.items : undefined;
+  const customerEmail = typeof paramsOrCode === "object" ? paramsOrCode?.customerEmail : undefined;
+  const customerPhone = typeof paramsOrCode === "object" ? paramsOrCode?.customerPhone : undefined;
+
   const cleanCode = String(code || "").trim().toUpperCase();
   if (!cleanCode) {
     return { valid: false, error: "Please enter a coupon code." };
@@ -234,6 +237,19 @@ export async function validateCouponCode({
                 cartCreate(input: $input) {
                   cart {
                     discountCodes { code applicable }
+                    lines(first: 50) {
+                      edges {
+                        node {
+                          cost {
+                            subtotalAmount { amount }
+                            totalAmount { amount }
+                          }
+                          discountAllocations {
+                            discountedAmount { amount }
+                          }
+                        }
+                      }
+                    }
                     cost {
                       subtotalAmount { amount }
                       totalAmount { amount }
@@ -254,19 +270,39 @@ export async function validateCouponCode({
           );
 
           if (matchedCode && matchedCode.applicable) {
-            const subtotal = parseFloat(cart.cost?.subtotalAmount?.amount || "0");
-            const total = parseFloat(cart.cost?.totalAmount?.amount || "0");
-            const discountVal = Math.max(0, subtotal - total);
-            const percentage = subtotal > 0 ? Math.round((discountVal / subtotal) * 100) : 0;
+            const linesEdges = cart?.lines?.edges || [];
+            let originalSubtotal = 0;
+            let discountedTotal = 0;
+            let discountAllocationsTotal = 0;
 
-            return {
-              valid: true,
-              code: cleanCode,
-              type: percentage > 0 ? "percentage" : "fixed_amount",
-              percentage: percentage > 0 ? percentage : undefined,
-              fixedAmount: percentage === 0 ? discountVal : undefined,
-              message: "Coupon applied successfully",
-            };
+            for (const edge of linesEdges) {
+              const lineCost = edge?.node?.cost;
+              const lineSubtotal = parseFloat(lineCost?.subtotalAmount?.amount || "0");
+              const lineTotal = parseFloat(lineCost?.totalAmount?.amount || "0");
+              originalSubtotal += lineSubtotal;
+              discountedTotal += lineTotal;
+
+              for (const alloc of edge?.node?.discountAllocations || []) {
+                discountAllocationsTotal += parseFloat(alloc?.discountedAmount?.amount || "0");
+              }
+            }
+
+            const discountVal = Math.max(
+              discountAllocationsTotal,
+              Math.max(0, originalSubtotal - discountedTotal)
+            );
+            const percentage = originalSubtotal > 0 ? Math.round((discountVal / originalSubtotal) * 100) : 0;
+
+            if (discountVal > 0) {
+              return {
+                valid: true,
+                code: cleanCode,
+                type: percentage > 0 ? "percentage" : "fixed_amount",
+                percentage: percentage > 0 ? percentage : undefined,
+                fixedAmount: percentage === 0 ? discountVal : undefined,
+                message: "Coupon applied successfully",
+              };
+            }
           }
         }
       } catch (sfErr) {

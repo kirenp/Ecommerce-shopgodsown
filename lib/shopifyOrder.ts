@@ -288,6 +288,15 @@ export async function createOrGetShopifyOrder({
             send_fulfillment_receipt: true,
             line_items: shopifyLineItems,
             discount_codes: formattedDiscount,
+            total_discounts: (discountAmount && discountAmount > 0) ? Number(discountAmount).toFixed(2) : undefined,
+            transactions: [
+              {
+                kind: "sale",
+                status: "success",
+                amount: Number(finalTotal).toFixed(2),
+                gateway: "Razorpay",
+              }
+            ],
             customer: {
               first_name: formattedShipping.first_name,
               last_name: formattedShipping.last_name,
