@@ -12,18 +12,25 @@ import { trackInitiateCheckout, trackPurchase } from "@/lib/metaPixel";
 
 // Array containing all states and Union Territories of India
 const INDIAN_STATES = [
-  "Kerala", // Defaults first
+  "Andaman and Nicobar Islands",
   "Andhra Pradesh",
   "Arunachal Pradesh",
   "Assam",
   "Bihar",
+  "Chandigarh",
   "Chhattisgarh",
+  "Dadra and Nagar Haveli and Daman and Diu",
+  "Delhi",
   "Goa",
   "Gujarat",
   "Haryana",
   "Himachal Pradesh",
+  "Jammu and Kashmir",
   "Jharkhand",
   "Karnataka",
+  "Kerala",
+  "Ladakh",
+  "Lakshadweep",
   "Madhya Pradesh",
   "Maharashtra",
   "Manipur",
@@ -31,6 +38,7 @@ const INDIAN_STATES = [
   "Mizoram",
   "Nagaland",
   "Odisha",
+  "Puducherry",
   "Punjab",
   "Rajasthan",
   "Sikkim",
@@ -40,14 +48,6 @@ const INDIAN_STATES = [
   "Uttar Pradesh",
   "Uttarakhand",
   "West Bengal",
-  "Andaman and Nicobar Islands",
-  "Chandigarh",
-  "Dadra and Nagar Haveli and Daman and Diu",
-  "Delhi",
-  "Jammu and Kashmir",
-  "Ladakh",
-  "Lakshadweep",
-  "Puducherry"
 ];
 
 const loadRazorpayScript = () => {
@@ -95,7 +95,7 @@ export default function CheckoutPageContent() {
   const [address, setAddress] = useState("");
   const [apartment, setApartment] = useState("");
   const [city, setCity] = useState("");
-  const [state, setState] = useState("Kerala");
+  const [state, setState] = useState("");
   const [pinCode, setPinCode] = useState("");
   const [phone, setPhone] = useState("");
   const [saveInfo, setSaveInfo] = useState(true);
@@ -107,7 +107,7 @@ export default function CheckoutPageContent() {
   const [billingAddress, setBillingAddress] = useState("");
   const [billingApartment, setBillingApartment] = useState("");
   const [billingCity, setBillingCity] = useState("");
-  const [billingState, setBillingState] = useState("Kerala");
+  const [billingState, setBillingState] = useState("");
   const [billingPinCode, setBillingPinCode] = useState("");
   const [billingPhone, setBillingPhone] = useState("");
   
@@ -401,6 +401,7 @@ export default function CheckoutPageContent() {
     if (!lastName.trim()) errors.lastName = "Last name is required";
     if (!address.trim()) errors.address = "Address is required";
     if (!city.trim()) errors.city = "City is required";
+    if (!state.trim() || state === "Select") errors.state = "State is required";
     if (!pinCode.trim()) {
       errors.pinCode = "PIN code is required";
     } else if (pinCode.trim().length !== 6) {
@@ -418,6 +419,7 @@ export default function CheckoutPageContent() {
       if (!billingLastName.trim()) errors.billingLastName = "Billing last name is required";
       if (!billingAddress.trim()) errors.billingAddress = "Billing address is required";
       if (!billingCity.trim()) errors.billingCity = "Billing city is required";
+      if (!billingState.trim() || billingState === "Select") errors.billingState = "Billing state is required";
       if (!billingPinCode.trim()) {
         errors.billingPinCode = "Billing PIN code is required";
       } else if (billingPinCode.trim().length !== 6) {
@@ -774,6 +776,480 @@ export default function CheckoutPageContent() {
     );
   }
 
+  const renderPrinterComponent = () => (
+    <div className="max-w-[440px] mx-auto printer-wrapper">
+
+            {/* ── PRINTER HEAD (EXACT DESIGN MATCH) ── */}
+            <div className="bg-[#202226] rounded-[28px] border border-white/[0.08] p-6 relative overflow-hidden shadow-[0_30px_60px_-15px_rgba(0,0,0,0.45),inset_0_1px_1px_rgba(255,255,255,0.12)] z-20">
+              
+              {/* Top Control Bar: Status Pill (Left) + PRINT Button (Right) */}
+              <div className="flex justify-between items-center mb-5">
+                {/* Status Pill */}
+                <div className="bg-[#121316] border border-white/[0.06] rounded-full px-3.5 py-2 flex items-center gap-2.5 shadow-[inset_0_2px_4px_rgba(0,0,0,0.6)]">
+                  <span className={`w-2 h-2 rounded-full ${isPrinting ? 'bg-[#22c55e] animate-ping' : 'bg-[#5a5d66] shadow-inner'}`} />
+                  <svg className="w-3.5 h-3.5 text-white/80" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                  </svg>
+                  <span className="text-[11.5px] font-medium text-white/85 font-sans tracking-tight">
+                    {isPrinting ? "Printing..." : "Click to print"}
+                  </span>
+                </div>
+
+                {/* Neumorphic PRINT Button */}
+                <button
+                  type="button"
+                  onClick={triggerPrint}
+                  disabled={isPrinting || items.length === 0}
+                  className="bg-gradient-to-b from-[#2d2e35] to-[#1c1d22] border border-white/10 rounded-2xl px-4 py-2 flex items-center gap-2 shadow-[0_4px_8px_rgba(0,0,0,0.4),inset_0_1px_1px_rgba(255,255,255,0.15)] active:scale-95 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                  aria-label="Print receipt"
+                >
+                  <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                  </svg>
+                  <span className="text-[11px] font-bold text-white font-sans tracking-wider uppercase">
+                    PRINT
+                  </span>
+                </button>
+              </div>
+
+              {/* Inset Main Screen Card */}
+              <div className="bg-[#131417] border border-white/[0.06] rounded-[22px] p-5 shadow-[inset_0_2px_6px_rgba(0,0,0,0.5)]">
+                {items.length === 0 ? (
+                  <p className="text-xs text-white/30 text-center py-4 font-medium font-sans">No items in cart</p>
+                ) : items.length === 1 ? (
+                  <>
+                    {/* Top half: Product info + Total */}
+                    <div className="flex justify-between items-center gap-3">
+                      <div className="flex items-center gap-3.5 min-w-0 flex-1 pr-1">
+                        {/* Circular embossed badge with T-shirt icon / product image */}
+                        <div
+                          className="w-12 h-12 rounded-full bg-gradient-to-b from-[#24262d] to-[#17181c] border border-white/[0.08] overflow-hidden flex items-center justify-center shrink-0 shadow-[0_4px_6px_rgba(0,0,0,0.35),inset_0_1px_1px_rgba(255,255,255,0.12)] cursor-zoom-in transition-transform hover:scale-105"
+                          onMouseEnter={(e) => {
+                            if (!items[0]?.image) return;
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            setHoveredPreview({
+                              image: items[0].image,
+                              title: items[0].title,
+                              variant: `${items[0].color ? items[0].color : ''}${items[0].size ? (items[0].color ? ' / ' : '') + items[0].size : ''}`,
+                              x: rect.left,
+                              y: rect.top,
+                            });
+                          }}
+                          onMouseLeave={() => setHoveredPreview(null)}
+                        >
+                          {items[0].image ? (
+                            <img src={items[0].image} alt={items[0].title} className="w-full h-full object-cover" />
+                          ) : (
+                            <svg className="w-6 h-6 text-white/90" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M6 3l3 2c1.5 1 4.5 1 6 0l3-2 3 5-3 2v11H6V10L3 8l3-5z" />
+                            </svg>
+                          )}
+                        </div>
+                        
+                        <div className="min-w-0 flex-1">
+                          <h3 className="text-[14.5px] font-bold text-white truncate font-sans tracking-tight leading-snug" title={items[0].title}>
+                            {items[0].title}
+                          </h3>
+                          <p className="text-[11.5px] font-medium text-white/45 mt-0.5 font-sans truncate">
+                            {items[0].color ? items[0].color + ' / ' : ''}{items[0].size || ''}
+                            {items[0].quantity > 1 ? ` · Qty: ${items[0].quantity}` : ''}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="text-right shrink-0 pl-2">
+                        <p className="text-[9.5px] font-bold uppercase tracking-widest text-white/40 font-sans">TOTAL</p>
+                        <p className="text-[20px] sm:text-[22px] font-black text-white font-sans leading-none mt-1 tabular-nums tracking-tight">
+                          ₹{totalAmount.toLocaleString("en-IN")}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Divider */}
+                    <div className="border-t border-white/[0.06] my-4" />
+
+                    {/* Bottom half: Status Badge */}
+                    <div className="flex items-center gap-2.5">
+                      {isPrinting ? (
+                        <>
+                          <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin shrink-0" />
+                          <span className="text-[11px] text-white/60 font-bold uppercase tracking-wider font-sans">
+                            PROCESSING YOUR ORDER
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <div className="w-5 h-5 rounded-full bg-[#163824] border border-[#22c55e]/30 flex items-center justify-center shrink-0">
+                            <svg className="w-3 h-3 text-[#22c55e]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          </div>
+                          <span className="text-[11px] text-[#22c55e] font-bold uppercase tracking-wider font-sans">
+                            ORDER READY FOR CHECKOUT
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {/* Multi-product view: Header with Total + Responsive list of all products */}
+                    <div className="flex justify-between items-end pb-3 border-b border-white/[0.06]">
+                      <div className="flex items-center gap-2">
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 font-sans">
+                          ORDER ITEMS
+                        </p>
+                        <span className="text-[9.5px] font-bold px-1.5 py-0.5 rounded bg-white/[0.08] text-white/70 font-sans tracking-wide">
+                          {items.reduce((sum, i) => sum + i.quantity, 0)} {items.reduce((sum, i) => sum + i.quantity, 0) === 1 ? 'ITEM' : 'ITEMS'}
+                        </span>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-[9.5px] font-bold uppercase tracking-widest text-white/40 font-sans">TOTAL</p>
+                        <p className="text-[20px] sm:text-[22px] font-black text-white font-sans leading-none mt-0.5 tabular-nums tracking-tight">
+                          ₹{totalAmount.toLocaleString("en-IN")}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Responsive scrollable list displaying each product clearly */}
+                    <div className="space-y-2.5 max-h-[160px] overflow-y-auto pr-1 my-3 screen-items-scroll">
+                      {items.map((item, idx) => (
+                        <div key={`screen-item-${item.variantId}-${idx}`} className="flex items-center justify-between gap-3 group">
+                          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                            {/* Circular embossed thumbnail with preview on hover */}
+                            <div
+                              className="w-10 h-10 rounded-full bg-gradient-to-b from-[#24262d] to-[#17181c] border border-white/[0.08] overflow-hidden flex items-center justify-center shrink-0 shadow-[0_2px_4px_rgba(0,0,0,0.35)] cursor-zoom-in transition-transform group-hover:scale-105"
+                              onMouseEnter={(e) => {
+                                if (!item.image) return;
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                setHoveredPreview({
+                                  image: item.image,
+                                  title: item.title,
+                                  variant: `${item.color ? item.color : ''}${item.size ? (item.color ? ' / ' : '') + item.size : ''}`,
+                                  x: rect.left,
+                                  y: rect.top,
+                                });
+                              }}
+                              onMouseLeave={() => setHoveredPreview(null)}
+                            >
+                              {item.image ? (
+                                <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
+                              ) : (
+                                <svg className="w-4 h-4 text-white/80" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M6 3l3 2c1.5 1 4.5 1 6 0l3-2 3 5-3 2v11H6V10L3 8l3-5z" />
+                                </svg>
+                              )}
+                            </div>
+
+                            <div className="min-w-0 flex-1">
+                              <h4 className="text-[13px] font-bold text-white truncate font-sans tracking-tight leading-snug" title={item.title}>
+                                {item.title}
+                              </h4>
+                              <p className="text-[11px] font-medium text-white/45 font-sans truncate mt-0.5">
+                                {item.color ? item.color + ' / ' : ''}{item.size || ''}
+                                {item.quantity > 1 ? ` · Qty: ${item.quantity}` : ''}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="text-right shrink-0">
+                            <span className="text-[13px] font-bold text-white/90 font-sans tabular-nums">
+                              ₹{(parseFloat(item.price || "0") * item.quantity).toLocaleString("en-IN")}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Divider */}
+                    <div className="border-t border-white/[0.06] mb-3" />
+
+                    {/* Bottom half: Status Badge */}
+                    <div className="flex items-center gap-2.5">
+                      {isPrinting ? (
+                        <>
+                          <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin shrink-0" />
+                          <span className="text-[11px] text-white/60 font-bold uppercase tracking-wider font-sans">
+                            PROCESSING YOUR ORDER
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <div className="w-5 h-5 rounded-full bg-[#163824] border border-[#22c55e]/30 flex items-center justify-center shrink-0">
+                            <svg className="w-3 h-3 text-[#22c55e]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          </div>
+                          <span className="text-[11px] text-[#22c55e] font-bold uppercase tracking-wider font-sans">
+                            ORDER READY FOR CHECKOUT
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Bottom Perforated Dot Grid */}
+              <div className="mt-5 flex flex-col gap-1.5 items-center justify-center opacity-60">
+                <div className="flex gap-1.5">
+                  {Array.from({ length: 22 }).map((_, i) => (
+                    <div key={`d1-${i}`} className="w-1.5 h-1.5 rounded-full bg-[#0d0e10] shadow-[inset_0_1px_1px_rgba(0,0,0,0.9)]" />
+                  ))}
+                </div>
+                <div className="flex gap-1.5">
+                  {Array.from({ length: 22 }).map((_, i) => (
+                    <div key={`d2-${i}`} className="w-1.5 h-1.5 rounded-full bg-[#0d0e10] shadow-[inset_0_1px_1px_rgba(0,0,0,0.9)]" />
+                  ))}
+                </div>
+                <div className="flex gap-1.5">
+                  {Array.from({ length: 22 }).map((_, i) => (
+                    <div key={`d3-${i}`} className="w-1.5 h-1.5 rounded-full bg-[#0d0e10] shadow-[inset_0_1px_1px_rgba(0,0,0,0.9)]" />
+                  ))}
+                </div>
+              </div>
+
+            </div>
+
+            {/* ── RECEIPT PAPER (slides out from behind printer head) ── */}
+            <div className={`receipt-wrapper ${isPrinting ? 'is-printing' : ''} ${receiptVisible ? 'is-visible' : ''}`}>
+              <div className="receipt-paper">
+                {/* Receipt content */}
+                <div className="receipt-content">
+                  {/* Shop Header */}
+                  <div className="receipt-header">
+                    <div>
+                      <span className="receipt-shop-name">GOD&apos;S OWN</span><br />
+                      <span className="receipt-shop-sub">For Everyday Lifestyle</span>
+                    </div>
+                    <div className="receipt-logo flex items-center justify-center">
+                      <svg
+                        width="30"
+                        height="30"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="inline-block"
+                        aria-label="Black T-Shirt"
+                      >
+                        <path
+                          d="M16 2.5C14.8 3.8 13.5 4.2 12 4.2C10.5 4.2 9.2 3.8 8 2.5L2.8 5.4C2.3 5.7 2.1 6.3 2.3 6.9L3.8 10.2C4.1 10.8 4.7 11 5.2 10.7L6.5 10V20.5C6.5 21.3 7.2 22 8 22H16C16.8 22 17.5 21.3 17.5 20.5V10L18.8 10.7C19.3 11 19.9 10.8 20.2 10.2L21.7 6.9C21.9 6.3 21.7 5.7 21.2 5.4L16 2.5Z"
+                          fill="#181818"
+                          stroke="#0a0a0a"
+                          strokeWidth="0.6"
+                          strokeLinejoin="round"
+                        />
+                        <path
+                          d="M9 2.8C9.8 4 10.8 4.6 12 4.6C13.2 4.6 14.2 4 15 2.8"
+                          stroke="#3a3a3a"
+                          strokeWidth="0.9"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+
+                  <div className="receipt-sub-header" suppressHydrationWarning>
+                    {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} — {new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+
+                  {/* Product Table */}
+                  <table className="receipt-table">
+                    <thead>
+                      <tr>
+                        <th>Item</th>
+                        <th>Qty</th>
+                        <th>Price</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {items.map((item, idx) => (
+                        <tr key={`rcpt-${item.variantId}-${idx}`}>
+                          <td>
+                            <div className="flex items-start gap-3">
+                              {item.image ? (
+                                <div
+                                  className="w-14 h-14 rounded-lg overflow-hidden bg-white border border-black/10 shadow-sm shrink-0 mt-0.5 cursor-zoom-in transition-all hover:scale-105 hover:border-black/30 hover:shadow-md"
+                                  onMouseEnter={(e) => {
+                                    const rect = e.currentTarget.getBoundingClientRect();
+                                    setHoveredPreview({
+                                      image: item.image,
+                                      title: item.title,
+                                      variant: `${item.color ? item.color : ''}${item.size ? (item.color ? ' / ' : '') + item.size : ''}`,
+                                      x: rect.left,
+                                      y: rect.top,
+                                    });
+                                  }}
+                                  onMouseLeave={() => setHoveredPreview(null)}
+                                >
+                                  <img
+                                    src={item.image}
+                                    alt={item.title}
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                              ) : (
+                                <div className="w-14 h-14 rounded-lg bg-gray-100 border border-black/10 flex items-center justify-center shrink-0 mt-0.5 text-base text-gray-400">
+                                  <svg
+                                    width="22"
+                                    height="22"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                  >
+                                    <path
+                                      d="M16 2.5C14.8 3.8 13.5 4.2 12 4.2C10.5 4.2 9.2 3.8 8 2.5L2.8 5.4C2.3 5.7 2.1 6.3 2.3 6.9L3.8 10.2C4.1 10.8 4.7 11 5.2 10.7L6.5 10V20.5C6.5 21.3 7.2 22 8 22H16C16.8 22 17.5 21.3 17.5 20.5V10L18.8 10.7C19.3 11 19.9 10.8 20.2 10.2L21.7 6.9C21.9 6.3 21.7 5.7 21.2 5.4L16 2.5Z"
+                                      fill="#222222"
+                                      stroke="#111111"
+                                      strokeWidth="0.5"
+                                    />
+                                    <path
+                                      d="M9 2.8C9.8 4 10.8 4.6 12 4.6C13.2 4.6 14.2 4 15 2.8"
+                                      stroke="#444444"
+                                      strokeWidth="0.8"
+                                      strokeLinecap="round"
+                                    />
+                                  </svg>
+                                </div>
+                              )}
+                              <div className="min-w-0 flex-1">
+                                <span className="receipt-item-name">{item.title}</span>
+                                <span className="receipt-item-variant">
+                                  {item.color && `${item.color}`}{item.size ? ` / ${item.size}` : ''}
+                                </span>
+                                <div className="receipt-item-actions">
+                                  <div className="receipt-qty-ctrl">
+                                    <button type="button" onClick={() => updateQuantity(item.variantId, item.quantity - 1)} aria-label="Decrease">−</button>
+                                    <span>{item.quantity}</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => updateQuantity(item.variantId, item.quantity + 1)}
+                                      disabled={item.quantity >= (item.quantityAvailable ?? 999)}
+                                      aria-label="Increase"
+                                    >+</button>
+                                  </div>
+                                  <button type="button" onClick={() => removeFromCart(item.variantId)} className="receipt-remove-btn" aria-label="Remove">
+                                    <Trash2 size={10} />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td>{item.quantity} x</td>
+                          <td>₹{(parseFloat(item.price || "0") * item.quantity).toLocaleString("en-IN")}</td>
+                        </tr>
+                      ))}
+
+                      {/* Coupon code row */}
+                      <tr className="receipt-coupon-row">
+                        <td colSpan={3}>
+                          <div className="receipt-coupon-input">
+                            <input
+                              type="text"
+                              placeholder="COUPON CODE"
+                              value={discountCode}
+                              disabled={isApplyingDiscount}
+                              onChange={(e) => {
+                                setDiscountCode(e.target.value);
+                                if (discountError) setDiscountError("");
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  handleApplyDiscount();
+                                }
+                              }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleApplyDiscount()}
+                              disabled={isApplyingDiscount || !discountCode.trim()}
+                            >
+                              {isApplyingDiscount ? "..." : "Apply"}
+                            </button>
+                          </div>
+
+                          {/* First purchase coupon suggestion */}
+                          {!appliedCouponCode && (
+                            <p className="receipt-coupon-hint">
+                              Use{" "}
+                              <button
+                                type="button"
+                                onClick={() => handleApplyDiscount("PLAY10")}
+                                className="receipt-coupon-tag"
+                                title="Click to apply PLAY10 coupon code"
+                              >
+                                PLAY10
+                              </button>{" "}
+                              coupon code on your first purchase
+                            </p>
+                          )}
+
+                          {discountError && <p className="receipt-coupon-err">{discountError}</p>}
+
+                          {(appliedDiscount > 0 || appliedDiscountAmount > 0) && (
+                            <div className="receipt-coupon-ok-wrap">
+                              <p className="receipt-coupon-ok">
+                                ✓ {appliedCouponCode} applied ({appliedDiscount > 0 ? `${appliedDiscount}% OFF` : `-₹${discountAmount.toLocaleString("en-IN")}`})
+                              </p>
+                              <button
+                                type="button"
+                                onClick={handleRemoveDiscount}
+                                className="receipt-coupon-remove-btn"
+                                title="Remove coupon code"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+
+                      {/* Subtotal */}
+                      <tr className="receipt-subtotal">
+                        <td colSpan={2}>Subtotal</td>
+                        <td>₹{subTotalNum.toLocaleString("en-IN")}</td>
+                      </tr>
+
+                      {/* Discount */}
+                      {discountAmount > 0 && (
+                        <tr className="receipt-discount">
+                          <td colSpan={2}>Discount {appliedDiscount > 0 ? `(${appliedDiscount}%)` : `(${appliedCouponCode})`}</td>
+                          <td>-₹{discountAmount.toLocaleString("en-IN")}</td>
+                        </tr>
+                      )}
+
+                      {/* Shipping */}
+                      <tr className="receipt-shipping">
+                        <td colSpan={2}>Shipping</td>
+                        <td className="receipt-free">FREE</td>
+                      </tr>
+
+                      {/* Total */}
+                      <tr className="receipt-total">
+                        <td colSpan={2}>Total</td>
+                        <td>₹{totalAmount.toLocaleString("en-IN")}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+
+                  {/* Footer info */}
+                  <div className="receipt-footer-info">
+                    Payment: Razorpay Secure
+                  </div>
+
+                  <div className="receipt-thank-you">Thank you!</div>
+
+                  {/* Barcode */}
+                  <div className="receipt-barcode-area">
+                    <div className="receipt-barcode" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+  );
+
   return (
     <main className="min-h-screen bg-white text-black selection:bg-[#C81E1E]/10 selection:text-black">
       {/* Razorpay Client Script Loader */}
@@ -1039,13 +1515,24 @@ export default function CheckoutPageContent() {
                       name="address-level1"
                       autoComplete="shipping address-level1"
                       value={state}
-                      onChange={(e) => setState(e.target.value)}
-                      className="w-full bg-white border border-gray-200 rounded-xl px-4 py-[17px] text-sm text-black outline-none focus:border-black focus:ring-1 focus:ring-black transition-all"
+                      onChange={(e) => {
+                        setState(e.target.value);
+                        if (validationErrors.state) {
+                          setValidationErrors(prev => ({ ...prev, state: "" }));
+                        }
+                      }}
+                      className={`w-full bg-white border rounded-xl px-4 py-[17px] text-sm text-black outline-none transition-all ${
+                        validationErrors.state ? "border-[#C81E1E] focus:ring-1 focus:ring-[#C81E1E]" : "border-gray-200 focus:border-black focus:ring-1 focus:ring-black"
+                      }`}
                     >
+                      <option value="">Select</option>
                       {INDIAN_STATES.map((s) => (
                         <option key={s} value={s}>{s}</option>
                       ))}
                     </select>
+                    {validationErrors.state && (
+                      <p className="text-xs text-[#C81E1E] mt-1.5">{validationErrors.state}</p>
+                    )}
                   </div>
 
                   <div>
@@ -1140,6 +1627,13 @@ export default function CheckoutPageContent() {
                   <p className="text-xs text-black/50 mt-0.5 font-medium">5 to 7 business days delivery</p>
                 </div>
                 <span className="text-xs font-bold text-[#00C853] uppercase tracking-wider">Free</span>
+              </div>
+            </div>
+
+            {/* Mobile Receipt Printer Machine (between Shipping Method and Payment) */}
+            <div className="block lg:hidden py-4 -mx-2 sm:mx-0">
+              <div className="bg-[#f0efe9] border border-black/5 rounded-3xl p-4 sm:p-6 shadow-sm overflow-hidden">
+                {renderPrinterComponent()}
               </div>
             </div>
 
@@ -1423,13 +1917,24 @@ export default function CheckoutPageContent() {
                         name="billing-address-level1"
                         autoComplete="billing address-level1"
                         value={billingState}
-                        onChange={(e) => setBillingState(e.target.value)}
-                        className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3.5 text-xs text-black outline-none focus:border-black focus:ring-1 focus:ring-black transition-all"
+                        onChange={(e) => {
+                          setBillingState(e.target.value);
+                          if (validationErrors.billingState) {
+                            setValidationErrors(prev => ({ ...prev, billingState: "" }));
+                          }
+                        }}
+                        className={`w-full bg-white border rounded-xl px-4 py-3.5 text-xs text-black outline-none transition-all ${
+                          validationErrors.billingState ? "border-[#C81E1E] focus:ring-1 focus:ring-[#C81E1E]" : "border-gray-200 focus:border-black focus:ring-1 focus:ring-black"
+                        }`}
                       >
+                        <option value="">Select</option>
                         {INDIAN_STATES.map((s) => (
                           <option key={s} value={s}>{s}</option>
                         ))}
                       </select>
+                      {validationErrors.billingState && (
+                        <p className="text-[10px] text-[#C81E1E] mt-1 pl-1 font-bold">{validationErrors.billingState}</p>
+                      )}
                     </div>
 
                     <div>
@@ -1584,483 +2089,10 @@ export default function CheckoutPageContent() {
           </footer>
         </div>
 
-        {/* Right Column: Receipt Printer Machine */}
-        <div className="lg:col-span-5 bg-[#f0efe9] border-l border-black/5 px-4 md:px-8 pt-4 md:pt-6 pb-12 lg:sticky lg:top-[73px] lg:h-[calc(100vh-73px)] overflow-y-auto receipt-printer-col">
-          
-          <div className="max-w-[440px] mx-auto printer-wrapper">
-
-            {/* ── PRINTER HEAD (EXACT DESIGN MATCH) ── */}
-            <div className="bg-[#202226] rounded-[28px] border border-white/[0.08] p-6 relative overflow-hidden shadow-[0_30px_60px_-15px_rgba(0,0,0,0.45),inset_0_1px_1px_rgba(255,255,255,0.12)] z-20">
-              
-              {/* Top Control Bar: Status Pill (Left) + PRINT Button (Right) */}
-              <div className="flex justify-between items-center mb-5">
-                {/* Status Pill */}
-                <div className="bg-[#121316] border border-white/[0.06] rounded-full px-3.5 py-2 flex items-center gap-2.5 shadow-[inset_0_2px_4px_rgba(0,0,0,0.6)]">
-                  <span className={`w-2 h-2 rounded-full ${isPrinting ? 'bg-[#22c55e] animate-ping' : 'bg-[#5a5d66] shadow-inner'}`} />
-                  <svg className="w-3.5 h-3.5 text-white/80" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                  </svg>
-                  <span className="text-[11.5px] font-medium text-white/85 font-sans tracking-tight">
-                    {isPrinting ? "Printing..." : "Click to print"}
-                  </span>
-                </div>
-
-                {/* Neumorphic PRINT Button */}
-                <button
-                  type="button"
-                  onClick={triggerPrint}
-                  disabled={isPrinting || items.length === 0}
-                  className="bg-gradient-to-b from-[#2d2e35] to-[#1c1d22] border border-white/10 rounded-2xl px-4 py-2 flex items-center gap-2 shadow-[0_4px_8px_rgba(0,0,0,0.4),inset_0_1px_1px_rgba(255,255,255,0.15)] active:scale-95 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                  aria-label="Print receipt"
-                >
-                  <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                  </svg>
-                  <span className="text-[11px] font-bold text-white font-sans tracking-wider uppercase">
-                    PRINT
-                  </span>
-                </button>
-              </div>
-
-              {/* Inset Main Screen Card */}
-              <div className="bg-[#131417] border border-white/[0.06] rounded-[22px] p-5 shadow-[inset_0_2px_6px_rgba(0,0,0,0.5)]">
-                {items.length === 0 ? (
-                  <p className="text-xs text-white/30 text-center py-4 font-medium font-sans">No items in cart</p>
-                ) : items.length === 1 ? (
-                  <>
-                    {/* Top half: Product info + Total */}
-                    <div className="flex justify-between items-center gap-3">
-                      <div className="flex items-center gap-3.5 min-w-0 flex-1 pr-1">
-                        {/* Circular embossed badge with T-shirt icon / product image */}
-                        <div
-                          className="w-12 h-12 rounded-full bg-gradient-to-b from-[#24262d] to-[#17181c] border border-white/[0.08] overflow-hidden flex items-center justify-center shrink-0 shadow-[0_4px_6px_rgba(0,0,0,0.35),inset_0_1px_1px_rgba(255,255,255,0.12)] cursor-zoom-in transition-transform hover:scale-105"
-                          onMouseEnter={(e) => {
-                            if (!items[0]?.image) return;
-                            const rect = e.currentTarget.getBoundingClientRect();
-                            setHoveredPreview({
-                              image: items[0].image,
-                              title: items[0].title,
-                              variant: `${items[0].color ? items[0].color : ''}${items[0].size ? (items[0].color ? ' / ' : '') + items[0].size : ''}`,
-                              x: rect.left,
-                              y: rect.top,
-                            });
-                          }}
-                          onMouseLeave={() => setHoveredPreview(null)}
-                        >
-                          {items[0].image ? (
-                            <img src={items[0].image} alt={items[0].title} className="w-full h-full object-cover" />
-                          ) : (
-                            <svg className="w-6 h-6 text-white/90" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M6 3l3 2c1.5 1 4.5 1 6 0l3-2 3 5-3 2v11H6V10L3 8l3-5z" />
-                            </svg>
-                          )}
-                        </div>
-                        
-                        <div className="min-w-0 flex-1">
-                          <h3 className="text-[14.5px] font-bold text-white truncate font-sans tracking-tight leading-snug" title={items[0].title}>
-                            {items[0].title}
-                          </h3>
-                          <p className="text-[11.5px] font-medium text-white/45 mt-0.5 font-sans truncate">
-                            {items[0].color ? items[0].color + ' / ' : ''}{items[0].size || ''}
-                            {items[0].quantity > 1 ? ` · Qty: ${items[0].quantity}` : ''}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="text-right shrink-0 pl-2">
-                        <p className="text-[9.5px] font-bold uppercase tracking-widest text-white/40 font-sans">TOTAL</p>
-                        <p className="text-[20px] sm:text-[22px] font-black text-white font-sans leading-none mt-1 tabular-nums tracking-tight">
-                          ₹{totalAmount.toLocaleString("en-IN")}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Divider */}
-                    <div className="border-t border-white/[0.06] my-4" />
-
-                    {/* Bottom half: Status Badge */}
-                    <div className="flex items-center gap-2.5">
-                      {isPrinting ? (
-                        <>
-                          <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin shrink-0" />
-                          <span className="text-[11px] text-white/60 font-bold uppercase tracking-wider font-sans">
-                            PROCESSING YOUR ORDER
-                          </span>
-                        </>
-                      ) : (
-                        <>
-                          <div className="w-5 h-5 rounded-full bg-[#163824] border border-[#22c55e]/30 flex items-center justify-center shrink-0">
-                            <svg className="w-3 h-3 text-[#22c55e]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                            </svg>
-                          </div>
-                          <span className="text-[11px] text-[#22c55e] font-bold uppercase tracking-wider font-sans">
-                            ORDER READY FOR CHECKOUT
-                          </span>
-                        </>
-                      )}
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    {/* Multi-product view: Header with Total + Responsive list of all products */}
-                    <div className="flex justify-between items-end pb-3 border-b border-white/[0.06]">
-                      <div className="flex items-center gap-2">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 font-sans">
-                          ORDER ITEMS
-                        </p>
-                        <span className="text-[9.5px] font-bold px-1.5 py-0.5 rounded bg-white/[0.08] text-white/70 font-sans tracking-wide">
-                          {items.reduce((sum, i) => sum + i.quantity, 0)} {items.reduce((sum, i) => sum + i.quantity, 0) === 1 ? 'ITEM' : 'ITEMS'}
-                        </span>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <p className="text-[9.5px] font-bold uppercase tracking-widest text-white/40 font-sans">TOTAL</p>
-                        <p className="text-[20px] sm:text-[22px] font-black text-white font-sans leading-none mt-0.5 tabular-nums tracking-tight">
-                          ₹{totalAmount.toLocaleString("en-IN")}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Responsive scrollable list displaying each product clearly */}
-                    <div className="space-y-2.5 max-h-[160px] overflow-y-auto pr-1 my-3 screen-items-scroll">
-                      {items.map((item, idx) => (
-                        <div key={`screen-item-${item.variantId}-${idx}`} className="flex items-center justify-between gap-3 group">
-                          <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                            {/* Circular embossed thumbnail with preview on hover */}
-                            <div
-                              className="w-10 h-10 rounded-full bg-gradient-to-b from-[#24262d] to-[#17181c] border border-white/[0.08] overflow-hidden flex items-center justify-center shrink-0 shadow-[0_2px_4px_rgba(0,0,0,0.35)] cursor-zoom-in transition-transform group-hover:scale-105"
-                              onMouseEnter={(e) => {
-                                if (!item.image) return;
-                                const rect = e.currentTarget.getBoundingClientRect();
-                                setHoveredPreview({
-                                  image: item.image,
-                                  title: item.title,
-                                  variant: `${item.color ? item.color : ''}${item.size ? (item.color ? ' / ' : '') + item.size : ''}`,
-                                  x: rect.left,
-                                  y: rect.top,
-                                });
-                              }}
-                              onMouseLeave={() => setHoveredPreview(null)}
-                            >
-                              {item.image ? (
-                                <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
-                              ) : (
-                                <svg className="w-4 h-4 text-white/80" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                                  <path d="M6 3l3 2c1.5 1 4.5 1 6 0l3-2 3 5-3 2v11H6V10L3 8l3-5z" />
-                                </svg>
-                              )}
-                            </div>
-
-                            <div className="min-w-0 flex-1">
-                              <h4 className="text-[13px] font-bold text-white truncate font-sans tracking-tight leading-snug" title={item.title}>
-                                {item.title}
-                              </h4>
-                              <p className="text-[11px] font-medium text-white/45 font-sans truncate mt-0.5">
-                                {item.color ? item.color + ' / ' : ''}{item.size || ''}
-                                {item.quantity > 1 ? ` · Qty: ${item.quantity}` : ''}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="text-right shrink-0">
-                            <span className="text-[13px] font-bold text-white/90 font-sans tabular-nums">
-                              ₹{(parseFloat(item.price || "0") * item.quantity).toLocaleString("en-IN")}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Divider */}
-                    <div className="border-t border-white/[0.06] mb-3" />
-
-                    {/* Bottom half: Status Badge */}
-                    <div className="flex items-center gap-2.5">
-                      {isPrinting ? (
-                        <>
-                          <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin shrink-0" />
-                          <span className="text-[11px] text-white/60 font-bold uppercase tracking-wider font-sans">
-                            PROCESSING YOUR ORDER
-                          </span>
-                        </>
-                      ) : (
-                        <>
-                          <div className="w-5 h-5 rounded-full bg-[#163824] border border-[#22c55e]/30 flex items-center justify-center shrink-0">
-                            <svg className="w-3 h-3 text-[#22c55e]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                            </svg>
-                          </div>
-                          <span className="text-[11px] text-[#22c55e] font-bold uppercase tracking-wider font-sans">
-                            ORDER READY FOR CHECKOUT
-                          </span>
-                        </>
-                      )}
-                    </div>
-                  </>
-                )}
-              </div>
-
-              {/* Bottom Perforated Dot Grid */}
-              <div className="mt-5 flex flex-col gap-1.5 items-center justify-center opacity-60">
-                <div className="flex gap-1.5">
-                  {Array.from({ length: 22 }).map((_, i) => (
-                    <div key={`d1-${i}`} className="w-1.5 h-1.5 rounded-full bg-[#0d0e10] shadow-[inset_0_1px_1px_rgba(0,0,0,0.9)]" />
-                  ))}
-                </div>
-                <div className="flex gap-1.5">
-                  {Array.from({ length: 22 }).map((_, i) => (
-                    <div key={`d2-${i}`} className="w-1.5 h-1.5 rounded-full bg-[#0d0e10] shadow-[inset_0_1px_1px_rgba(0,0,0,0.9)]" />
-                  ))}
-                </div>
-                <div className="flex gap-1.5">
-                  {Array.from({ length: 22 }).map((_, i) => (
-                    <div key={`d3-${i}`} className="w-1.5 h-1.5 rounded-full bg-[#0d0e10] shadow-[inset_0_1px_1px_rgba(0,0,0,0.9)]" />
-                  ))}
-                </div>
-              </div>
-
-            </div>
-
-            {/* ── RECEIPT PAPER (slides out from behind printer head) ── */}
-            <div className={`receipt-wrapper ${isPrinting ? 'is-printing' : ''} ${receiptVisible ? 'is-visible' : ''}`}>
-              <div className="receipt-paper">
-                {/* Receipt content */}
-                <div className="receipt-content">
-                  {/* Shop Header */}
-                  <div className="receipt-header">
-                    <div>
-                      <span className="receipt-shop-name">GOD&apos;S OWN</span><br />
-                      <span className="receipt-shop-sub">Luxury Streetwear</span>
-                    </div>
-                    <div className="receipt-logo flex items-center justify-center">
-                      <svg
-                        width="30"
-                        height="30"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="inline-block"
-                        aria-label="Black T-Shirt"
-                      >
-                        <path
-                          d="M16 2.5C14.8 3.8 13.5 4.2 12 4.2C10.5 4.2 9.2 3.8 8 2.5L2.8 5.4C2.3 5.7 2.1 6.3 2.3 6.9L3.8 10.2C4.1 10.8 4.7 11 5.2 10.7L6.5 10V20.5C6.5 21.3 7.2 22 8 22H16C16.8 22 17.5 21.3 17.5 20.5V10L18.8 10.7C19.3 11 19.9 10.8 20.2 10.2L21.7 6.9C21.9 6.3 21.7 5.7 21.2 5.4L16 2.5Z"
-                          fill="#181818"
-                          stroke="#0a0a0a"
-                          strokeWidth="0.6"
-                          strokeLinejoin="round"
-                        />
-                        <path
-                          d="M9 2.8C9.8 4 10.8 4.6 12 4.6C13.2 4.6 14.2 4 15 2.8"
-                          stroke="#3a3a3a"
-                          strokeWidth="0.9"
-                          strokeLinecap="round"
-                        />
-                      </svg>
-                    </div>
-                  </div>
-
-                  <div className="receipt-sub-header" suppressHydrationWarning>
-                    {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} — {new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
-                  </div>
-
-                  {/* Product Table */}
-                  <table className="receipt-table">
-                    <thead>
-                      <tr>
-                        <th>Item</th>
-                        <th>Qty</th>
-                        <th>Price</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {items.map((item, idx) => (
-                        <tr key={`rcpt-${item.variantId}-${idx}`}>
-                          <td>
-                            <div className="flex items-start gap-3">
-                              {item.image ? (
-                                <div
-                                  className="w-14 h-14 rounded-lg overflow-hidden bg-white border border-black/10 shadow-sm shrink-0 mt-0.5 cursor-zoom-in transition-all hover:scale-105 hover:border-black/30 hover:shadow-md"
-                                  onMouseEnter={(e) => {
-                                    const rect = e.currentTarget.getBoundingClientRect();
-                                    setHoveredPreview({
-                                      image: item.image,
-                                      title: item.title,
-                                      variant: `${item.color ? item.color : ''}${item.size ? (item.color ? ' / ' : '') + item.size : ''}`,
-                                      x: rect.left,
-                                      y: rect.top,
-                                    });
-                                  }}
-                                  onMouseLeave={() => setHoveredPreview(null)}
-                                >
-                                  <img
-                                    src={item.image}
-                                    alt={item.title}
-                                    className="w-full h-full object-cover"
-                                  />
-                                </div>
-                              ) : (
-                                <div className="w-14 h-14 rounded-lg bg-gray-100 border border-black/10 flex items-center justify-center shrink-0 mt-0.5 text-base text-gray-400">
-                                  <svg
-                                    width="22"
-                                    height="22"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    xmlns="http://www.w3.org/2000/svg"
-                                  >
-                                    <path
-                                      d="M16 2.5C14.8 3.8 13.5 4.2 12 4.2C10.5 4.2 9.2 3.8 8 2.5L2.8 5.4C2.3 5.7 2.1 6.3 2.3 6.9L3.8 10.2C4.1 10.8 4.7 11 5.2 10.7L6.5 10V20.5C6.5 21.3 7.2 22 8 22H16C16.8 22 17.5 21.3 17.5 20.5V10L18.8 10.7C19.3 11 19.9 10.8 20.2 10.2L21.7 6.9C21.9 6.3 21.7 5.7 21.2 5.4L16 2.5Z"
-                                      fill="#222222"
-                                      stroke="#111111"
-                                      strokeWidth="0.5"
-                                    />
-                                    <path
-                                      d="M9 2.8C9.8 4 10.8 4.6 12 4.6C13.2 4.6 14.2 4 15 2.8"
-                                      stroke="#444444"
-                                      strokeWidth="0.8"
-                                      strokeLinecap="round"
-                                    />
-                                  </svg>
-                                </div>
-                              )}
-                              <div className="min-w-0 flex-1">
-                                <span className="receipt-item-name">{item.title}</span>
-                                <span className="receipt-item-variant">
-                                  {item.color && `${item.color}`}{item.size ? ` / ${item.size}` : ''}
-                                </span>
-                                <div className="receipt-item-actions">
-                                  <div className="receipt-qty-ctrl">
-                                    <button type="button" onClick={() => updateQuantity(item.variantId, item.quantity - 1)} aria-label="Decrease">−</button>
-                                    <span>{item.quantity}</span>
-                                    <button
-                                      type="button"
-                                      onClick={() => updateQuantity(item.variantId, item.quantity + 1)}
-                                      disabled={item.quantity >= (item.quantityAvailable ?? 999)}
-                                      aria-label="Increase"
-                                    >+</button>
-                                  </div>
-                                  <button type="button" onClick={() => removeFromCart(item.variantId)} className="receipt-remove-btn" aria-label="Remove">
-                                    <Trash2 size={10} />
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          </td>
-                          <td>{item.quantity} x</td>
-                          <td>₹{(parseFloat(item.price || "0") * item.quantity).toLocaleString("en-IN")}</td>
-                        </tr>
-                      ))}
-
-                      {/* Coupon code row */}
-                      <tr className="receipt-coupon-row">
-                        <td colSpan={3}>
-                          <div className="receipt-coupon-input">
-                            <input
-                              type="text"
-                              placeholder="COUPON CODE"
-                              value={discountCode}
-                              disabled={isApplyingDiscount}
-                              onChange={(e) => {
-                                setDiscountCode(e.target.value);
-                                if (discountError) setDiscountError("");
-                              }}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  e.preventDefault();
-                                  handleApplyDiscount();
-                                }
-                              }}
-                            />
-                            <button
-                              type="button"
-                              onClick={() => handleApplyDiscount()}
-                              disabled={isApplyingDiscount || !discountCode.trim()}
-                            >
-                              {isApplyingDiscount ? "..." : "Apply"}
-                            </button>
-                          </div>
-
-                          {/* First purchase coupon suggestion */}
-                          {!appliedCouponCode && (
-                            <p className="receipt-coupon-hint">
-                              Use{" "}
-                              <button
-                                type="button"
-                                onClick={() => handleApplyDiscount("PLAY10")}
-                                className="receipt-coupon-tag"
-                                title="Click to apply PLAY10 coupon code"
-                              >
-                                PLAY10
-                              </button>{" "}
-                              coupon code on your first purchase
-                            </p>
-                          )}
-
-                          {discountError && <p className="receipt-coupon-err">{discountError}</p>}
-
-                          {(appliedDiscount > 0 || appliedDiscountAmount > 0) && (
-                            <div className="receipt-coupon-ok-wrap">
-                              <p className="receipt-coupon-ok">
-                                ✓ {appliedCouponCode} applied ({appliedDiscount > 0 ? `${appliedDiscount}% OFF` : `-₹${discountAmount.toLocaleString("en-IN")}`})
-                              </p>
-                              <button
-                                type="button"
-                                onClick={handleRemoveDiscount}
-                                className="receipt-coupon-remove-btn"
-                                title="Remove coupon code"
-                              >
-                                Remove
-                              </button>
-                            </div>
-                          )}
-                        </td>
-                      </tr>
-
-                      {/* Subtotal */}
-                      <tr className="receipt-subtotal">
-                        <td colSpan={2}>Subtotal</td>
-                        <td>₹{subTotalNum.toLocaleString("en-IN")}</td>
-                      </tr>
-
-                      {/* Discount */}
-                      {discountAmount > 0 && (
-                        <tr className="receipt-discount">
-                          <td colSpan={2}>Discount {appliedDiscount > 0 ? `(${appliedDiscount}%)` : `(${appliedCouponCode})`}</td>
-                          <td>-₹{discountAmount.toLocaleString("en-IN")}</td>
-                        </tr>
-                      )}
-
-                      {/* Shipping */}
-                      <tr className="receipt-shipping">
-                        <td colSpan={2}>Shipping</td>
-                        <td className="receipt-free">FREE</td>
-                      </tr>
-
-                      {/* Total */}
-                      <tr className="receipt-total">
-                        <td colSpan={2}>Total</td>
-                        <td>₹{totalAmount.toLocaleString("en-IN")}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-
-                  {/* Footer info */}
-                  <div className="receipt-footer-info">
-                    Payment: Razorpay Secure
-                  </div>
-
-                  <div className="receipt-thank-you">Thank you!</div>
-
-                  {/* Barcode */}
-                  <div className="receipt-barcode-area">
-                    <div className="receipt-barcode" />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-          </div>
+        {/* Right Column: Receipt Printer Machine (Desktop only) */}
+        <div className="hidden lg:block lg:col-span-5 bg-[#f0efe9] border-l border-black/5 px-4 md:px-8 pt-4 md:pt-6 pb-12 lg:sticky lg:top-[73px] lg:h-[calc(100vh-73px)] overflow-y-auto receipt-printer-col">
+          {renderPrinterComponent()}
         </div>
-
       </div>
 
       {/* Floating Hover Product Image Zoom Popover */}
