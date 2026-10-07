@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useMemo, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
 import { useCart } from "@/lib/cartContext";
 import { useRecentlyViewed } from "@/lib/recentlyViewedContext";
 import { useWishlist } from "@/lib/wishlistContext";
 import { usePreview } from "@/lib/preview";
 import { useRouter } from "next/navigation";
-import { Heart, Search, ArrowDown, X, Plus, Minus, Truck, ShieldCheck } from "lucide-react";
+import { Heart, Search, ArrowDown, X, Plus, Minus, Truck, ShieldCheck, ChevronLeft, ChevronRight } from "lucide-react";
 import { trackViewContent } from "@/lib/metaPixel";
 import SizeGuideModal from "@/components/SizeGuideModal";
 
@@ -101,7 +102,39 @@ export default function ProductDetail({ product }: ProductDetailProps) {
   const [cartFeedback, setCartFeedback] = useState(false);
   const [showSizeGuide, setShowSizeGuide] = useState(false);
   const [isZoomOpen, setIsZoomOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const thumbnailsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Compute current image index in product images array
+  const currentImageIndex = useMemo(() => {
+    if (!product.images || product.images.length === 0) return 0;
+    const idx = product.images.findIndex((img: any) => img.url === displayImage);
+    return idx >= 0 ? idx : 0;
+  }, [product.images, displayImage]);
+
+  const handleNextZoomImage = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (!product.images || product.images.length === 0) return;
+    const nextIndex = (currentImageIndex + 1) % product.images.length;
+    const nextImg = product.images[nextIndex];
+    if (nextImg) {
+      setDisplayImage(nextImg.url);
+    }
+  };
+
+  const handlePrevZoomImage = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (!product.images || product.images.length === 0) return;
+    const prevIndex = (currentImageIndex - 1 + product.images.length) % product.images.length;
+    const prevImg = product.images[prevIndex];
+    if (prevImg) {
+      setDisplayImage(prevImg.url);
+    }
+  };
 
   // Keep selectedColor synchronized with defaultColor if product changes
   useEffect(() => {
@@ -110,18 +143,34 @@ export default function ProductDetail({ product }: ProductDetailProps) {
     }
   }, [defaultColor, product.id]);
 
-  // Close zoom modal with Escape key
+  // Handle keyboard navigation and lock background body scroll while zoom modal is open
   useEffect(() => {
+    if (!isZoomOpen) return;
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         setIsZoomOpen(false);
+      } else if (e.key === "ArrowRight") {
+        if (!product.images || product.images.length === 0) return;
+        const nextIndex = (currentImageIndex + 1) % product.images.length;
+        const nextImg = product.images[nextIndex];
+        if (nextImg) setDisplayImage(nextImg.url);
+      } else if (e.key === "ArrowLeft") {
+        if (!product.images || product.images.length === 0) return;
+        const prevIndex = (currentImageIndex - 1 + product.images.length) % product.images.length;
+        const prevImg = product.images[prevIndex];
+        if (prevImg) setDisplayImage(prevImg.url);
       }
     };
-    if (isZoomOpen) {
-      window.addEventListener("keydown", handleKeyDown);
-    }
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isZoomOpen]);
+
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isZoomOpen, currentImageIndex, product.images]);
 
   const handleNextImage = () => {
     if (!product.images || product.images.length === 0) return;
@@ -805,36 +854,115 @@ export default function ProductDetail({ product }: ProductDetailProps) {
       <SizeGuideModal isOpen={showSizeGuide} onClose={() => setShowSizeGuide(false)} product={product} />
 
       {/* Full-Screen Zoom Lightbox Modal */}
-      {isZoomOpen && (
+      {isZoomOpen && mounted && createPortal(
         <div 
-          className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-md flex items-center justify-center p-4 md:p-8 animate-fade-in"
+          className="fixed inset-0 z-[99999] bg-black/98 backdrop-blur-2xl flex flex-col items-center justify-between pt-2 pb-3 px-2 sm:px-6 md:px-8 animate-fade-in select-none w-screen h-screen"
           onClick={() => setIsZoomOpen(false)}
         >
-          {/* Close button */}
-          <button
-            type="button"
-            onClick={() => setIsZoomOpen(false)}
-            aria-label="Close zoom"
-            className="absolute top-6 right-6 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 z-50 cursor-pointer"
-          >
-            <X size={22} />
-          </button>
-
-          {/* Modal Image Display */}
+          {/* Top Bar with Close Button */}
           <div 
-            className="relative w-full max-w-5xl h-[85vh] max-h-[920px] rounded-2xl overflow-hidden flex items-center justify-center"
+            className="w-full max-w-7xl flex items-center justify-end px-2 sm:px-6 pt-1 z-50 shrink-0" 
             onClick={(e) => e.stopPropagation()}
           >
-            <Image
-              src={displayImage}
-              alt={product.title}
-              fill
-              className="object-contain"
-              sizes="95vw"
-              priority
-            />
+            {/* Close Button */}
+            <button
+              type="button"
+              onClick={() => setIsZoomOpen(false)}
+              aria-label="Close zoom"
+              className="w-11 h-11 md:w-12 md:h-12 rounded-full bg-white/10 hover:bg-white/25 active:scale-95 text-white border border-white/20 flex items-center justify-center transition-all duration-200 cursor-pointer backdrop-blur-md hover:scale-105"
+            >
+              <X size={22} />
+            </button>
           </div>
-        </div>
+
+          {/* Central Image Area with Circular Navigation Buttons */}
+          <div 
+            className="relative w-full max-w-7xl flex-1 my-1 sm:my-2 flex items-center justify-center overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Left Circular Navigation Arrow ("<" inside circle) */}
+            {product.images && product.images.length > 1 && (
+              <button
+                type="button"
+                onClick={handlePrevZoomImage}
+                aria-label="Previous image"
+                className="absolute left-2 sm:left-4 md:left-6 top-1/2 -translate-y-1/2 w-11 h-11 sm:w-13 sm:h-13 md:w-14 md:h-14 rounded-full bg-black/75 hover:bg-white text-white hover:text-black border border-white/30 hover:border-white flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95 shadow-[0_8px_30px_rgb(0,0,0,0.8)] z-50 cursor-pointer backdrop-blur-md group"
+              >
+                <ChevronLeft size={26} strokeWidth={2.5} className="transition-transform group-hover:-translate-x-0.5" />
+              </button>
+            )}
+
+            {/* Main Zoomed Image Container */}
+            <div className="relative w-full h-full max-h-[84vh] sm:max-h-[87vh] md:max-h-[89vh] flex items-center justify-center px-8 sm:px-14 md:px-20">
+              {(() => {
+                const activeMedia = product.images?.[currentImageIndex] || { type: 'IMAGE', url: displayImage };
+                if (activeMedia.type === 'VIDEO') {
+                  return (
+                    <video 
+                      key={activeMedia.url} 
+                      src={activeMedia.url} 
+                      autoPlay 
+                      muted 
+                      loop 
+                      playsInline 
+                      controls
+                      className="max-w-full max-h-[84vh] sm:max-h-[87vh] md:max-h-[89vh] object-contain rounded-xl shadow-2xl" 
+                    />
+                  );
+                }
+                return (
+                  <div className="relative w-full h-full max-h-[84vh] sm:max-h-[87vh] md:max-h-[89vh] flex items-center justify-center">
+                    <Image
+                      src={activeMedia.url}
+                      alt={`${product.title} - Zoom view ${currentImageIndex + 1}`}
+                      fill
+                      className="object-contain select-none pointer-events-none drop-shadow-2xl"
+                      sizes="98vw"
+                      priority
+                    />
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Right Circular Navigation Arrow (">" inside circle) */}
+            {product.images && product.images.length > 1 && (
+              <button
+                type="button"
+                onClick={handleNextZoomImage}
+                aria-label="Next image"
+                className="absolute right-2 sm:right-4 md:right-6 top-1/2 -translate-y-1/2 w-11 h-11 sm:w-13 sm:h-13 md:w-14 md:h-14 rounded-full bg-black/75 hover:bg-white text-white hover:text-black border border-white/30 hover:border-white flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95 shadow-[0_8px_30px_rgb(0,0,0,0.8)] z-50 cursor-pointer backdrop-blur-md group"
+              >
+                <ChevronRight size={26} strokeWidth={2.5} className="transition-transform group-hover:translate-x-0.5" />
+              </button>
+            )}
+          </div>
+
+          {/* Bottom Thumbnail Strip for Fast Jumping */}
+          {product.images && product.images.length > 1 && (
+            <div 
+              className="flex items-center gap-2 sm:gap-3 px-3.5 py-2 bg-black/60 border border-white/15 rounded-full backdrop-blur-md max-w-full overflow-x-auto z-50 shrink-0 mb-1"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {product.images.map((img: any, idx: number) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => setDisplayImage(img.url)}
+                  aria-label={`View image ${idx + 1}`}
+                  className={`relative w-8 h-8 sm:w-10 sm:h-10 rounded-full overflow-hidden border-2 transition-all duration-200 shrink-0 ${
+                    idx === currentImageIndex 
+                      ? "border-white scale-110 shadow-[0_0_12px_rgba(255,255,255,0.4)]" 
+                      : "border-white/30 opacity-60 hover:opacity-100 hover:border-white/70"
+                  }`}
+                >
+                  <Image src={img.url} alt="" fill className="object-cover" sizes="40px" />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>,
+        document.body
       )}
     </div>
   );
