@@ -92,9 +92,72 @@ export async function POST(req: NextRequest) {
 
   // 4. Retrieve pending checkout information cached during order initiation
   const pending = getPendingCheckout(orderId);
+  const notes = paymentEntity?.notes || orderEntity?.notes || {};
 
-  if (!pending) {
+  let lineItems = pending?.items;
+  let contact = pending?.contact || notes.email || notes.phone || notes.contact || paymentEntity?.email || paymentEntity?.contact || "";
+  let shippingAddress = pending?.shippingAddress;
+  let billingAddress = pending?.billingAddress;
+  let discountCode = pending?.discountCode || notes.discountCode;
+  let discountAmount = pending?.amountInPaise ? undefined : (notes.discountAmount ? Number(notes.discountAmount) : undefined);
+  let finalTotal = (pending?.amountInPaise || paymentEntity?.amount || 0) / 100;
+
+  // Fallback recovery from Razorpay notes if local container restarted
+  if (!lineItems && notes.ship_addr) {
+    try {
+      const parsedVariants = notes.item_variants ? JSON.parse(notes.item_variants) : [];
+      if (Array.isArray(parsedVariants) && parsedVariants.length > 0) {
+        shippingAddress = {
+          firstName: notes.ship_name ? notes.ship_name.split(" ")[0] : "Customer",
+          lastName: notes.ship_name ? notes.ship_name.split(" ").slice(1).join(" ") : "",
+          address: notes.ship_addr,
+          city: notes.ship_city || "",
+          state: notes.ship_state || "Kerala",
+          pinCode: notes.ship_pin || "",
+          phone: notes.phone || paymentEntity?.contact || "",
+        };
+        lineItems = parsedVariants.map((v: any) => ({
+          variantId: v.v,
+          numericVariantId: typeof v.v === "number" ? v.v : (!isNaN(Number(v.v)) ? Number(v.v) : undefined),
+          quantity: v.q || 1,
+          size: v.s,
+          color: v.c,
+          title: "GOD’S OWN CULTURE T-Shirt",
+          price: finalTotal,
+        }));
+      }
+    } catch (parseErr) {
+      console.warn("[Razorpay Webhook] Failed to reconstruct line items from notes:", parseErr);
+    }
+  }
+
+  if (!lineItems || !shippingAddress) {
     console.warn(`[Razorpay Webhook] No pending checkout cached for order ${orderId}. Payment recorded: ${paymentId}`);
+
+    // Asynchronously alert store admin via email about unreconciled payment
+    const adminEmail = process.env.CONTACT_RECEIVER_EMAIL || "godsownculture@gmail.com";
+    const smtpUser = process.env.SMTP_USER || process.env.EMAIL_USER;
+    const smtpPass = process.env.SMTP_PASS || process.env.EMAIL_PASS;
+    if (adminEmail && smtpUser && smtpPass) {
+      try {
+        const nodemailer = await import("nodemailer");
+        const transporter = nodemailer.default.createTransport({
+          host: process.env.SMTP_HOST || "smtp.gmail.com",
+          port: parseInt(process.env.SMTP_PORT || "465", 10),
+          secure: true,
+          auth: { user: smtpUser, pass: smtpPass },
+        });
+        transporter.sendMail({
+          from: `"Payment Alert" <${smtpUser}>`,
+          to: adminEmail,
+          subject: `⚠️ ACTION REQUIRED: Unreconciled Payment Received (₹${finalTotal})`,
+          text: `Payment ID: ${paymentId}\nRazorpay Order ID: ${orderId}\nContact: ${contact}\nAmount: ₹${finalTotal}\nPlease check Razorpay dashboard and contact customer to fulfill the order.`,
+        }).catch((e: any) => console.error("[Razorpay Webhook] Alert email send error:", e));
+      } catch (mailErr) {
+        console.error("[Razorpay Webhook] Mailer init error:", mailErr);
+      }
+    }
+
     return NextResponse.json({
       received: true,
       status: "pending_checkout_not_found",
@@ -107,13 +170,13 @@ export async function POST(req: NextRequest) {
     const result = await createOrGetShopifyOrder({
       orderId,
       paymentId: paymentId || `pay_wh_${Date.now()}`,
-      lineItems: pending.items,
-      contact: pending.contact,
-      shippingAddress: pending.shippingAddress,
-      billingAddress: pending.billingAddress,
-      discountCode: pending.discountCode,
-      discountAmount: undefined,
-      finalTotal: pending.amountInPaise / 100,
+      lineItems,
+      contact,
+      shippingAddress,
+      billingAddress,
+      discountCode,
+      discountAmount,
+      finalTotal,
     });
 
     console.log(`[Razorpay Webhook] Successfully processed and created Shopify order: ${result.orderNumber}`);

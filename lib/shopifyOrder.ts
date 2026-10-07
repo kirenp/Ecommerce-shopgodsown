@@ -327,17 +327,20 @@ export async function createOrGetShopifyOrder({
           const errText = await shopifyRes.text();
           console.warn("[ShopifyOrder] Order creation attempt 1 failed:", shopifyRes.status, errText);
 
-          // Fallback: If variant_id mismatched in catalog, try without variant_id
+          // Build fallback line items (without variant_id if variant was mismatched)
           const fallbackLineItems = shopifyLineItems.map((li: any) => ({
             title: li.title + (li.variant_title ? ` (${li.variant_title})` : ""),
             price: li.price,
             quantity: li.quantity,
           }));
 
-          const fallbackPayload = {
+          // Attempt 2: If customer email/phone conflict (e.g. 422 has already been taken), omit customer object
+          // Shopify automatically matches existing customer by top-level email/phone
+          const isCustomerConflict = errText.includes("already been taken") || errText.includes("customer");
+          const fallbackPayload: any = {
             order: {
               ...orderPayload.order,
-              line_items: fallbackLineItems,
+              ...(isCustomerConflict ? { customer: undefined } : {}),
             },
           };
 
@@ -349,6 +352,29 @@ export async function createOrGetShopifyOrder({
             },
             body: JSON.stringify(fallbackPayload),
           });
+
+          // Attempt 3: If still failing, strip customer AND use fallback line items
+          if (!shopifyRes.ok) {
+            const errText2 = await shopifyRes.text();
+            console.warn("[ShopifyOrder] Order creation attempt 2 failed:", shopifyRes.status, errText2);
+
+            const safePayload = {
+              order: {
+                ...orderPayload.order,
+                customer: undefined,
+                line_items: fallbackLineItems,
+              },
+            };
+
+            shopifyRes = await fetch(endpoint, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "X-Shopify-Access-Token": adminToken,
+              },
+              body: JSON.stringify(safePayload),
+            });
+          }
         }
 
         if (shopifyRes.ok) {

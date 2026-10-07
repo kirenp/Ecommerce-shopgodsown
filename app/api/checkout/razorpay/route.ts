@@ -41,6 +41,12 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+    if (contact.includes("@") && /\.(con|cmo|cpm|coom)$/i.test(contact.trim())) {
+      return NextResponse.json(
+        { error: "Typo detected in email address. Please check your email (e.g. .com instead of .con)." },
+        { status: 400 }
+      );
+    }
     if (!shippingAddress || typeof shippingAddress !== "object") {
       return NextResponse.json(
         { error: "Shipping address is required." },
@@ -132,6 +138,13 @@ export async function POST(req: NextRequest) {
           discountCode: calculation.appliedDiscount?.code || "",
           subtotal: String(calculation.subtotal),
           discountAmount: String(calculation.discountAmount),
+          ship_name: `${cleanFirstName} ${cleanLastName}`.trim().slice(0, 50),
+          ship_addr: cleanAddress.slice(0, 100),
+          ship_city: cleanCity.slice(0, 40),
+          ship_pin: cleanPinCode.slice(0, 10),
+          ship_state: String(shippingAddress.state || "Kerala").slice(0, 30),
+          item_summary: calculation.lineItems.map(i => `${i.title} (${i.size || 'M'}) x${i.quantity}`).join(", ").slice(0, 150),
+          item_variants: JSON.stringify(calculation.lineItems.map(i => ({ v: i.numericVariantId || i.variantId, q: i.quantity, s: i.size, c: i.color }))).slice(0, 250),
         },
       }),
     });

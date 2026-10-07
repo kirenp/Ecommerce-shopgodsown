@@ -52,7 +52,7 @@ COPY --from=builder /app/.next/standalone ./
 
 COPY --from=builder /app/.next/static ./.next/static
 
-RUN mkdir -p .next/cache && chown -R nextjs:nextjs /app
+RUN mkdir -p .next/cache /app/data && chown -R nextjs:nextjs /app
 
 USER nextjs
 

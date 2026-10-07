@@ -400,10 +400,17 @@ export default function CheckoutPageContent() {
     if (!trimmedContact) {
       errors.emailOrPhone = "Email or mobile phone number is required";
     } else {
-      const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedContact);
       const cleanPhone = trimmedContact.replace(/[\s\-\+\(\)]/g, "");
       const isPhone = /^\d{10,12}$/.test(cleanPhone);
-      if (!isEmail && !isPhone) {
+      const isEmail = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/.test(trimmedContact);
+
+      if (trimmedContact.includes("@")) {
+        if (!isEmail) {
+          errors.emailOrPhone = "Please enter a valid email address";
+        } else if (/\.(con|cmo|cpm|coom)$/i.test(trimmedContact)) {
+          errors.emailOrPhone = "Typo detected in email address. Did you mean .com instead of .con?";
+        }
+      } else if (!isPhone) {
         errors.emailOrPhone = "Please enter a valid email address or 10-digit mobile number";
       }
     }
