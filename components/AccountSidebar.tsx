@@ -77,6 +77,21 @@ export default function AccountSidebar() {
   const [loginEmail, setLoginEmail] = useState("");
   const [authError, setAuthError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleSignOut = async () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+    try {
+      await logout(false);
+      setShowLoginForm(false);
+      setLoginEmail("");
+      setAuthError("");
+      setActiveTab("profile");
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
 
   // Refresh order history and customer data whenever drawer opens
   useEffect(() => {
@@ -482,24 +497,30 @@ export default function AccountSidebar() {
                     <p className="text-xs text-white/50 font-mono">{customer?.email}</p>
                   </div>
                   <button
-                    onClick={() => logout(false)}
-                    className="p-2 text-white/40 hover:text-red-400 hover:bg-white/10 rounded-full transition-colors"
+                    type="button"
+                    onClick={handleSignOut}
+                    disabled={isLoggingOut}
+                    className="w-10 h-10 -mr-1 -mt-1 flex items-center justify-center rounded-xl bg-white/5 hover:bg-red-500/15 text-white/60 hover:text-red-400 active:bg-red-500/25 active:scale-90 transition-all touch-manipulation cursor-pointer shrink-0"
+                    aria-label="Sign Out"
                     title="Sign Out"
                   >
-                    <LogOut size={16} />
+                    {isLoggingOut ? (
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <LogOut size={18} />
+                    )}
                   </button>
                 </div>
                 <div className="pt-2 border-t border-white/10 flex justify-between items-center text-[11px]">
                   <span className="text-white/50 text-[10px]">Not {customer?.email}?</span>
                   <button
                     type="button"
-                    onClick={() => {
-                      logout(false);
+                    disabled={isLoggingOut}
+                    onClick={async () => {
+                      await handleSignOut();
                       setShowLoginForm(true);
-                      setLoginEmail("");
-                      setAuthError("");
                     }}
-                    className="text-[#00C853] hover:underline font-bold uppercase tracking-wider text-[10px]"
+                    className="text-[#00C853] hover:underline font-bold uppercase tracking-wider text-[10px] touch-manipulation cursor-pointer py-1"
                   >
                     Switch Account
                   </button>
@@ -565,6 +586,24 @@ export default function AccountSidebar() {
                       <span className="text-black/40 uppercase tracking-widest text-[10px]">Marketing Consent</span>
                       <span className="text-[#00C853] font-bold">Subscribed</span>
                     </div>
+                  </div>
+
+                  <div className="pt-3 border-t border-gray-100">
+                    <button
+                      type="button"
+                      onClick={handleSignOut}
+                      disabled={isLoggingOut}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-red-200 bg-red-50/60 hover:bg-red-100/70 active:bg-red-100 active:scale-[0.99] text-red-600 font-bold uppercase tracking-wider text-[11px] transition-all touch-manipulation cursor-pointer"
+                    >
+                      {isLoggingOut ? (
+                        <div className="w-4 h-4 border-2 border-red-300 border-t-red-600 rounded-full animate-spin" />
+                      ) : (
+                        <>
+                          <LogOut size={14} />
+                          <span>Sign Out of Account</span>
+                        </>
+                      )}
+                    </button>
                   </div>
                 </div>
               )}

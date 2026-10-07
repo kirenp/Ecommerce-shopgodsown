@@ -58,7 +58,7 @@ interface CustomerContextType {
   checkEmail: (email: string) => Promise<{ exists: boolean; unverified?: boolean; error?: string }>;
   signUp: (email: string) => Promise<{ success: boolean; error?: string }>;
   initiateAuth: (email?: string) => Promise<{ authorizationUrl?: string; error?: string }>;
-  logout: (clearShopifySession?: boolean) => void;
+  logout: (clearShopifySession?: boolean) => Promise<void> | void;
   addAddress: (address: Omit<CustomerAddress, 'id'>) => void;
   updateAddress: (id: string, address: Partial<CustomerAddress>) => void;
   removeAddress: (id: string) => void;
@@ -93,8 +93,11 @@ function deleteCookie(name: string) {
   const domain = getCookieDomain();
   const domainAttr = domain ? `; domain=${domain}` : '';
   const secureAttr = typeof window !== 'undefined' && window.location.protocol === 'https:' ? '; Secure' : '';
-  document.cookie = `${name}=; path=/; max-age=0${domainAttr}${secureAttr}`;
-  document.cookie = `${name}=; path=/; max-age=0${secureAttr}`;
+  const past = '; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0';
+  document.cookie = `${name}=; path=/${domainAttr}${secureAttr}${past}`;
+  document.cookie = `${name}=; path=/${secureAttr}${past}`;
+  document.cookie = `${name}=; path=/${domainAttr}${past}`;
+  document.cookie = `${name}=; path=/${past}`;
 }
 
 export function CustomerProvider({ children }: { children: ReactNode }) {
@@ -367,46 +370,57 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
   };
 
   // ─── Logout ────────────────────────────────────────────────────────
-  const logout = useCallback((clearShopifySession = false) => {
-    // idToken is now in httpOnly cookie (not accessible from JS)
-    // Logout via API endpoint which has access to it
-    let idToken: string | undefined = undefined;
-
+  const logout = useCallback(async (clearShopifySession = false) => {
+    // 1. Immediately reset state so UI reflects logout instantly
     setCustomer(null);
     setOrderHistory([]);
     setSavedAddresses([]);
-    deleteCookie("goc_auth_customer");
-    deleteCookie("goc_pkce_verifier");
-    deleteCookie("goc_pkce_state");
-    deleteCookie("goc_auth_origin");
-    deleteCookie("goc_auth_return_url");
-    deleteCookie("goc_auth_intended_email");
-    deleteCookie("goc_auth_redirect_uri");
-    // Clear httpOnly session cookie via server
-    fetch('/api/auth/clear-session', { method: 'POST' }).catch(() => {});
 
+    // 2. Erase client cookies with explicit past expiration
+    const authCookies = [
+      "goc_auth_customer",
+      "goc_auth_session",
+      "goc_pkce_verifier",
+      "goc_pkce_state",
+      "goc_auth_origin",
+      "goc_auth_return_url",
+      "goc_auth_intended_email",
+      "goc_auth_redirect_uri",
+      "goc_auth_mismatch_notice",
+    ];
+    for (const name of authCookies) {
+      deleteCookie(name);
+    }
+
+    // 3. Clear local storage and session storage
     if (typeof window !== 'undefined') {
       try {
         localStorage.removeItem("goc_customer_profile");
+        localStorage.removeItem("goc_last_email");
         sessionStorage.clear();
       } catch (e) {}
+    }
 
-      if (clearShopifySession) {
-        const clientOrigin = window.location.origin;
-        const clientPath = window.location.pathname + window.location.search;
-        fetch("/api/customer/auth", {
+    // 4. Await server httpOnly session cleanup
+    try {
+      await fetch('/api/auth/clear-session', { method: 'POST' });
+    } catch (e) {}
+
+    // 5. If Shopify domain session logout was explicitly requested
+    if (clearShopifySession && typeof window !== 'undefined') {
+      const clientOrigin = window.location.origin;
+      const clientPath = window.location.pathname + window.location.search;
+      try {
+        const res = await fetch("/api/customer/auth", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "get-logout-url", origin: clientOrigin, returnPath: clientPath, idToken }),
-        })
-          .then(res => res.json())
-          .then(data => {
-            if (data.logoutUrl) {
-              window.location.href = data.logoutUrl;
-            }
-          })
-          .catch(() => {});
-      }
+          body: JSON.stringify({ action: "get-logout-url", origin: clientOrigin, returnPath: clientPath }),
+        });
+        const data = await res.json();
+        if (data.logoutUrl) {
+          window.location.href = data.logoutUrl;
+        }
+      } catch (e) {}
     }
   }, []);
 
