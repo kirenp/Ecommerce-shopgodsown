@@ -56,7 +56,7 @@ export default function ContactForm() {
                 <p className="text-white/70 text-sm max-w-lg mx-auto leading-relaxed">
                   {liveEmailSent ? (
                     <>
-                      Thank you for reaching out to <span className="text-[#C81E1E] font-semibold">GOD&apos;S OWN CULTURE</span>. Your message has been sent to <span className="text-white font-medium">godsownculture@gmail.com</span> and a confirmation copy was delivered to your email (<span className="text-white font-medium">{form.email}</span>).
+                      Thank you for reaching out to <span className="text-[#C81E1E] font-semibold">GOD&apos;S OWN CULTURE</span>. Your message has been sent to <span className="text-white font-medium">hello@shopgodsown.com</span> and a confirmation copy was delivered to your email (<span className="text-white font-medium">{form.email}</span>).
                     </>
                   ) : (
                     <>
@@ -97,13 +97,13 @@ export default function ContactForm() {
                         <path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21" />
                         <path d="M9 10a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1a5 5 0 0 0 5 5h1a.5.5 0 0 0 0-1h-1a.5.5 0 0 0 0 1" />
                       </svg>
-                      <span>WhatsApp: <span className="font-mono text-white">+91 7907478189</span></span>
+                      <span>WhatsApp</span>
                     </a>
                     <a
-                      href="mailto:godsownculture@gmail.com"
+                      href="mailto:hello@shopgodsown.com"
                       className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 hover:border-white/20 text-white/80 hover:text-white text-xs font-semibold transition-all"
                     >
-                      <span>godsownculture@gmail.com</span>
+                      <span>hello@shopgodsown.com</span>
                     </a>
                   </div>
                 </div>
