@@ -85,14 +85,16 @@ function getCookieDomain(): string | undefined {
 function setCookie(name: string, value: string, maxAge: number) {
   const domain = getCookieDomain();
   const domainAttr = domain ? `; domain=${domain}` : '';
-  document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAge}; SameSite=Lax${domainAttr}`;
+  const secureAttr = typeof window !== 'undefined' && window.location.protocol === 'https:' ? '; Secure' : '';
+  document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAge}; SameSite=Lax${domainAttr}${secureAttr}`;
 }
 
 function deleteCookie(name: string) {
   const domain = getCookieDomain();
   const domainAttr = domain ? `; domain=${domain}` : '';
-  document.cookie = `${name}=; path=/; max-age=0${domainAttr}`;
-  document.cookie = `${name}=; path=/; max-age=0`;
+  const secureAttr = typeof window !== 'undefined' && window.location.protocol === 'https:' ? '; Secure' : '';
+  document.cookie = `${name}=; path=/; max-age=0${domainAttr}${secureAttr}`;
+  document.cookie = `${name}=; path=/; max-age=0${secureAttr}`;
 }
 
 export function CustomerProvider({ children }: { children: ReactNode }) {

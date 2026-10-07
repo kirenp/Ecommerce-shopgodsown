@@ -7,6 +7,7 @@ import {
   buildAuthorizationUrl,
   buildLogoutUrl,
   getCanonicalAuthOrigin,
+  getAuthCookieDomain,
 } from "@/lib/shopifyAuth";
 import {
   getServerCustomerAddresses,
@@ -337,7 +338,7 @@ export async function POST(req: NextRequest) {
 
       console.log('[Auth] Initiated OAuth flow:', { redirectUri, origin, canonicalOrigin, returnPath, hasEmail: !!email });
 
-      return NextResponse.json({
+      const response = NextResponse.json({
         authorizationUrl,
         codeVerifier,
         state,
@@ -346,6 +347,27 @@ export async function POST(req: NextRequest) {
         origin,
         redirectUri,
       });
+
+      const cookieDomain = getAuthCookieDomain(origin);
+      const isProd = process.env.NODE_ENV === "production";
+      const cookieOpts = {
+        path: "/",
+        maxAge: 600,
+        sameSite: "lax" as const,
+        secure: isProd,
+        ...(cookieDomain ? { domain: cookieDomain } : {}),
+      };
+
+      response.cookies.set("goc_pkce_verifier", codeVerifier, cookieOpts);
+      response.cookies.set("goc_pkce_state", state, cookieOpts);
+      response.cookies.set("goc_auth_origin", origin, cookieOpts);
+      response.cookies.set("goc_auth_return_url", returnPath, cookieOpts);
+      response.cookies.set("goc_auth_redirect_uri", redirectUri, cookieOpts);
+      if (email) {
+        response.cookies.set("goc_auth_intended_email", email.trim().toLowerCase(), cookieOpts);
+      }
+
+      return response;
     }
 
     // ─── ACTION: GET-LOGOUT-URL ────────────────────────────────────────

@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   exchangeCodeForTokens,
   fetchCustomerProfile,
-  buildLogoutUrl,
   getCanonicalAuthOrigin,
   getAuthCookieDomain,
 } from "@/lib/shopifyAuth";
@@ -96,7 +95,7 @@ export async function GET(req: NextRequest) {
       try {
         const parts = tokens.id_token.split(".");
         if (parts.length >= 2) {
-          const jsonStr = Buffer.from(parts[1], "base64").toString("utf-8");
+          const jsonStr = Buffer.from(parts[1], "base64url").toString("utf-8");
           idTokenPayload = JSON.parse(jsonStr);
         }
       } catch (e) {
@@ -116,7 +115,8 @@ export async function GET(req: NextRequest) {
       console.warn("Failed to fetch customer profile from Customer Account API:", err);
     }
 
-    const fallbackEmail = idTokenPayload?.email || idTokenPayload?.email_address || "";
+    const intendedEmail = req.cookies.get("goc_auth_intended_email")?.value?.trim().toLowerCase();
+    const fallbackEmail = idTokenPayload?.email || idTokenPayload?.email_address || intendedEmail || "";
     const fallbackFirstName = idTokenPayload?.given_name || (fallbackEmail ? fallbackEmail.split("@")[0] : "Customer");
     const fallbackLastName = idTokenPayload?.family_name || "";
     const fallbackPhone = idTokenPayload?.phone_number || "";
@@ -133,55 +133,16 @@ export async function GET(req: NextRequest) {
       points: 100,
     };
 
-    // Validate that the authenticated email matches what the user typed
-    const intendedEmail = req.cookies.get("goc_auth_intended_email")?.value?.trim().toLowerCase();
-    const authenticatedEmail = customerObj.email?.trim().toLowerCase();
-    
-    if (intendedEmail && authenticatedEmail && intendedEmail !== authenticatedEmail) {
-      // Shopify auto-authenticated a different account due to a cached domain cookie on shopify.com.
-      // Automatically redirect to Shopify's logout endpoint using the newly issued id_token so that
-      // Shopify's domain session is cleanly invalidated without any "Invalid id_token" errors.
-      const mismatchNotice = `Shopify session for ${authenticatedEmail} was cleared. Please re-enter ${intendedEmail} to receive your OTP.`;
-      
-      const canonicalSavedOrigin = getCanonicalAuthOrigin(savedOrigin);
-      const postLogoutRedirectUri = `${canonicalSavedOrigin}/api/auth/logout`;
-
-      const logoutUrl = buildLogoutUrl({
-        shopId,
-        idTokenHint: tokens.id_token,
-        postLogoutRedirectUri,
-      });
-
-      const mismatchResponse = NextResponse.redirect(logoutUrl);
-      const cookieDomain = getAuthCookieDomain(savedOrigin || headerHost || "");
-
-      // Store notice in a short-lived cookie so /api/auth/logout can display it upon return
-      mismatchResponse.cookies.set("goc_auth_mismatch_notice", encodeURIComponent(mismatchNotice), {
-        path: "/",
-        maxAge: 300,
-        sameSite: "lax",
-        secure: process.env.NODE_ENV === "production",
-        ...(cookieDomain ? { domain: cookieDomain } : {}),
-      });
-
-      // Clear PKCE and auth session cookies, but preserve goc_auth_return_url and goc_auth_origin
-      // so /api/auth/logout knows where to return the user
-      const clearAuthCookies = [
-        "goc_pkce_verifier",
-        "goc_pkce_state",
-        "goc_auth_intended_email",
-        "goc_auth_redirect_uri",
-        "goc_auth_session",
-        "goc_auth_customer",
-      ];
-      for (const name of clearAuthCookies) {
-        mismatchResponse.cookies.delete(name);
-        if (cookieDomain) {
-          mismatchResponse.cookies.set(name, "", { maxAge: 0, path: "/", domain: cookieDomain });
-        }
-      }
-      return mismatchResponse;
+    // Ensure customer email is populated
+    if (!customerObj.email && intendedEmail) {
+      customerObj.email = intendedEmail;
     }
+
+    console.log('[Auth Callback] Successfully authenticated customer:', {
+      id: customerObj.id,
+      email: customerObj.email,
+      intendedEmail,
+    });
 
     // Build customer session data
     const sessionData = {
@@ -230,6 +191,7 @@ export async function GET(req: NextRequest) {
       "goc_auth_origin",
       "goc_auth_intended_email",
       "goc_auth_redirect_uri",
+      "goc_auth_mismatch_notice",
     ];
     for (const name of clearTempCookies) {
       response.cookies.delete(name);
