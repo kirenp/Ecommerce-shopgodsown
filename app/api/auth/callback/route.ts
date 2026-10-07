@@ -138,9 +138,61 @@ export async function GET(req: NextRequest) {
       customerObj.email = intendedEmail;
     }
 
+    // Enrich customer profile from Shopify Admin API if available
+    const resolvedEmail = customerObj.email || intendedEmail;
+    if (resolvedEmail) {
+      try {
+        const domain = process.env.SHOPIFY_STORE_DOMAIN;
+        const adminToken = process.env.SHOPIFY_ADMIN_ACCESS_TOKEN || (process.env.SHOPIFY_PRIVATE_ACCESS_TOKEN?.startsWith("shpat_") ? process.env.SHOPIFY_PRIVATE_ACCESS_TOKEN : undefined);
+        const apiVersion = process.env.SHOPIFY_API_VERSION || "2026-07";
+        if (domain && adminToken) {
+          const adminEndpoint = `https://${domain}/admin/api/${apiVersion}/graphql.json`;
+          const adminRes = await fetch(adminEndpoint, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-Shopify-Access-Token": adminToken,
+            },
+            body: JSON.stringify({
+              query: `
+                query searchCustomer($queryStr: String!) {
+                  customers(first: 1, query: $queryStr) {
+                    edges {
+                      node {
+                        id
+                        firstName
+                        lastName
+                        email
+                        phone
+                      }
+                    }
+                  }
+                }
+              `,
+              variables: { queryStr: `email:${resolvedEmail}` },
+            }),
+            cache: "no-store",
+          });
+          const adminData = await adminRes.json();
+          const adminCust = adminData?.data?.customers?.edges?.[0]?.node;
+          if (adminCust) {
+            customerObj.id = adminCust.id || customerObj.id;
+            if (adminCust.firstName) customerObj.firstName = adminCust.firstName;
+            if (adminCust.lastName) customerObj.lastName = adminCust.lastName;
+            if (adminCust.phone) customerObj.phone = adminCust.phone;
+            if (adminCust.email) customerObj.email = adminCust.email;
+          }
+        }
+      } catch (err) {
+        console.warn("Admin customer profile enrichment notice:", err);
+      }
+    }
+
     console.log('[Auth Callback] Successfully authenticated customer:', {
       id: customerObj.id,
       email: customerObj.email,
+      firstName: customerObj.firstName,
+      lastName: customerObj.lastName,
       intendedEmail,
     });
 

@@ -59,7 +59,7 @@ export function buildAuthorizationUrl({
   const authUrl = new URL(`https://shopify.com/authentication/${shopId}/oauth/authorize`);
   
   authUrl.searchParams.set('client_id', clientId);
-  const scope = process.env.SHOPIFY_AUTH_SCOPE || 'openid email customer-account-api:full';
+  const scope = process.env.SHOPIFY_AUTH_SCOPE || 'openid email';
   authUrl.searchParams.set('scope', scope);
   authUrl.searchParams.set('response_type', 'code');
   authUrl.searchParams.set('redirect_uri', redirectUri);
