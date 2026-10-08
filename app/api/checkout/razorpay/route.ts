@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rateLimit";
 import { calculateAuthoritativeOrder } from "@/lib/checkoutSecurity";
 import { savePendingCheckout } from "@/lib/checkoutStore";
+import { validateContact } from "@/lib/emailValidation";
 
 export const dynamic = "force-dynamic";
 
@@ -41,9 +42,10 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    if (contact.includes("@") && /\.(con|cmo|cpm|coom)$/i.test(contact.trim())) {
+    const contactValidation = validateContact(contact);
+    if (!contactValidation.isValid) {
       return NextResponse.json(
-        { error: "Typo detected in email address. Please check your email (e.g. .com instead of .con)." },
+        { error: contactValidation.error || "Invalid contact email or phone number." },
         { status: 400 }
       );
     }
@@ -177,6 +179,8 @@ export async function POST(req: NextRequest) {
       },
       billingAddress: billingAddress || undefined,
       discountCode: calculation.appliedDiscount?.code,
+      discountAmount: calculation.discountAmount,
+      finalTotal: calculation.finalTotal,
       amountInPaise,
       createdAt: Date.now(),
     });

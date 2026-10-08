@@ -6,9 +6,10 @@ import { useCustomer } from "@/lib/customerContext";
 import Link from "next/link";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { usePreview } from "@/lib/preview";
-import { ArrowLeft, CreditCard, ShieldCheck, CheckCircle2, Trash2, Plus, Minus } from "lucide-react";
+import { ArrowLeft, CreditCard, ShieldCheck, CheckCircle2, Trash2, Plus, Minus, AlertCircle } from "lucide-react";
 import Script from "next/script";
 import { trackInitiateCheckout, trackPurchase } from "@/lib/metaPixel";
+import { validateContact } from "@/lib/emailValidation";
 
 // Array containing all states and Union Territories of India
 const INDIAN_STATES = [
@@ -123,6 +124,7 @@ export default function CheckoutPageContent() {
   const [confirmedOrderNumber, setConfirmedOrderNumber] = useState("");
   const [finalPaidAmount, setFinalPaidAmount] = useState(0);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [emailSuggestion, setEmailSuggestion] = useState("");
 
   // Receipt Printer States
   const [isPrinting, setIsPrinting] = useState(false);
@@ -397,22 +399,14 @@ export default function CheckoutPageContent() {
     
     // Validate Shipping details
     const trimmedContact = emailOrPhone.trim();
-    if (!trimmedContact) {
-      errors.emailOrPhone = "Email or mobile phone number is required";
-    } else {
-      const cleanPhone = trimmedContact.replace(/[\s\-\+\(\)]/g, "");
-      const isPhone = /^\d{10,12}$/.test(cleanPhone);
-      const isEmail = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/.test(trimmedContact);
-
-      if (trimmedContact.includes("@")) {
-        if (!isEmail) {
-          errors.emailOrPhone = "Please enter a valid email address";
-        } else if (/\.(con|cmo|cpm|coom)$/i.test(trimmedContact)) {
-          errors.emailOrPhone = "Typo detected in email address. Did you mean .com instead of .con?";
-        }
-      } else if (!isPhone) {
-        errors.emailOrPhone = "Please enter a valid email address or 10-digit mobile number";
+    const contactValidation = validateContact(trimmedContact);
+    if (!contactValidation.isValid) {
+      errors.emailOrPhone = contactValidation.error || "Email or mobile phone number is required";
+      if (contactValidation.suggestion) {
+        setEmailSuggestion(contactValidation.suggestion);
       }
+    } else {
+      setEmailSuggestion("");
     }
     if (!firstName.trim()) errors.firstName = "First name is required";
     if (!lastName.trim()) errors.lastName = "Last name is required";
@@ -462,7 +456,13 @@ export default function CheckoutPageContent() {
     }
 
     if (!validateForm()) {
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      const contactEl = document.getElementById("checkout-email");
+      if (emailOrPhone.trim() && !validateContact(emailOrPhone.trim()).isValid && contactEl) {
+        contactEl.scrollIntoView({ behavior: "smooth", block: "center" });
+        contactEl.focus();
+      } else {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
       return;
     }
 
@@ -1352,11 +1352,34 @@ export default function CheckoutPageContent() {
                     if (validationErrors.emailOrPhone) {
                       setValidationErrors(prev => ({ ...prev, emailOrPhone: "" }));
                     }
+                    if (emailSuggestion) {
+                      setEmailSuggestion("");
+                    }
                   }}
                   onChange={(e) => {
                     setEmailOrPhone(e.target.value);
                     if (validationErrors.emailOrPhone) {
                       setValidationErrors(prev => ({ ...prev, emailOrPhone: "" }));
+                    }
+                    if (emailSuggestion) {
+                      setEmailSuggestion("");
+                    }
+                  }}
+                  onBlur={() => {
+                    if (emailOrPhone.trim()) {
+                      const res = validateContact(emailOrPhone);
+                      if (!res.isValid) {
+                        setValidationErrors(prev => ({
+                          ...prev,
+                          emailOrPhone: res.error || "Please enter a valid email address",
+                        }));
+                        if (res.suggestion) {
+                          setEmailSuggestion(res.suggestion);
+                        }
+                      } else {
+                        setEmailSuggestion("");
+                        setValidationErrors(prev => ({ ...prev, emailOrPhone: "" }));
+                      }
                     }
                   }}
                   className={`w-full bg-white border rounded-xl px-4 py-4 text-sm text-black placeholder:text-black/30 outline-none transition-all ${
@@ -1364,7 +1387,22 @@ export default function CheckoutPageContent() {
                   }`}
                 />
                 {validationErrors.emailOrPhone && (
-                  <p className="text-xs text-[#C81E1E] mt-1.5">{validationErrors.emailOrPhone}</p>
+                  <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs text-[#C81E1E]">
+                    <span>{validationErrors.emailOrPhone}</span>
+                    {emailSuggestion && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEmailOrPhone(emailSuggestion);
+                          setEmailSuggestion("");
+                          setValidationErrors(prev => ({ ...prev, emailOrPhone: "" }));
+                        }}
+                        className="font-bold underline hover:text-black cursor-pointer text-[#C81E1E] transition-colors"
+                      >
+                        Click to use {emailSuggestion}
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
@@ -2028,8 +2066,51 @@ export default function CheckoutPageContent() {
               )}
             </div>
 
+            {/* Validation Error Banner right above Pay Now section */}
+            {Object.keys(validationErrors).length > 0 && (
+              <div 
+                onClick={() => {
+                  const targetId = validationErrors.emailOrPhone ? "checkout-email" : "checkout-firstName";
+                  const el = document.getElementById(targetId);
+                  if (el) {
+                    el.scrollIntoView({ behavior: "smooth", block: "center" });
+                    el.focus();
+                  } else {
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }
+                }}
+                className="bg-red-950/40 border border-[#C81E1E] text-white p-4 rounded-2xl text-xs text-left cursor-pointer transition-all hover:bg-red-950/60 shadow-lg mt-6 animate-fade-in"
+              >
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-[#ef4444] shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="font-bold text-red-400 uppercase tracking-wider text-[11px]">
+                      Validation Error Detected
+                    </p>
+                    <p className="text-white font-medium text-xs">
+                      {validationErrors.emailOrPhone || Object.values(validationErrors)[0]}
+                    </p>
+                    {emailSuggestion && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEmailOrPhone(emailSuggestion);
+                          setEmailSuggestion("");
+                          setValidationErrors(prev => ({ ...prev, emailOrPhone: "" }));
+                        }}
+                        className="inline-block mt-2 font-bold bg-[#C81E1E] hover:bg-red-700 text-white px-3 py-1 rounded-lg text-xs transition-colors shadow-sm"
+                      >
+                        Click to use: {emailSuggestion}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Pay Now Section with Dark Canvas to make the button's glowing effects identical */}
-            <div className="bg-black border border-white/10 rounded-2xl p-6 text-center space-y-4 shadow-xl relative overflow-hidden mt-8">
+            <div className="bg-black border border-white/10 rounded-2xl p-6 text-center space-y-4 shadow-xl relative overflow-hidden mt-6">
               {/* Ambient background glow inside the card */}
               <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 w-32 h-32 bg-[#C81E1E]/10 rounded-full blur-2xl pointer-events-none" />
               

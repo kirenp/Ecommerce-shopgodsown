@@ -8,6 +8,8 @@ export interface PendingCheckout {
   shippingAddress: any;
   billingAddress?: any;
   discountCode?: string;
+  discountAmount?: number;
+  finalTotal?: number;
   amountInPaise: number;
   createdAt: number;
 }

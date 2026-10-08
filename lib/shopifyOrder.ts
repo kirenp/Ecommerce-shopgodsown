@@ -4,6 +4,16 @@ import { sendMetaPurchaseEvent } from "@/lib/metaConversionsApi";
 import { removePendingCheckout } from "@/lib/checkoutStore";
 import { saveServerCustomerAddress } from "@/lib/serverCustomerStore";
 import { saveServerCustomerOrder } from "@/lib/serverOrderStore";
+import {
+  getProcessedOrder,
+  saveProcessedOrder,
+  getInFlightOrderPromise,
+  setInFlightOrderPromise,
+  clearInFlightOrderPromise,
+  acquireOrderLock,
+  releaseOrderLock,
+  waitForProcessedOrder,
+} from "@/lib/processedOrderStore";
 
 const domain = process.env.SHOPIFY_STORE_DOMAIN;
 const adminToken = process.env.SHOPIFY_ADMIN_ACCESS_TOKEN || (process.env.SHOPIFY_PRIVATE_ACCESS_TOKEN?.startsWith("shpat_") ? process.env.SHOPIFY_PRIVATE_ACCESS_TOKEN : undefined);
@@ -99,6 +109,16 @@ export function formatShopifyAddress(addr: any): any {
  * Idempotency check.
  */
 export async function findExistingShopifyOrderByRazorpayId(orderId: string, paymentId?: string): Promise<any | null> {
+  // 1. Fast check against in-memory & persistent local store
+  const localRecord = getProcessedOrder(orderId, paymentId);
+  if (localRecord) {
+    return {
+      id: localRecord.id,
+      name: localRecord.name,
+      financialStatus: localRecord.financialStatus || "PAID",
+    };
+  }
+
   if (orderId && processedOrders.has(orderId)) {
     return processedOrders.get(orderId);
   }
@@ -152,6 +172,18 @@ export async function findExistingShopifyOrderByRazorpayId(orderId: string, paym
         };
         if (orderId) processedOrders.set(orderId, orderSummary);
         if (paymentId) processedOrders.set(paymentId, orderSummary);
+        saveProcessedOrder(
+          {
+            id: String(node.id),
+            name: String(node.name),
+            financialStatus: node.displayFinancialStatus || "PAID",
+            orderId,
+            paymentId,
+            processedAt: Date.now(),
+          },
+          orderId,
+          paymentId
+        );
         return orderSummary;
       }
     }
@@ -216,9 +248,30 @@ export async function createOrGetShopifyOrder({
     };
   }
 
-  // 2. In-flight lock: prevent concurrent race between webhook and client callback
-  if (inFlightOrders.has(orderId)) {
-    return inFlightOrders.get(orderId)!;
+  // 2. In-flight lock in memory: prevent concurrent race between webhook and client callback
+  const activeFlight = getInFlightOrderPromise(orderId, paymentId);
+  if (activeFlight) {
+    console.log(`[ShopifyOrder] In-flight order creation detected for ${orderId || paymentId}. Awaiting result...`);
+    return await activeFlight;
+  }
+
+  // 3. Multi-instance lock check: if another worker holds the lock, wait for it to complete
+  const lockAcquired = acquireOrderLock(orderId);
+  if (!lockAcquired) {
+    console.log(`[ShopifyOrder] Another worker holds lock for order ${orderId}. Waiting for completion...`);
+    const finishedOrder = await waitForProcessedOrder(orderId, paymentId, 15000);
+    if (finishedOrder) {
+      console.log(`[ShopifyOrder] Awaited order completed by another worker: ${finishedOrder.name}`);
+      return {
+        success: true,
+        orderId: finishedOrder.id,
+        orderNumber: finishedOrder.name,
+        eventId: String(finishedOrder.id || orderId),
+        alreadyProcessed: true,
+      };
+    }
+    // Timeout or stale lock: proceed to try lock again
+    acquireOrderLock(orderId);
   }
 
   const executionPromise = (async () => {
@@ -256,19 +309,29 @@ export async function createOrGetShopifyOrder({
         return li;
       });
 
-      const formattedDiscount = (discountCode && discountAmount && discountAmount > 0)
+      const safeDiscountAmount = (typeof discountAmount === "number" && !isNaN(discountAmount) && discountAmount > 0)
+        ? Math.round(discountAmount * 100) / 100
+        : 0;
+
+      const formattedDiscount = (discountCode && safeDiscountAmount > 0)
         ? [{
             code: String(discountCode).toUpperCase(),
-            amount: Number(discountAmount).toFixed(2),
+            amount: safeDiscountAmount.toFixed(2),
             type: "fixed_amount",
           }]
         : undefined;
+
+      const discountNotePart = discountCode
+        ? (safeDiscountAmount > 0
+            ? `Discount Code Applied: ${discountCode.toUpperCase()} (-₹${safeDiscountAmount.toFixed(2)})`
+            : `Discount Code Applied: ${discountCode.toUpperCase()}`)
+        : null;
 
       const orderNotes = [
         `Razorpay Order ID: ${orderId}`,
         `Razorpay Payment ID: ${paymentId}`,
         `Payment Method: Online (Razorpay)`,
-        discountCode ? `Discount Code Applied: ${discountCode.toUpperCase()} (-₹${Number(discountAmount).toFixed(2)})` : null,
+        discountNotePart,
       ].filter(Boolean).join(" | ");
 
       const orderTags = `Razorpay, Online Order, Paid, rzp_order_${orderId}, rzp_pay_${paymentId}`;
@@ -288,7 +351,7 @@ export async function createOrGetShopifyOrder({
             send_fulfillment_receipt: true,
             line_items: shopifyLineItems,
             discount_codes: formattedDiscount,
-            total_discounts: (discountAmount && discountAmount > 0) ? Number(discountAmount).toFixed(2) : undefined,
+            total_discounts: safeDiscountAmount > 0 ? safeDiscountAmount.toFixed(2) : undefined,
             transactions: [
               {
                 kind: "sale",
@@ -353,15 +416,17 @@ export async function createOrGetShopifyOrder({
             body: JSON.stringify(fallbackPayload),
           });
 
-          // Attempt 3: If still failing, strip customer AND use fallback line items
+          // Attempt 3: If still failing, strip customer AND use fallback line items (and strip email if Shopify complained)
           if (!shopifyRes.ok) {
             const errText2 = await shopifyRes.text();
             console.warn("[ShopifyOrder] Order creation attempt 2 failed:", shopifyRes.status, errText2);
 
+            const isEmailError = errText2.toLowerCase().includes("email");
             const safePayload = {
               order: {
                 ...orderPayload.order,
                 customer: undefined,
+                ...(isEmailError ? { email: undefined, note: `${orderNotes} | Customer Email (Shopify rejected): ${email}` } : {}),
                 line_items: fallbackLineItems,
               },
             };
@@ -374,6 +439,31 @@ export async function createOrGetShopifyOrder({
               },
               body: JSON.stringify(safePayload),
             });
+
+            // Attempt 4: If still failing and email might be the culprit, strip email completely
+            if (!shopifyRes.ok) {
+              const errText3 = await shopifyRes.text();
+              console.warn("[ShopifyOrder] Order creation attempt 3 failed:", shopifyRes.status, errText3);
+              if (errText3.toLowerCase().includes("email")) {
+                const noEmailPayload = {
+                  order: {
+                    ...orderPayload.order,
+                    email: undefined,
+                    customer: undefined,
+                    line_items: fallbackLineItems,
+                    note: `${orderNotes} | Customer Email (Shopify rejected): ${email}`,
+                  },
+                };
+                shopifyRes = await fetch(endpoint, {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    "X-Shopify-Access-Token": adminToken,
+                  },
+                  body: JSON.stringify(noEmailPayload),
+                });
+              }
+            }
           }
         }
 
@@ -398,6 +488,18 @@ export async function createOrGetShopifyOrder({
       };
       processedOrders.set(orderId, orderSummary);
       processedOrders.set(paymentId, orderSummary);
+      saveProcessedOrder(
+        {
+          id: confirmedOrderId,
+          name: orderNumber,
+          financialStatus: "PAID",
+          orderId,
+          paymentId,
+          processedAt: Date.now(),
+        },
+        orderId,
+        paymentId
+      );
 
       // Save customer address & order fallback safely
       if (email) {
@@ -486,10 +588,14 @@ export async function createOrGetShopifyOrder({
         alreadyProcessed: false,
       };
     } finally {
+      clearInFlightOrderPromise(orderId, paymentId);
+      releaseOrderLock(orderId);
       inFlightOrders.delete(orderId);
     }
   })();
 
+  if (orderId) setInFlightOrderPromise(orderId, executionPromise);
+  if (paymentId) setInFlightOrderPromise(paymentId, executionPromise);
   inFlightOrders.set(orderId, executionPromise);
   return executionPromise;
 }

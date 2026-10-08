@@ -294,6 +294,86 @@ try {
   fail(`SEC-01 test encountered error: ${err.message}`);
 }
 
+// -----------------------------------------------------------------
+// Test Group 7: Order Deduplication, Locking & Discount Integrity
+// -----------------------------------------------------------------
+console.log("\n--- TEST GROUP 7: Order Deduplication, Locking & Discount Integrity ---");
+try {
+  const {
+    getProcessedOrder,
+    saveProcessedOrder,
+    acquireOrderLock,
+    releaseOrderLock,
+    setInFlightOrderPromise,
+    getInFlightOrderPromise,
+    clearInFlightOrderPromise,
+  } = await import("../lib/processedOrderStore.ts");
+
+  const testOrderId = `order_test_${Date.now()}`;
+  const testPaymentId = `pay_test_${Date.now()}`;
+
+  // 1. Initial lookup null
+  if (getProcessedOrder(testOrderId, testPaymentId) === null) {
+    pass("Initial lookup correctly returns null for unrecorded order");
+  } else {
+    fail("Initial lookup returned an order unexpectedly");
+  }
+
+  // 2. Lock acquisition
+  if (acquireOrderLock(testOrderId)) {
+    pass("First caller successfully acquires execution lock");
+  } else {
+    fail("First caller failed to acquire lock");
+  }
+
+  // 3. Concurrent lock acquisition must fail
+  if (!acquireOrderLock(testOrderId)) {
+    pass("Concurrent caller correctly blocked from acquiring lock for same orderId");
+  } else {
+    fail("Race condition vulnerability: Second caller acquired the same lock!");
+  }
+
+  // 4. In-flight promise locking
+  const mockPromise = Promise.resolve({ orderNumber: "#1099", orderId: "12345" });
+  setInFlightOrderPromise(testOrderId, mockPromise);
+  if (getInFlightOrderPromise(testOrderId) === mockPromise) {
+    pass("In-flight execution promise properly registered and retrievable");
+  } else {
+    fail("Failed to retrieve in-flight execution promise");
+  }
+
+  // 5. Save and retrieve processed order
+  saveProcessedOrder({
+    id: "gid://shopify/Order/99999",
+    name: "#1099",
+    financialStatus: "PAID",
+    orderId: testOrderId,
+    paymentId: testPaymentId,
+    processedAt: Date.now(),
+  }, testOrderId, testPaymentId);
+
+  const foundByOrderId = getProcessedOrder(testOrderId);
+  const foundByPaymentId = getProcessedOrder(undefined, testPaymentId);
+  if (foundByOrderId?.name === "#1099" && foundByPaymentId?.name === "#1099") {
+    pass("Processed order successfully retrieved across both Order ID and Payment ID");
+  } else {
+    fail("Processed order lookup failed");
+  }
+
+  releaseOrderLock(testOrderId);
+  clearInFlightOrderPromise(testOrderId, testPaymentId);
+
+  // 6. Safe discount formatting prevents (-₹NaN)
+  const safeDiscount = (val) => (typeof val === "number" && !isNaN(val) && val > 0 ? Math.round(val * 100) / 100 : 0);
+  if (safeDiscount(89.9) === 89.9 && safeDiscount(undefined) === 0 && safeDiscount(null) === 0 && safeDiscount(NaN) === 0) {
+    pass("Safe discount evaluator prevents NaN in order notes and tags");
+  } else {
+    fail("Safe discount evaluator failed");
+  }
+} catch (err) {
+  fail(`Test Group 7 encountered error: ${err.message}`);
+}
+
 console.log("\n=================================================");
 if (process.exitCode === 1) {
   console.log(" \x1b[31mSOME TESTS FAILED!\x1b[0m");

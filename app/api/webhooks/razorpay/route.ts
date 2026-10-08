@@ -99,8 +99,18 @@ export async function POST(req: NextRequest) {
   let shippingAddress = pending?.shippingAddress;
   let billingAddress = pending?.billingAddress;
   let discountCode = pending?.discountCode || notes.discountCode;
-  let discountAmount = pending?.amountInPaise ? undefined : (notes.discountAmount ? Number(notes.discountAmount) : undefined);
   let finalTotal = (pending?.amountInPaise || paymentEntity?.amount || 0) / 100;
+  let discountAmount: number | undefined = undefined;
+  if (typeof pending?.discountAmount === "number" && !isNaN(pending.discountAmount)) {
+    discountAmount = pending.discountAmount;
+  } else if (notes.discountAmount && !isNaN(Number(notes.discountAmount))) {
+    discountAmount = Number(notes.discountAmount);
+  } else if (discountCode && lineItems && Array.isArray(lineItems) && finalTotal > 0) {
+    const subtotal = lineItems.reduce((acc: number, item: any) => acc + (Number(item.price) || 0) * (Number(item.quantity) || 1), 0);
+    if (subtotal > finalTotal) {
+      discountAmount = Math.round((subtotal - finalTotal) * 100) / 100;
+    }
+  }
 
   // Fallback recovery from Razorpay notes if local container restarted
   if (!lineItems && notes.ship_addr) {

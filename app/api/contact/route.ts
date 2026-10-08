@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import nodemailer from "nodemailer";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rateLimit";
 import { escapeHtml, sanitizeInput } from "@/lib/security";
+import { validateEmail } from "@/lib/emailValidation";
 
 export async function POST(req: NextRequest) {
   // Rate limiting
@@ -24,11 +25,11 @@ export async function POST(req: NextRequest) {
     const email = sanitizeInput(String(body.email), 320);
     const message = sanitizeInput(String(body.message), 5000);
 
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    // Validate email format and check for typos
+    const emailValidation = validateEmail(email);
+    if (!emailValidation.isValid) {
       return NextResponse.json(
-        { success: false, error: "Please provide a valid email address." },
+        { success: false, error: emailValidation.error || "Please provide a valid email address." },
         { status: 400 }
       );
     }
