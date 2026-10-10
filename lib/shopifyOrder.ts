@@ -278,7 +278,11 @@ export async function createOrGetShopifyOrder({
     try {
       const isEmail = contact?.includes("@");
       const email = isEmail ? contact.trim().toLowerCase() : "";
-      const phone = isEmail ? (shippingAddress?.phone || "") : contact.trim();
+
+      // Sanitize phone to valid E.164 (+91XXXXXXXXXX for 10-digit Indian numbers)
+      const rawPhone = isEmail ? (shippingAddress?.phone || "") : (contact?.trim() || shippingAddress?.phone || "");
+      const clean10Digits = String(rawPhone || "").replace(/\D/g, "").slice(-10);
+      const phone = clean10Digits.length === 10 ? `+91${clean10Digits}` : undefined;
 
       const formattedShipping = formatShopifyAddress(shippingAddress);
       const formattedBilling = billingAddress ? formatShopifyAddress(billingAddress) : formattedShipping;
@@ -397,13 +401,23 @@ export async function createOrGetShopifyOrder({
             quantity: li.quantity,
           }));
 
-          // Attempt 2: If customer email/phone conflict (e.g. 422 has already been taken), omit customer object
-          // Shopify automatically matches existing customer by top-level email/phone
-          const isCustomerConflict = errText.includes("already been taken") || errText.includes("customer");
-          const fallbackPayload: any = {
+          const errLower = errText.toLowerCase();
+          const isCustomerConflict = errText.includes("already been taken") || errLower.includes("customer");
+          const isPhoneError = errLower.includes("phone");
+          const isEmailError = errLower.includes("email");
+
+          // Attempt 2: If phone error, strip order.phone and customer.phone.
+          // If customer conflict (e.g. 422 has already been taken), omit customer object so Shopify auto-links.
+          const attempt2Payload: any = {
             order: {
               ...orderPayload.order,
-              ...(isCustomerConflict ? { customer: undefined } : {}),
+              phone: isPhoneError ? undefined : orderPayload.order.phone,
+              ...(isCustomerConflict ? { customer: undefined } : {
+                customer: orderPayload.order.customer ? {
+                  ...orderPayload.order.customer,
+                  phone: isPhoneError ? undefined : orderPayload.order.customer.phone,
+                } : undefined,
+              }),
             },
           };
 
@@ -413,20 +427,23 @@ export async function createOrGetShopifyOrder({
               "Content-Type": "application/json",
               "X-Shopify-Access-Token": adminToken,
             },
-            body: JSON.stringify(fallbackPayload),
+            body: JSON.stringify(attempt2Payload),
           });
 
-          // Attempt 3: If still failing, strip customer AND use fallback line items (and strip email if Shopify complained)
+          // Attempt 3: If still failing, strip customer completely, strip order.phone, and use fallback line items
           if (!shopifyRes.ok) {
             const errText2 = await shopifyRes.text();
             console.warn("[ShopifyOrder] Order creation attempt 2 failed:", shopifyRes.status, errText2);
 
-            const isEmailError = errText2.toLowerCase().includes("email");
-            const safePayload = {
+            const errLower2 = errText2.toLowerCase();
+            const shouldStripEmail = isEmailError || errLower2.includes("email");
+
+            const attempt3Payload = {
               order: {
                 ...orderPayload.order,
                 customer: undefined,
-                ...(isEmailError ? { email: undefined, note: `${orderNotes} | Customer Email (Shopify rejected): ${email}` } : {}),
+                phone: undefined, // Strip top-level phone to rely on shipping_address.phone
+                ...(shouldStripEmail ? { email: undefined, note: `${orderNotes} | Customer Email (Shopify rejected): ${email}` } : {}),
                 line_items: fallbackLineItems,
               },
             };
@@ -437,32 +454,33 @@ export async function createOrGetShopifyOrder({
                 "Content-Type": "application/json",
                 "X-Shopify-Access-Token": adminToken,
               },
-              body: JSON.stringify(safePayload),
+              body: JSON.stringify(attempt3Payload),
             });
 
-            // Attempt 4: If still failing and email might be the culprit, strip email completely
+            // Attempt 4: Minimal bulletproof payload if Shopify rejected earlier attempts
             if (!shopifyRes.ok) {
               const errText3 = await shopifyRes.text();
               console.warn("[ShopifyOrder] Order creation attempt 3 failed:", shopifyRes.status, errText3);
-              if (errText3.toLowerCase().includes("email")) {
-                const noEmailPayload = {
-                  order: {
-                    ...orderPayload.order,
-                    email: undefined,
-                    customer: undefined,
-                    line_items: fallbackLineItems,
-                    note: `${orderNotes} | Customer Email (Shopify rejected): ${email}`,
-                  },
-                };
-                shopifyRes = await fetch(endpoint, {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                    "X-Shopify-Access-Token": adminToken,
-                  },
-                  body: JSON.stringify(noEmailPayload),
-                });
-              }
+
+              const minimalPayload = {
+                order: {
+                  ...orderPayload.order,
+                  email: undefined,
+                  phone: undefined,
+                  customer: undefined,
+                  line_items: fallbackLineItems,
+                  note: `${orderNotes} | Customer Contact: ${contact}`,
+                },
+              };
+
+              shopifyRes = await fetch(endpoint, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "X-Shopify-Access-Token": adminToken,
+                },
+                body: JSON.stringify(minimalPayload),
+              });
             }
           }
         }

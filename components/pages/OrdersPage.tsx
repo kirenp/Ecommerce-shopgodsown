@@ -55,10 +55,10 @@ export default function OrdersPageContent() {
       if (!matchesSearch) return false;
 
       if (activeTab === "processing") {
-        return ord.fulfillmentStatus === "UNFULFILLED" || ord.fulfillmentStatus === "IN_TRANSIT";
+        return ord.fulfillmentStatus !== "DELIVERED";
       }
       if (activeTab === "delivered") {
-        return ord.fulfillmentStatus === "DELIVERED" || ord.fulfillmentStatus === "FULFILLED";
+        return ord.fulfillmentStatus === "DELIVERED";
       }
       return true;
     });
@@ -67,12 +67,14 @@ export default function OrdersPageContent() {
   const getStatusBadge = (status: string) => {
     switch (status.toUpperCase()) {
       case "DELIVERED":
-      case "FULFILLED":
         return <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">Delivered</span>;
       case "IN_TRANSIT":
-        return <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">In Transit</span>;
+        return <span className="bg-sky-500/10 text-sky-400 border border-sky-500/20 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">In Transit</span>;
+      case "FULFILLED":
+      case "AWAITING_PICKUP":
+        return <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">Awaiting Pickup</span>;
       default:
-        return <span className="bg-sky-500/10 text-sky-400 border border-sky-500/20 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">Processing</span>;
+        return <span className="bg-white/10 text-white/70 border border-white/20 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">Processing</span>;
     }
   };
 

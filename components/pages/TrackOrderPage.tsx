@@ -93,12 +93,37 @@ export default function TrackOrderPageContent() {
   }, []);
 
   const STAGES = [
-    { id: 1, label: "Order Placed", desc: "Confirmed", icon: Package },
-    { id: 2, label: "Dispatched", desc: "Picked Up", icon: Clock },
-    { id: 3, label: "In Transit", desc: "On the Way", icon: Truck },
-    { id: 4, label: "Out for Delivery", desc: "Nearby Hub", icon: Navigation },
-    { id: 5, label: "Delivered", desc: "Handed Over", icon: CheckCircle2 },
+    { id: 1, label: "Order Placed", icon: Package },
+    { id: 2, label: "Dispatched", icon: Clock },
+    { id: 3, label: "In Transit", icon: Truck },
+    { id: 4, label: "Out for Delivery", icon: Navigation },
+    { id: 5, label: "Delivered", icon: CheckCircle2 },
   ];
+
+  const getStageDescription = (stageId: number) => {
+    switch (stageId) {
+      case 1:
+        return (orderData?.currentStep || 1) >= 2
+          ? "Confirmed"
+          : orderData?.trackingNumber
+          ? "Ready for Pickup"
+          : "Confirmed";
+      case 2:
+        return (orderData?.currentStep || 1) >= 2
+          ? "Picked Up"
+          : orderData?.trackingNumber
+          ? "Awaiting Pickup"
+          : "Pending";
+      case 3:
+        return "On the Way";
+      case 4:
+        return "Nearby Hub";
+      case 5:
+        return "Handed Over";
+      default:
+        return "";
+    }
+  };
 
   // ── Helper: format dates nicely ──
   const formatDate = (dateStr: string) => {
@@ -168,7 +193,7 @@ export default function TrackOrderPageContent() {
       <div className="pt-36 pb-24 px-6 md:px-12 max-w-5xl mx-auto space-y-12">
         {/* Header */}
         <div className="text-center space-y-4 max-w-xl mx-auto">
-          <p className="text-[10px] text-white/40 tracking-[0.4em] uppercase font-montserrat-bold font-bold">Real-Time Logistics</p>
+          <p className="text-[10px] text-white tracking-[0.4em] uppercase font-montserrat-bold font-bold">Real-Time Logistics</p>
           <h1 className="font-montserrat-bold text-4xl md:text-6xl font-bold text-white tracking-tight">
             Track Your Order
           </h1>
@@ -274,7 +299,7 @@ export default function TrackOrderPageContent() {
               <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-6">
                 <div>
                   <span className="text-[10px] text-white/40 uppercase tracking-widest font-mono">Order Number</span>
-                  <h3 className="text-2xl font-brand text-white font-medium">{orderData.orderNumber}</h3>
+                  <h3 className="text-2xl font-bold font-sans text-white tracking-normal">{orderData.orderNumber}</h3>
                 </div>
 
                 <div className="text-right">
@@ -288,15 +313,92 @@ export default function TrackOrderPageContent() {
                 </div>
               </div>
 
-              {/* ── Estimated Delivery Banner ── */}
+              {/* ── Estimated Delivery Banner — Apple Liquid Glass + Free-Flowing Neon Border ── */}
               {shiprocketData?.estimatedDelivery && !hasSpecialStatus && orderData.currentStep < 5 && (
-                <div className="bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-500/20 rounded-2xl p-4 flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
-                    <Calendar size={20} />
-                  </div>
-                  <div>
-                    <span className="text-[9px] text-emerald-400/60 uppercase tracking-widest font-bold block">Estimated Delivery</span>
-                    <p className="text-sm font-bold text-emerald-400">{formatDate(shiprocketData.estimatedDelivery)}</p>
+                <div className="relative p-[1.5px] rounded-2xl overflow-hidden group shadow-[0_12px_40px_rgba(0,0,0,0.5)]">
+                  {/* 1. Free-flowing border light — completely linear, continuous, NO center point, NO radar cone */}
+                  <div
+                    className="absolute inset-0 rounded-2xl pointer-events-none"
+                    style={{
+                      background: 'linear-gradient(90deg, rgba(255,255,255,0.08) 0%, rgba(0,200,83,0.15) 15%, #00C853 38%, #a7f3d0 50%, #00C853 62%, rgba(0,200,83,0.15) 85%, rgba(255,255,255,0.08) 100%)',
+                      backgroundSize: '200% 100%',
+                      animation: 'free-flow-border 3.2s linear infinite',
+                    }}
+                  />
+
+                  {/* 2. Soft outer neon glow aura for the flowing light */}
+                  <div
+                    className="absolute -inset-[2px] rounded-2xl pointer-events-none blur-[4px] opacity-75"
+                    style={{
+                      background: 'linear-gradient(90deg, transparent 0%, rgba(0,200,83,0.1) 15%, #00C853 40%, #69f0ae 50%, #00C853 60%, rgba(0,200,83,0.1) 85%, transparent 100%)',
+                      backgroundSize: '200% 100%',
+                      animation: 'free-flow-border 3.2s linear infinite',
+                    }}
+                  />
+
+                  {/* 3. Apple Liquid Glass Body Pane */}
+                  <div
+                    className="relative z-10 w-full rounded-[15px] p-4 md:p-5 flex items-center justify-between gap-4 overflow-hidden backdrop-blur-2xl"
+                    style={{
+                      background: 'linear-gradient(135deg, rgba(6, 78, 59, 0.28) 0%, rgba(10, 15, 12, 0.94) 35%, rgba(6, 78, 59, 0.20) 100%)',
+                      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.20), inset 0 -1px 0 rgba(0, 0, 0, 0.4)',
+                    }}
+                  >
+                    {/* Apple Glass Diagonal Glare Sheen Reflection */}
+                    <div
+                      className="absolute inset-0 pointer-events-none"
+                      style={{
+                        background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.03) 30%, transparent 60%)',
+                      }}
+                    />
+
+                    {/* Top Specular Edge Highlight */}
+                    <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/50 to-transparent pointer-events-none" />
+
+                    {/* Bottom Subtle Edge Rim */}
+                    <div className="absolute inset-x-0 bottom-0 h-[1px] bg-gradient-to-r from-transparent via-white/15 to-transparent pointer-events-none" />
+
+                    {/* Animated Apple Glare Sweep */}
+                    <div
+                      className="animate-glass-shine absolute inset-y-0 w-[35%] pointer-events-none"
+                      style={{
+                        background: 'linear-gradient(105deg, transparent 0%, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.18) 50%, rgba(255,255,255,0.03) 75%, transparent 100%)',
+                      }}
+                    />
+
+                    {/* Emerald Ambient Bloom behind Icon */}
+                    <div
+                      className="absolute -left-6 top-1/2 -translate-y-1/2 w-48 h-14 rounded-full blur-2xl opacity-40 pointer-events-none"
+                      style={{ background: 'rgba(0, 200, 83, 0.6)' }}
+                    />
+
+                    {/* Left Info: 3D High-Gloss Calendar Badge + Delivery Date */}
+                    <div className="flex items-center gap-4 relative z-10">
+                      <div className="w-11 h-11 rounded-xl bg-white/10 flex items-center justify-center text-white shrink-0 border border-white/20 shadow-[0_0_15px_rgba(255,255,255,0.1),inset_0_1px_1px_rgba(255,255,255,0.35)]">
+                        <Calendar size={20} className="text-white drop-shadow-sm" />
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-white/80 uppercase tracking-widest font-bold block drop-shadow-sm">
+                          Estimated Delivery
+                        </span>
+                        <p className="text-sm md:text-base font-bold text-white tracking-wide flex items-center gap-2 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
+                          <span className="text-white drop-shadow-sm">
+                            {formatDate(shiprocketData.estimatedDelivery)}
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Right Info: Live Transit Pulse Pill */}
+                    <div className="hidden sm:flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-white/10 border border-white/20 backdrop-blur-md shadow-[0_0_15px_rgba(255,255,255,0.05)] relative z-10">
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white/80 opacity-75" />
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-white" />
+                      </span>
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-white">
+                        On Schedule
+                      </span>
+                    </div>
                   </div>
                 </div>
               )}
@@ -344,7 +446,7 @@ export default function TrackOrderPageContent() {
                                 {stage.label}
                               </p>
                               <p className="text-[9px] text-white/40 font-mono hidden sm:block">
-                                {stage.desc}
+                                {getStageDescription(stage.id)}
                               </p>
                             </div>
                           </div>
@@ -382,7 +484,7 @@ export default function TrackOrderPageContent() {
 
                     <div className="space-y-1.5">
                       <span className="text-[9px] text-white/40 uppercase tracking-widest font-bold block">
-                        {shiprocketData ? "AWB Number" : "Tracking Number"}
+                        {courierPartner ? `${courierPartner} AWB Number` : "Tracking Number"}
                       </span>
                       {trackingNumber ? (
                         <>
@@ -417,8 +519,8 @@ export default function TrackOrderPageContent() {
             </div>
 
             {/* ══════════════════════════════════════════════════════════════
-                 SHIPROCKET LIVE TRACKING TIMELINE
-                 Shows only when Shiprocket data with activities is available
+                 LIVE SHIPMENT TRACKING TIMELINE
+                 Shows live courier updates from Nimbus Post / Carrier / Shiprocket
                ══════════════════════════════════════════════════════════════ */}
             {shiprocketData && shiprocketData.activities.length > 0 && (
               <div className="bg-white/4 border border-white/10 rounded-3xl p-6 md:p-8 space-y-6 backdrop-blur-xl">
@@ -432,7 +534,7 @@ export default function TrackOrderPageContent() {
                         Live Shipment Tracking
                       </h4>
                       <p className="text-[10px] text-white/40 font-mono mt-0.5">
-                        {shiprocketData.activities.length} tracking update{shiprocketData.activities.length !== 1 ? "s" : ""} • Powered by Shiprocket
+                        {shiprocketData.activities.length} tracking update{shiprocketData.activities.length !== 1 ? "s" : ""} • {shiprocketData.courierName || orderData.trackingCompany || "Live Courier Updates"}
                       </p>
                     </div>
                   </div>
@@ -555,6 +657,26 @@ export default function TrackOrderPageContent() {
           </div>
         )}
       </div>
+
+      {/* CSS custom variables and keyframes for border running light animation */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        @property --angle {
+          syntax: '<angle>';
+          initial-value: 0deg;
+          inherits: false;
+        }
+        @keyframes spin-border {
+          to { --angle: 360deg; }
+        }
+        @keyframes free-flow-border {
+          0% {
+            background-position: 200% 0;
+          }
+          100% {
+            background-position: -200% 0;
+          }
+        }
+      ` }} />
 
       <Footer />
     </main>

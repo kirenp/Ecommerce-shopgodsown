@@ -259,7 +259,7 @@ export default function AboutPageContent() {
           <div className="flex flex-col lg:flex-row items-stretch gap-6 lg:gap-8 xl:gap-10 relative">
 
             {/* Left column — Text content */}
-            <div className="w-full lg:w-[290px] xl:w-[320px] shrink-0 flex flex-col justify-between pt-1 pb-2 relative z-20">
+            <div className="w-full lg:w-[290px] xl:w-[320px] shrink-0 flex flex-col justify-between pt-1 pb-2 pr-6 md:pr-10 lg:pr-0 relative z-20">
               <div>
                 <p className="text-[10px] md:text-[11px] text-black/40 tracking-[0.3em] uppercase mb-3 sm:mb-4 font-semibold">03.</p>
                 <h2 className="font-sans font-black text-3xl md:text-4xl lg:text-[2.4rem] xl:text-[2.7rem] leading-[1.05] tracking-tight uppercase text-black mb-5 sm:mb-6">
@@ -283,7 +283,7 @@ export default function AboutPageContent() {
               </div>
 
               {/* Mobile / Tablet only: continuous strip under text */}
-              <div className="lg:hidden flex items-center gap-1.5 overflow-x-auto pb-1 mt-6">
+              <div className="lg:hidden flex items-center gap-1.5 overflow-x-auto pb-2 mt-6 pr-6 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
                 <div className="w-4 h-[1.5px] bg-black/40 shrink-0" />
                 <div className="relative w-[96px] h-[68px] overflow-hidden shrink-0 group cursor-pointer">
                   <ShimmerImage
@@ -317,16 +317,16 @@ export default function AboutPageContent() {
             </div>
 
             {/* Right column — Big Image + Red Stripe container */}
-            <div className="flex-1 flex flex-row items-stretch min-h-[360px] sm:min-h-[400px] md:min-h-[430px] lg:min-h-[450px] xl:min-h-[470px] relative">
+            <div className="w-full lg:flex-1 flex flex-row items-stretch h-[270px] xs:h-[310px] sm:h-[370px] md:h-[420px] lg:h-auto min-h-[270px] xs:min-h-[310px] sm:min-h-[370px] md:min-h-[420px] lg:min-h-[450px] xl:min-h-[470px] relative">
               {/* Cinematic hero image — NO ZOOM EFFECT, same level as red strip */}
-              <div className="relative flex-1 overflow-hidden h-full">
+              <div className="relative flex-1 overflow-hidden h-full min-h-full">
                 <ShimmerImage
                   src={ourstoryPicHero3}
                   alt="God's Own - Made For Real Life"
                   fill
                   theme="light"
                   className="object-cover object-center"
-                  sizes="(max-width: 1024px) 100vw, 55vw"
+                  sizes="(max-width: 640px) 75vw, (max-width: 1024px) 75vw, 55vw"
                   priority
                 />
               </div>
@@ -384,10 +384,10 @@ export default function AboutPageContent() {
               </div>
 
               {/* Solid crimson red strip — locked to exact same level and height as hero image */}
-              <div className="bg-[#8B1A1A] w-[110px] sm:w-[130px] md:w-[150px] lg:w-[160px] xl:w-[175px] shrink-0 flex flex-col justify-center px-4 sm:px-6 lg:px-7 xl:px-8 h-full">
+              <div className="bg-[#8B1A1A] w-[110px] xs:w-[120px] sm:w-[135px] md:w-[150px] lg:w-[160px] xl:w-[175px] shrink-0 flex flex-col justify-center px-2.5 xs:px-3 sm:px-6 lg:px-7 xl:px-8 h-full">
                 {/* Top dash */}
-                <div className="w-5 h-[1.5px] bg-white/40 mb-5 sm:mb-6" />
-                <p className="text-[9.5px] sm:text-[10px] md:text-[11px] text-white/80 tracking-[0.25em] uppercase font-bold leading-[1.7] text-left">
+                <div className="w-4 xs:w-5 h-[1.5px] bg-white/40 mb-3.5 sm:mb-6" />
+                <p className="text-[8px] xs:text-[8.5px] sm:text-[10px] md:text-[11px] text-white/85 tracking-[0.16em] xs:tracking-[0.18em] sm:tracking-[0.25em] uppercase font-bold leading-[1.7] text-left whitespace-nowrap">
                   PLACES<br />PEOPLE<br />PLANS<br />POSSIBILITIES
                 </p>
               </div>

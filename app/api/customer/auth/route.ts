@@ -143,6 +143,18 @@ const ADMIN_GET_CUSTOMER_ORDERS = `
             zip
             phone
           }
+          fulfillments {
+            id
+            status
+            displayStatus
+            inTransitAt
+            deliveredAt
+            trackingInfo {
+              company
+              number
+              url
+            }
+          }
           lineItems(first: 10) {
             edges {
               node {
@@ -415,12 +427,24 @@ export async function POST(req: NextRequest) {
             rawOrderEdges = ordersRes?.data?.orders?.edges || [];
             orders = rawOrderEdges.map((e: any) => {
               const ord = e.node;
+              const f = ord.fulfillments?.[0];
+              const fDisplay = (f?.displayStatus || "").toUpperCase();
+
+              let fulfillmentStatus: string = ord.displayFulfillmentStatus || "UNFULFILLED";
+              if (fDisplay === "DELIVERED" || Boolean(f?.deliveredAt)) {
+                fulfillmentStatus = "DELIVERED";
+              } else if (fDisplay === "IN_TRANSIT" || Boolean(f?.inTransitAt)) {
+                fulfillmentStatus = "IN_TRANSIT";
+              } else if (fDisplay === "FULFILLED" || f?.trackingInfo?.[0]?.number) {
+                fulfillmentStatus = "FULFILLED";
+              }
+
               return {
                 id: ord.id,
                 orderNumber: ord.name,
                 processedAt: ord.processedAt,
                 totalPrice: ord.totalPriceSet?.shopMoney?.amount || "0.00",
-                fulfillmentStatus: ord.displayFulfillmentStatus || "UNFULFILLED",
+                fulfillmentStatus,
                 financialStatus: ord.displayFinancialStatus || "PAID",
                 shippingAddress: ord.shippingAddress || null,
                 items: ord.lineItems.edges.map((itemEdge: any) => ({

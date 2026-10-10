@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rateLimit";
-import { trackByAWB, isShiprocketConfigured } from "@/lib/shiprocket";
+import { resolveOrderLogistics } from "@/lib/orderTracking";
 import { getServerCustomerOrders } from "@/lib/serverOrderStore";
 
 export async function POST(req: NextRequest) {
@@ -47,6 +47,10 @@ export async function POST(req: NextRequest) {
                   displayFinancialStatus
                   email
                   phone
+                  customer {
+                    email
+                    phone
+                  }
                   totalPriceSet {
                     shopMoney {
                       amount
@@ -65,11 +69,29 @@ export async function POST(req: NextRequest) {
                     phone
                   }
                   fulfillments {
+                    id
                     status
+                    displayStatus
+                    inTransitAt
+                    deliveredAt
+                    estimatedDeliveryAt
                     trackingInfo {
                       company
                       number
                       url
+                    }
+                    events(first: 30) {
+                      edges {
+                        node {
+                          status
+                          message
+                          happenedAt
+                          city
+                          province
+                          country
+                          zip
+                        }
+                      }
                     }
                   }
                   lineItems(first: 10) {
@@ -116,8 +138,8 @@ export async function POST(req: NextRequest) {
             const nodeNameClean = (node.name || "").replace(/^#/, "");
             if (nodeNameClean !== cleanOrderNumber) return false;
 
-            const orderEmail = (node.email || "").toLowerCase();
-            const orderPhone = (node.phone || "").replace(/\D/g, "");
+            const orderEmail = (node.email || node.customer?.email || "").toLowerCase();
+            const orderPhone = (node.phone || node.customer?.phone || "").replace(/\D/g, "");
             const shippingPhone = (node.shippingAddress?.phone || "").replace(/\D/g, "");
             const inputPhone = cleanContact.replace(/\D/g, "");
 
@@ -141,77 +163,23 @@ export async function POST(req: NextRequest) {
             const realTrackingCompany = tracking?.company?.trim() || null;
             const realTrackingUrl = tracking?.url?.trim() || null;
 
-            const fulfillmentStatus = (orderNode.displayFulfillmentStatus || "").toUpperCase();
+            // ── UNIFIED LOGISTICS ENGINE (Nimbus Post + Shopify + Shiprocket) ──
+            const logistics = await resolveOrderLogistics({
+              orderNode,
+              activeFulfillment,
+              realTrackingNumber,
+              realTrackingCompany,
+              realTrackingUrl,
+            });
 
-            // ── ACCURATE LOGISTICS STEP ──
-            // 1: Order Placed (confirmed, awaiting dispatch)
-            // 2: Dispatched (assigned to courier / picked up)
-            // 3: In Transit (on the way)
-            // 4: Out for Delivery (nearby hub)
-            // 5: Delivered
-            let step = 1;
+            const finalTrackingCompany = logistics.courierName || realTrackingCompany || null;
+            const finalTrackingNumber = logistics.awbNumber || realTrackingNumber || null;
+            const finalTrackingUrl =
+              logistics.trackingUrl ||
+              realTrackingUrl ||
+              (finalTrackingNumber ? `https://www.delhivery.com/track/package/${finalTrackingNumber}` : null);
 
-            if (fulfillmentStatus === "DELIVERED") {
-              step = 5;
-            } else if (fulfillmentStatus === "OUT_FOR_DELIVERY") {
-              step = 4;
-            } else if (fulfillmentStatus === "IN_TRANSIT") {
-              step = 3;
-            } else if (fulfillmentStatus === "FULFILLED") {
-              step = realTrackingNumber ? 2 : 2;
-            } else if (realTrackingNumber) {
-              step = 2;
-            } else {
-              // Unfulfilled order -> only Step 1 is active
-              step = 1;
-            }
-
-            // ── SHIPROCKET TRACKING INTEGRATION ──
-            let shiprocketTracking = null;
-
-            if (realTrackingNumber && isShiprocketConfigured()) {
-              try {
-                const srData = await trackByAWB(realTrackingNumber);
-                if (srData) {
-                  shiprocketTracking = srData;
-
-                  switch (srData.currentStatusCode) {
-                    case "OP":
-                      step = 1;
-                      break;
-                    case "PU":
-                    case "PPF":
-                    case "OFP":
-                      step = 2;
-                      break;
-                    case "IT":
-                      step = 3;
-                      break;
-                    case "OFD":
-                      step = 4;
-                      break;
-                    case "DL":
-                      step = 5;
-                      break;
-                    case "RTO":
-                    case "CANCELED":
-                    case "NDR":
-                      break;
-                  }
-                }
-              } catch (srErr) {
-                console.warn("Shiprocket tracking lookup failed (falling back to Shopify):", srErr);
-              }
-            }
-
-            const finalTrackingCompany = realTrackingCompany || shiprocketTracking?.courierName || null;
-            const finalTrackingNumber = realTrackingNumber || shiprocketTracking?.awbNumber || null;
-            let finalTrackingUrl = realTrackingUrl;
-            if (!finalTrackingUrl && shiprocketTracking?.awbNumber) {
-              finalTrackingUrl = `https://shiprocket.co/tracking/${shiprocketTracking.awbNumber}`;
-            }
-
-            const isDispatched = step >= 2 || Boolean(finalTrackingNumber);
+            const isDispatched = logistics.currentStep >= 2;
 
             return NextResponse.json({
               success: true,
@@ -220,14 +188,15 @@ export async function POST(req: NextRequest) {
                 orderNumber: orderNode.name,
                 processedAt: orderNode.processedAt,
                 totalPrice: orderNode.totalPriceSet?.shopMoney?.amount || "0.00",
-                fulfillmentStatus: orderNode.displayFulfillmentStatus || "UNFULFILLED",
+                fulfillmentStatus: logistics.currentStatus,
+                rawFulfillmentStatus: orderNode.displayFulfillmentStatus || "UNFULFILLED",
                 financialStatus: orderNode.displayFinancialStatus || "PAID",
                 isDispatched,
                 trackingCompany: finalTrackingCompany,
                 trackingNumber: finalTrackingNumber,
                 trackingUrl: finalTrackingUrl,
-                currentStep: step,
-                estimatedDelivery: shiprocketTracking?.estimatedDelivery || null,
+                currentStep: logistics.currentStep,
+                estimatedDelivery: logistics.estimatedDelivery,
                 shippingAddress: orderNode.shippingAddress
                   ? [
                       orderNode.shippingAddress.address1,
@@ -243,7 +212,7 @@ export async function POST(req: NextRequest) {
                   image: e.node.image?.url || null,
                 })),
               },
-              shiprocketTracking,
+              shiprocketTracking: logistics,
             });
           }
         }

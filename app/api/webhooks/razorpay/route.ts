@@ -5,6 +5,7 @@ import {
   findExistingShopifyOrderByRazorpayId,
   createOrGetShopifyOrder,
 } from "@/lib/shopifyOrder";
+import { getAuthoritativeVariantDetails, normalizeVariantGid } from "@/lib/checkoutSecurity";
 
 export const dynamic = "force-dynamic";
 
@@ -126,15 +127,41 @@ export async function POST(req: NextRequest) {
           pinCode: notes.ship_pin || "",
           phone: notes.phone || paymentEntity?.contact || "",
         };
-        lineItems = parsedVariants.map((v: any) => ({
-          variantId: v.v,
-          numericVariantId: typeof v.v === "number" ? v.v : (!isNaN(Number(v.v)) ? Number(v.v) : undefined),
-          quantity: v.q || 1,
-          size: v.s,
-          color: v.c,
-          title: "GOD’S OWN CULTURE T-Shirt",
-          price: finalTotal,
-        }));
+
+        // Query authoritative catalog prices and titles for reconstructed items
+        const rawVariantIds = parsedVariants.map((v: any) => String(v.v || "")).filter(Boolean);
+        const variantDetailsMap = await getAuthoritativeVariantDetails(rawVariantIds);
+
+        lineItems = parsedVariants.map((v: any) => {
+          const rawId = String(v.v || "");
+          const gid = normalizeVariantGid(rawId);
+          const numericId = typeof v.v === "number" ? v.v : (!isNaN(Number(v.v)) ? Number(v.v) : undefined);
+          const detail = variantDetailsMap.get(gid) || (numericId ? variantDetailsMap.get(String(numericId)) : undefined);
+
+          const catalogPrice = detail?.price && detail.price > 0
+            ? detail.price
+            : (notes.subtotal && !isNaN(Number(notes.subtotal))
+                ? Number(notes.subtotal) / Math.max(1, parsedVariants.length)
+                : finalTotal / Math.max(1, parsedVariants.length));
+
+          return {
+            variantId: v.v,
+            numericVariantId: numericId,
+            quantity: Math.max(1, Number(v.q) || 1),
+            size: v.s,
+            color: v.c,
+            title: detail?.title ? `GOD’S OWN CULTURE (${detail.title})` : "GOD’S OWN CULTURE Apparel",
+            price: catalogPrice,
+          };
+        });
+
+        // Re-evaluate discount amount after reconstructing line items if not already set
+        if ((discountAmount === undefined || isNaN(discountAmount)) && lineItems && Array.isArray(lineItems) && finalTotal > 0) {
+          const calculatedSubtotal = lineItems.reduce((acc: number, item: any) => acc + (Number(item.price) || 0) * (Number(item.quantity) || 1), 0);
+          if (calculatedSubtotal > finalTotal) {
+            discountAmount = Math.round((calculatedSubtotal - finalTotal) * 100) / 100;
+          }
+        }
       }
     } catch (parseErr) {
       console.warn("[Razorpay Webhook] Failed to reconstruct line items from notes:", parseErr);

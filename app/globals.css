@@ -345,3 +345,39 @@ body {
 .ea-running-light-btn:hover:not(:disabled) .arrow-icon {
   transform: translateX(4px) !important;
 }
+
+/* Conic gradient angle property and rotating border light keyframes */
+@property --angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes spin-border {
+  to {
+    --angle: 360deg;
+  }
+}
+
+/* Centered 360-degree rotation preserving translate(-50%, -50%) for wide containers */
+@keyframes spin-centered {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+/* Linear free-flowing border gradient animation (no center point, no radar effect) */
+@keyframes free-flow-border {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+
+
