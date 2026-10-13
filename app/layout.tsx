@@ -11,6 +11,7 @@ import QuickViewModal from "@/components/QuickViewModal";
 import CartSidebar from "@/components/CartSidebar";
 import AccountSidebar from "@/components/AccountSidebar";
 import MetaPixel from "@/components/MetaPixel";
+import ShopifyAnalyticsTracker from "@/components/ShopifyAnalyticsTracker";
 import Script from "next/script";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -214,6 +215,7 @@ export default function RootLayout({
       </head>
       <body className="antialiased font-sans">
         <MetaPixel />
+        <ShopifyAnalyticsTracker />
         <CustomerProvider>
           <WishlistProvider>
             <RecentlyViewedProvider>

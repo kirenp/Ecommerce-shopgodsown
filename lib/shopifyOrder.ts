@@ -226,6 +226,7 @@ export async function createOrGetShopifyOrder({
     fbp?: string | null;
     fbc?: string | null;
     referer?: string | null;
+    landingSite?: string | null;
   };
 }): Promise<{
   success: boolean;
@@ -239,6 +240,43 @@ export async function createOrGetShopifyOrder({
   const existingOrder = await findExistingShopifyOrderByRazorpayId(orderId, paymentId);
   if (existingOrder) {
     console.log(`[ShopifyOrder] Order already exists for Razorpay order ${orderId}: ${existingOrder.name}`);
+
+    // If incoming request has enriched browser context (from /api/checkout/complete), ensure Meta Purchase event is dispatched with full match quality
+    if (reqContext?.ip || reqContext?.fbp || reqContext?.userAgent) {
+      const isEmail = contact?.includes("@");
+      const email = isEmail ? contact.trim().toLowerCase() : "";
+      const rawPhone = isEmail ? (shippingAddress?.phone || "") : (contact?.trim() || shippingAddress?.phone || "");
+      const clean10Digits = String(rawPhone || "").replace(/\D/g, "").slice(-10);
+      const phone = clean10Digits.length === 10 ? `+91${clean10Digits}` : undefined;
+      const formattedShipping = formatShopifyAddress(shippingAddress);
+
+      sendMetaPurchaseEvent({
+        orderId: String(existingOrder.id || orderId),
+        orderNumber: existingOrder.name,
+        amount: finalTotal,
+        currency: "INR",
+        items: lineItems,
+        customer: {
+          email,
+          phone,
+          firstName: formattedShipping.first_name,
+          lastName: formattedShipping.last_name,
+          city: formattedShipping.city,
+          state: formattedShipping.province,
+          zip: formattedShipping.zip,
+          country: "in",
+        },
+        reqContext: {
+          ip: reqContext?.ip || null,
+          userAgent: reqContext?.userAgent || null,
+          fbp: reqContext?.fbp || null,
+          fbc: reqContext?.fbc || null,
+          url: reqContext?.referer || "https://shopgodsown.com/checkout",
+        },
+        forceDispatch: true,
+      }).catch((e) => console.error("[ShopifyOrder] Meta CAPI enriched send error:", e));
+    }
+
     return {
       success: true,
       orderId: existingOrder.id,
@@ -378,6 +416,14 @@ export async function createOrGetShopifyOrder({
               { name: "razorpay_payment_id", value: paymentId },
             ],
             tags: orderTags,
+            browser_ip: reqContext?.ip || undefined,
+            client_details: reqContext?.ip ? {
+              browser_ip: reqContext.ip,
+              user_agent: reqContext.userAgent || undefined,
+            } : undefined,
+            landing_site: reqContext?.landingSite || reqContext?.referer || "/",
+            referring_site: reqContext?.referer || undefined,
+            source_name: "web",
           },
         };
 

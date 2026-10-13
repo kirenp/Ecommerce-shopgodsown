@@ -140,12 +140,13 @@ export interface MetaCapiItem {
 }
 
 export interface MetaCapiEventInput {
-  eventName: "Purchase" | "InitiateCheckout" | "AddToCart" | "ViewContent" | string;
+  eventName: "Purchase" | "InitiateCheckout" | "AddToCart" | "ViewContent" | "PageView" | string;
   eventId: string; // Required for deduplication with browser pixel
   eventTime?: number; // Unix timestamp in seconds
   eventSourceUrl?: string;
   actionSource?: "website" | "app" | "physical_store" | "system_generated" | "other";
   userData: MetaCapiUserData;
+  forceDispatch?: boolean;
   customData?: {
     value?: number;
     currency?: string;
@@ -178,7 +179,7 @@ export async function sendMetaCapiEvent(input: MetaCapiEventInput): Promise<{
   // Deduplication check
   cleanCache();
   const dedupKey = `${input.eventName}_${input.eventId}`;
-  if (sentEventsCache.has(dedupKey)) {
+  if (!input.forceDispatch && sentEventsCache.has(dedupKey)) {
     console.log(`[Meta CAPI] Event ${dedupKey} was already sent within the past hour. Skipping duplicate server dispatch.`);
     return { success: true, skippedDuplicate: true };
   }
@@ -342,6 +343,7 @@ export async function sendMetaPurchaseEvent({
   items,
   customer,
   reqContext,
+  forceDispatch = false,
 }: {
   orderId: string;
   orderNumber?: string;
@@ -371,6 +373,7 @@ export async function sendMetaPurchaseEvent({
     fbc?: string | null;
     url?: string | null;
   };
+  forceDispatch?: boolean;
 }) {
   const numericAmount = typeof amount === "string" ? parseFloat(amount) : amount;
 
@@ -392,6 +395,7 @@ export async function sendMetaPurchaseEvent({
     eventTime: Math.floor(Date.now() / 1000),
     eventSourceUrl: reqContext?.url || "https://shopgodsown.com/checkout",
     actionSource: "website",
+    forceDispatch,
     userData: {
       email: customer.email,
       phone: customer.phone,

@@ -100,11 +100,15 @@ export async function POST(req: NextRequest) {
     }
 
     // ── 4. IDEMPOTENT ORDER CREATION IN SHOPIFY ──
-    const clientIp = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || req.headers.get("x-real-ip");
+    const clientIp =
+      req.headers.get("cf-connecting-ip") ||
+      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      req.headers.get("x-real-ip");
     const userAgent = req.headers.get("user-agent");
     const fbp = req.cookies.get("_fbp")?.value || null;
     const fbc = req.cookies.get("_fbc")?.value || null;
     const referer = req.headers.get("referer");
+    const landingSite = req.cookies.get("goc_landing")?.value || null;
 
     const orderResult = await createOrGetShopifyOrder({
       orderId,
@@ -122,6 +126,7 @@ export async function POST(req: NextRequest) {
         fbp,
         fbc,
         referer,
+        landingSite,
       },
     });
 
