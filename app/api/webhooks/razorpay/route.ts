@@ -10,6 +10,54 @@ import { getAuthoritativeVariantDetails, normalizeVariantGid } from "@/lib/check
 export const dynamic = "force-dynamic";
 
 /**
+ * Fetch authoritative order and payment notes directly from Razorpay API
+ * as a fail-safe when pending checkout is not found in serverless ephemeral memory.
+ */
+async function fetchAuthoritativeRazorpayNotesAndAmount(
+  orderId: string,
+  paymentId?: string
+): Promise<{ notes: Record<string, string>; amount: number } | null> {
+  const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
+  const keySecret = process.env.RAZORPAY_KEY_SECRET;
+  if (!keyId || !keySecret) return null;
+
+  const authHeader = `Basic ${Buffer.from(`${keyId}:${keySecret}`).toString("base64")}`;
+  let notes: Record<string, string> = {};
+  let amount = 0;
+
+  try {
+    if (orderId) {
+      const oRes = await fetch(`https://api.razorpay.com/v1/orders/${orderId}`, {
+        headers: { Authorization: authHeader },
+        cache: "no-store",
+      });
+      if (oRes.ok) {
+        const oData = await oRes.json();
+        if (oData.notes) notes = { ...notes, ...oData.notes };
+        if (oData.amount) amount = oData.amount;
+      }
+    }
+
+    if (paymentId && (!notes.ship_addr || !amount)) {
+      const pRes = await fetch(`https://api.razorpay.com/v1/payments/${paymentId}`, {
+        headers: { Authorization: authHeader },
+        cache: "no-store",
+      });
+      if (pRes.ok) {
+        const pData = await pRes.json();
+        if (pData.notes) notes = { ...notes, ...pData.notes };
+        if (!amount && pData.amount) amount = pData.amount;
+      }
+    }
+
+    return { notes, amount };
+  } catch (err) {
+    console.warn("[Razorpay Webhook] Razorpay API notes fetch error:", err);
+    return null;
+  }
+}
+
+/**
  * POST /api/webhooks/razorpay
  * 
  * Asynchronous server-to-server webhook endpoint for Razorpay payment events.
@@ -93,15 +141,39 @@ export async function POST(req: NextRequest) {
 
   // 4. Retrieve pending checkout information cached during order initiation
   const pending = getPendingCheckout(orderId);
-  const notes = paymentEntity?.notes || orderEntity?.notes || {};
+  let notes: Record<string, any> = {
+    ...(orderEntity?.notes || {}),
+    ...(paymentEntity?.notes || {}),
+  };
 
+  // If pending checkout is missing and notes do not have shipping address, query Razorpay API authoritatively
+  if ((!pending || !pending.items) && !notes.ship_addr) {
+    console.log(`[Razorpay Webhook] Querying Razorpay API for order ${orderId} authoritative notes...`);
+    const authoritativeData = await fetchAuthoritativeRazorpayNotesAndAmount(orderId, paymentId);
+    if (authoritativeData) {
+      notes = { ...notes, ...authoritativeData.notes };
+      if (!paymentEntity?.amount && authoritativeData.amount) {
+        if (!paymentEntity) (payload as any).payload.payment = { entity: {} };
+        payload.payload.payment.entity.amount = authoritativeData.amount;
+      }
+    }
+  }
+
+  const rawEmail = pending?.contact?.includes("@") ? pending.contact : (notes.email || paymentEntity?.email);
+  const cleanEmail = (rawEmail && !rawEmail.includes("void@razorpay.com") && rawEmail.includes("@"))
+    ? rawEmail.trim().toLowerCase()
+    : undefined;
+  const rawPhone = notes.phone || notes.contact || paymentEntity?.contact || "";
+  const cleanPhone = String(rawPhone || "").replace(/\D/g, "").slice(-10);
+
+  let contact = cleanEmail || (cleanPhone.length === 10 ? `+91${cleanPhone}` : (pending?.contact || notes.contact || ""));
   let lineItems = pending?.items;
-  let contact = pending?.contact || notes.email || notes.phone || notes.contact || paymentEntity?.email || paymentEntity?.contact || "";
   let shippingAddress = pending?.shippingAddress;
   let billingAddress = pending?.billingAddress;
   let discountCode = pending?.discountCode || notes.discountCode;
-  let finalTotal = (pending?.amountInPaise || paymentEntity?.amount || 0) / 100;
+  let finalTotal = (pending?.amountInPaise || paymentEntity?.amount || (notes.subtotal ? Number(notes.subtotal) * 100 : 0)) / 100;
   let discountAmount: number | undefined = undefined;
+
   if (typeof pending?.discountAmount === "number" && !isNaN(pending.discountAmount)) {
     discountAmount = pending.discountAmount;
   } else if (notes.discountAmount && !isNaN(Number(notes.discountAmount))) {

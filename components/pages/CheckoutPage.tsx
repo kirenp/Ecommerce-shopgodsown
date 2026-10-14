@@ -259,6 +259,33 @@ export default function CheckoutPageContent() {
     }
   }, []);
 
+  // Mobile UPI return recovery: check if a pending checkout was completed in background while user was in banking app
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const stored = sessionStorage.getItem("goc_pending_checkout");
+      if (!stored) return;
+      const parsed = JSON.parse(stored);
+      // Only check if created in the last 15 minutes
+      if (parsed.orderId && Date.now() - (parsed.createdAt || 0) < 15 * 60 * 1000) {
+        fetch(`/api/checkout/order-status?orderId=${encodeURIComponent(parsed.orderId)}`)
+          .then((r) => r.json())
+          .then((data) => {
+            if (data.processed && data.orderNumber) {
+              setConfirmedOrderNumber(data.orderNumber);
+              setFinalPaidAmount(parsed.totalAmount || 0);
+              sessionStorage.removeItem("goc_pending_checkout");
+              clearCart();
+              setIsSuccess(true);
+            }
+          })
+          .catch(() => {});
+      } else {
+        sessionStorage.removeItem("goc_pending_checkout");
+      }
+    } catch {}
+  }, []);
+
   // Auto-detect and apply coupon from URL params (?discount=..., ?coupon=...), cookie, or localStorage
   const autoApplyAttemptedRef = useRef(false);
 
@@ -585,7 +612,20 @@ export default function CheckoutPageContent() {
         return;
       }
 
-      // 4. Open Razorpay payment gateway modal
+      // 4. Record pending checkout in sessionStorage for mobile UPI recovery
+      if (typeof window !== "undefined") {
+        try {
+          sessionStorage.setItem("goc_pending_checkout", JSON.stringify({
+            orderId: orderData.id,
+            totalAmount,
+            emailOrPhone,
+            items,
+            createdAt: Date.now(),
+          }));
+        } catch {}
+      }
+
+      // 5. Open Razorpay payment gateway modal
       const options = {
         key: orderData.keyId,
         amount: orderData.amount,
@@ -608,8 +648,34 @@ export default function CheckoutPageContent() {
               }),
             });
             const completeData = await completeRes.json().catch(() => ({}));
-            const resolvedOrderNumber = completeData.orderNumber || `#PAY-${String(response.razorpay_payment_id).slice(-8).toUpperCase()}`;
-            setConfirmedOrderNumber(resolvedOrderNumber);
+            let resolvedOrderNumber = completeData.orderNumber;
+            let finalOrderId = completeData.orderId;
+
+            // If completeRes didn't resolve an orderNumber immediately, poll order-status endpoint
+            // in case the asynchronous webhook has processed or is processing it
+            if (!resolvedOrderNumber) {
+              for (let attempt = 0; attempt < 3; attempt++) {
+                await new Promise((r) => setTimeout(r, 1500));
+                try {
+                  const statusRes = await fetch(`/api/checkout/order-status?orderId=${encodeURIComponent(response.razorpay_order_id)}&paymentId=${encodeURIComponent(response.razorpay_payment_id)}`);
+                  if (statusRes.ok) {
+                    const statusData = await statusRes.json();
+                    if (statusData.processed && statusData.orderNumber) {
+                      resolvedOrderNumber = statusData.orderNumber;
+                      finalOrderId = statusData.orderId;
+                      break;
+                    }
+                  }
+                } catch {}
+              }
+            }
+
+            const displayOrderNumber = resolvedOrderNumber || `#PAY-${String(response.razorpay_payment_id).slice(-8).toUpperCase()}`;
+            setConfirmedOrderNumber(displayOrderNumber);
+
+            if (typeof window !== "undefined") {
+              try { sessionStorage.removeItem("goc_pending_checkout"); } catch {}
+            }
 
             const userEmail = emailOrPhone.includes("@") ? emailOrPhone.trim().toLowerCase() : (customer?.email || "");
             if (userEmail) {
@@ -617,10 +683,10 @@ export default function CheckoutPageContent() {
             }
 
             // Track Purchase on Meta Pixel (Browser) with matching eventID for CAPI deduplication
-            const purchaseEventId = completeData.eventId || String(completeData.orderId || response.razorpay_order_id);
+            const purchaseEventId = completeData.eventId || String(finalOrderId || response.razorpay_order_id);
             trackPurchase({
               orderId: purchaseEventId,
-              orderNumber: resolvedOrderNumber,
+              orderNumber: displayOrderNumber,
               amount: totalAmount,
               currency: "INR",
               items,
@@ -632,6 +698,9 @@ export default function CheckoutPageContent() {
             console.error("Order complete sync error:", err);
             // Fallback display with Razorpay payment reference so customer is never stranded
             setConfirmedOrderNumber(`#PAY-${String(response.razorpay_payment_id).slice(-8).toUpperCase()}`);
+            if (typeof window !== "undefined") {
+              try { sessionStorage.removeItem("goc_pending_checkout"); } catch {}
+            }
             clearCart();
             setIsSuccess(true);
           } finally {

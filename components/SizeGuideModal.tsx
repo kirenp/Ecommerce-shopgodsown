@@ -24,10 +24,9 @@ const TSHIRT_DATA = [
 
 // Tank Top Measurements
 const TANK_TOP_DATA = [
-  { label: "Length", s: "61.6", m: "64.1", l: "66.7", xl: "69.2" },
-  { label: "Chest", s: "26.0", m: "27.3", l: "28.6", xl: "29.8" },
-  { label: "Bottom", s: "26.0", m: "27.3", l: "28.6", xl: "29.8" },
-  { label: "Shoulder", s: "24.8", m: "25.4", l: "26.7", xl: "27.3" },
+  { label: "Length", s: "64", m: "65", l: "66", xl: "67" },
+  { label: "Chest", s: "52.5", m: "55", l: "57.5", xl: "60" },
+  { label: "Shoulder", s: "47.5", m: "49", l: "50.5", xl: "52" },
 ];
 
 function detectProductType(product?: any): 'tshirt' | 'tanktop' {

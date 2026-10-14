@@ -195,6 +195,66 @@ export async function findExistingShopifyOrderByRazorpayId(orderId: string, paym
 }
 
 /**
+ * Queries Shopify Admin GraphQL for an existing customer ID matching email or phone.
+ * Prevents 422 customer uniqueness errors when creating orders.
+ */
+export async function findExistingShopifyCustomerId(email?: string, phone?: string): Promise<number | null> {
+  if (!adminToken || !domain) return null;
+
+  const queries: string[] = [];
+  const cleanEmail = email && !email.includes("void@razorpay.com") && email.includes("@") ? email.trim().toLowerCase() : "";
+  const cleanPhone = phone ? phone.replace(/\D/g, "") : "";
+
+  if (cleanEmail) {
+    queries.push(`email:${cleanEmail}`);
+  }
+  if (cleanPhone && cleanPhone.length >= 10) {
+    queries.push(`phone:+91${cleanPhone.slice(-10)}`);
+    queries.push(`phone:${cleanPhone.slice(-10)}`);
+  }
+
+  if (queries.length === 0) return null;
+
+  const queryStr = queries.join(" OR ");
+  const query = `
+    query findCustomer($queryStr: String!) {
+      customers(first: 1, query: $queryStr) {
+        edges {
+          node {
+            id
+          }
+        }
+      }
+    }
+  `;
+
+  try {
+    const res = await fetch(`https://${domain}/admin/api/${apiVersion}/graphql.json`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Shopify-Access-Token": adminToken,
+      },
+      body: JSON.stringify({ query, variables: { queryStr } }),
+      cache: "no-store",
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      const gid = data?.data?.customers?.edges?.[0]?.node?.id;
+      if (gid) {
+        const num = Number(gid.split("/").pop());
+        return !isNaN(num) && num > 0 ? num : null;
+      }
+    }
+  } catch (err) {
+    console.warn("[ShopifyOrder] Existing customer lookup error:", err);
+  }
+
+  return null;
+}
+
+/**
  * Creates or retrieves a Shopify order for a confirmed Razorpay payment.
  * Ensures strict idempotency: if called concurrently or repeatedly (webhook + browser callback),
  * only one Shopify order is created.
@@ -243,7 +303,7 @@ export async function createOrGetShopifyOrder({
 
     // If incoming request has enriched browser context (from /api/checkout/complete), ensure Meta Purchase event is dispatched with full match quality
     if (reqContext?.ip || reqContext?.fbp || reqContext?.userAgent) {
-      const isEmail = contact?.includes("@");
+      const isEmail = contact?.includes("@") && !contact.includes("void@razorpay.com");
       const email = isEmail ? contact.trim().toLowerCase() : "";
       const rawPhone = isEmail ? (shippingAddress?.phone || "") : (contact?.trim() || shippingAddress?.phone || "");
       const clean10Digits = String(rawPhone || "").replace(/\D/g, "").slice(-10);
@@ -314,7 +374,7 @@ export async function createOrGetShopifyOrder({
 
   const executionPromise = (async () => {
     try {
-      const isEmail = contact?.includes("@");
+      const isEmail = contact?.includes("@") && !contact.includes("void@razorpay.com");
       const email = isEmail ? contact.trim().toLowerCase() : "";
 
       // Sanitize phone to valid E.164 (+91XXXXXXXXXX for 10-digit Indian numbers)
@@ -383,6 +443,22 @@ export async function createOrGetShopifyOrder({
       if (adminToken && domain) {
         const endpoint = `https://${domain}/admin/api/${apiVersion}/orders.json`;
 
+        // Check if customer already exists in Shopify to prevent 422 phone/email uniqueness errors
+        const existingCustomerId = await findExistingShopifyCustomerId(email, phone || formattedShipping.phone);
+
+        let customerPayload: any = undefined;
+        if (existingCustomerId) {
+          // Link cleanly to existing customer record
+          customerPayload = { id: existingCustomerId };
+        } else if (email || phone || formattedShipping.phone) {
+          customerPayload = {
+            first_name: formattedShipping.first_name,
+            last_name: formattedShipping.last_name,
+            email: email || undefined,
+            phone: phone || formattedShipping.phone || undefined,
+          };
+        }
+
         const orderPayload = {
           order: {
             email: email || undefined,
@@ -402,12 +478,7 @@ export async function createOrGetShopifyOrder({
                 gateway: "Razorpay",
               }
             ],
-            customer: {
-              first_name: formattedShipping.first_name,
-              last_name: formattedShipping.last_name,
-              email: email || undefined,
-              phone: phone || formattedShipping.phone || undefined,
-            },
+            customer: customerPayload,
             shipping_address: formattedShipping,
             billing_address: formattedBilling,
             note: orderNotes,
@@ -440,30 +511,19 @@ export async function createOrGetShopifyOrder({
           const errText = await shopifyRes.text();
           console.warn("[ShopifyOrder] Order creation attempt 1 failed:", shopifyRes.status, errText);
 
-          // Build fallback line items (without variant_id if variant was mismatched)
-          const fallbackLineItems = shopifyLineItems.map((li: any) => ({
-            title: li.title + (li.variant_title ? ` (${li.variant_title})` : ""),
-            price: li.price,
-            quantity: li.quantity,
-          }));
-
           const errLower = errText.toLowerCase();
-          const isCustomerConflict = errText.includes("already been taken") || errLower.includes("customer");
+          const isCustomerConflict = errText.includes("already been taken") || errLower.includes("customer") || errLower.includes("phone_number");
           const isPhoneError = errLower.includes("phone");
           const isEmailError = errLower.includes("email");
 
-          // Attempt 2: If phone error, strip order.phone and customer.phone.
-          // If customer conflict (e.g. 422 has already been taken), omit customer object so Shopify auto-links.
+          // Attempt 2: If customer conflict, strip customer and order.phone completely.
+          // Shopify will auto-associate from shipping_address without throwing 422.
           const attempt2Payload: any = {
             order: {
               ...orderPayload.order,
+              customer: undefined,
               phone: isPhoneError ? undefined : orderPayload.order.phone,
-              ...(isCustomerConflict ? { customer: undefined } : {
-                customer: orderPayload.order.customer ? {
-                  ...orderPayload.order.customer,
-                  phone: isPhoneError ? undefined : orderPayload.order.customer.phone,
-                } : undefined,
-              }),
+              email: (isEmailError || !email || email.includes("void@razorpay.com")) ? undefined : email,
             },
           };
 
@@ -481,16 +541,21 @@ export async function createOrGetShopifyOrder({
             const errText2 = await shopifyRes.text();
             console.warn("[ShopifyOrder] Order creation attempt 2 failed:", shopifyRes.status, errText2);
 
-            const errLower2 = errText2.toLowerCase();
-            const shouldStripEmail = isEmailError || errLower2.includes("email");
+            // Build fallback line items (without variant_id if variant was mismatched)
+            const fallbackLineItems = shopifyLineItems.map((li: any) => ({
+              title: li.title + (li.variant_title ? ` (${li.variant_title})` : ""),
+              price: li.price,
+              quantity: li.quantity,
+            }));
 
             const attempt3Payload = {
               order: {
                 ...orderPayload.order,
                 customer: undefined,
-                phone: undefined, // Strip top-level phone to rely on shipping_address.phone
-                ...(shouldStripEmail ? { email: undefined, note: `${orderNotes} | Customer Email (Shopify rejected): ${email}` } : {}),
+                phone: undefined,
+                email: undefined,
                 line_items: fallbackLineItems,
+                note: `${orderNotes} | Customer Contact: ${contact}`,
               },
             };
 
@@ -502,32 +567,6 @@ export async function createOrGetShopifyOrder({
               },
               body: JSON.stringify(attempt3Payload),
             });
-
-            // Attempt 4: Minimal bulletproof payload if Shopify rejected earlier attempts
-            if (!shopifyRes.ok) {
-              const errText3 = await shopifyRes.text();
-              console.warn("[ShopifyOrder] Order creation attempt 3 failed:", shopifyRes.status, errText3);
-
-              const minimalPayload = {
-                order: {
-                  ...orderPayload.order,
-                  email: undefined,
-                  phone: undefined,
-                  customer: undefined,
-                  line_items: fallbackLineItems,
-                  note: `${orderNotes} | Customer Contact: ${contact}`,
-                },
-              };
-
-              shopifyRes = await fetch(endpoint, {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  "X-Shopify-Access-Token": adminToken,
-                },
-                body: JSON.stringify(minimalPayload),
-              });
-            }
           }
         }
 
@@ -536,13 +575,18 @@ export async function createOrGetShopifyOrder({
           shopifyOrderResult = shopifyData.order;
         } else {
           const errText = await shopifyRes.text();
-          console.error("[ShopifyOrder] Shopify Admin order creation error:", shopifyRes.status, errText);
+          console.error("[ShopifyOrder] Shopify Admin order creation error across all attempts:", shopifyRes.status, errText);
+          throw new Error(`Shopify order creation failed: ${errText}`);
         }
       }
 
-      const orderNumber = shopifyOrderResult?.name || `#GOC-${Math.floor(100000 + Math.random() * 900000)}`;
-      const confirmedOrderId = shopifyOrderResult?.id ? String(shopifyOrderResult.id) : `local_${Date.now()}`;
-      const eventId = String(shopifyOrderResult?.id || orderId || orderNumber);
+      if (!shopifyOrderResult || !shopifyOrderResult.id) {
+        throw new Error(`Shopify order was not created for Razorpay order ${orderId}`);
+      }
+
+      const orderNumber = String(shopifyOrderResult.name || "");
+      const confirmedOrderId = String(shopifyOrderResult.id);
+      const eventId = String(shopifyOrderResult.id || orderId || orderNumber);
 
       // Record in idempotency cache
       const orderSummary = {

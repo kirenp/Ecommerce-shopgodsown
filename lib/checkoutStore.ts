@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import os from "os";
 
 export interface PendingCheckout {
   orderId: string; // Razorpay order_id
@@ -16,24 +17,39 @@ export interface PendingCheckout {
 
 const memoryStore = new Map<string, PendingCheckout>();
 const DATA_DIR = path.join(process.cwd(), "data");
-const STORE_FILE = path.join(DATA_DIR, "pending_checkouts.json");
 
-function ensureStoreFile() {
+function getStoreFilePath(): string {
   try {
     if (!fs.existsSync(DATA_DIR)) {
       fs.mkdirSync(DATA_DIR, { recursive: true });
     }
-    if (!fs.existsSync(STORE_FILE)) {
-      fs.writeFileSync(STORE_FILE, JSON.stringify({}), "utf8");
+    const testFile = path.join(DATA_DIR, ".write-test");
+    fs.writeFileSync(testFile, "ok", "utf8");
+    fs.unlinkSync(testFile);
+    return path.join(DATA_DIR, "pending_checkouts.json");
+  } catch {
+    return path.join(os.tmpdir(), "godsown_pending_checkouts.json");
+  }
+}
+
+function ensureStoreFile(targetPath: string) {
+  try {
+    const dir = path.dirname(targetPath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    if (!fs.existsSync(targetPath)) {
+      fs.writeFileSync(targetPath, JSON.stringify({}), "utf8");
     }
   } catch {}
 }
 
 function loadStore(): Record<string, PendingCheckout> {
+  const storeFile = getStoreFilePath();
   try {
-    ensureStoreFile();
-    if (!fs.existsSync(STORE_FILE)) return {};
-    const content = fs.readFileSync(STORE_FILE, "utf8");
+    ensureStoreFile(storeFile);
+    if (!fs.existsSync(storeFile)) return {};
+    const content = fs.readFileSync(storeFile, "utf8");
     return content ? JSON.parse(content) : {};
   } catch {
     return {};
@@ -41,9 +57,10 @@ function loadStore(): Record<string, PendingCheckout> {
 }
 
 function persistStore(data: Record<string, PendingCheckout>) {
+  const storeFile = getStoreFilePath();
   try {
-    ensureStoreFile();
-    fs.writeFileSync(STORE_FILE, JSON.stringify(data, null, 2), "utf8");
+    ensureStoreFile(storeFile);
+    fs.writeFileSync(storeFile, JSON.stringify(data, null, 2), "utf8");
   } catch {}
 }
 
