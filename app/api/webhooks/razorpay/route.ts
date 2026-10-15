@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
 async function fetchAuthoritativeRazorpayNotesAndAmount(
   orderId: string,
   paymentId?: string
-): Promise<{ notes: Record<string, string>; amount: number } | null> {
+): Promise<{ notes: Record<string, string>; amount: number; paymentId?: string } | null> {
   const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
   const keySecret = process.env.RAZORPAY_KEY_SECRET;
   if (!keyId || !keySecret) return null;
@@ -24,6 +24,7 @@ async function fetchAuthoritativeRazorpayNotesAndAmount(
   const authHeader = `Basic ${Buffer.from(`${keyId}:${keySecret}`).toString("base64")}`;
   let notes: Record<string, string> = {};
   let amount = 0;
+  let resolvedPaymentId = paymentId;
 
   try {
     if (orderId) {
@@ -36,10 +37,27 @@ async function fetchAuthoritativeRazorpayNotesAndAmount(
         if (oData.notes) notes = { ...notes, ...oData.notes };
         if (oData.amount) amount = oData.amount;
       }
+
+      // If paymentId was not provided (e.g. order.paid event), query order payments
+      if (!resolvedPaymentId) {
+        const pListRes = await fetch(`https://api.razorpay.com/v1/orders/${orderId}/payments`, {
+          headers: { Authorization: authHeader },
+          cache: "no-store",
+        });
+        if (pListRes.ok) {
+          const pListData = await pListRes.json();
+          const capturedPay = (pListData.items || []).find((p: any) => p.status === "captured") || pListData.items?.[0];
+          if (capturedPay) {
+            resolvedPaymentId = capturedPay.id;
+            if (capturedPay.notes) notes = { ...notes, ...capturedPay.notes };
+            if (!amount && capturedPay.amount) amount = capturedPay.amount;
+          }
+        }
+      }
     }
 
-    if (paymentId && (!notes.ship_addr || !amount)) {
-      const pRes = await fetch(`https://api.razorpay.com/v1/payments/${paymentId}`, {
+    if (resolvedPaymentId && (!notes.ship_addr || !amount)) {
+      const pRes = await fetch(`https://api.razorpay.com/v1/payments/${resolvedPaymentId}`, {
         headers: { Authorization: authHeader },
         cache: "no-store",
       });
@@ -50,7 +68,7 @@ async function fetchAuthoritativeRazorpayNotesAndAmount(
       }
     }
 
-    return { notes, amount };
+    return { notes, amount, paymentId: resolvedPaymentId };
   } catch (err) {
     console.warn("[Razorpay Webhook] Razorpay API notes fetch error:", err);
     return null;
@@ -125,7 +143,7 @@ export async function POST(req: NextRequest) {
   const orderEntity = payload.payload?.order?.entity;
 
   const orderId = orderEntity?.id || paymentEntity?.order_id;
-  const paymentId = paymentEntity?.id;
+  let paymentId = paymentEntity?.id;
 
   if (!orderId) {
     console.warn("[Razorpay Webhook] Webhook payload missing order_id.");
@@ -152,6 +170,9 @@ export async function POST(req: NextRequest) {
     const authoritativeData = await fetchAuthoritativeRazorpayNotesAndAmount(orderId, paymentId);
     if (authoritativeData) {
       notes = { ...notes, ...authoritativeData.notes };
+      if (!paymentId && authoritativeData.paymentId) {
+        paymentId = authoritativeData.paymentId;
+      }
       if (!paymentEntity?.amount && authoritativeData.amount) {
         if (!paymentEntity) (payload as any).payload.payment = { entity: {} };
         payload.payload.payment.entity.amount = authoritativeData.amount;

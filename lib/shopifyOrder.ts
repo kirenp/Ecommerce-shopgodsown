@@ -196,59 +196,102 @@ export async function findExistingShopifyOrderByRazorpayId(orderId: string, paym
 
 /**
  * Queries Shopify Admin GraphQL for an existing customer ID matching email or phone.
- * Prevents 422 customer uniqueness errors when creating orders.
+ * Prioritizes email over phone to prevent cross-account customer conflicts.
+ * Verifies that any phone match does not conflict with a different customer's email.
  */
 export async function findExistingShopifyCustomerId(email?: string, phone?: string): Promise<number | null> {
   if (!adminToken || !domain) return null;
 
-  const queries: string[] = [];
   const cleanEmail = email && !email.includes("void@razorpay.com") && email.includes("@") ? email.trim().toLowerCase() : "";
   const cleanPhone = phone ? phone.replace(/\D/g, "") : "";
 
+  // 1. Authoritative lookup by email first
   if (cleanEmail) {
-    queries.push(`email:${cleanEmail}`);
-  }
-  if (cleanPhone && cleanPhone.length >= 10) {
-    queries.push(`phone:+91${cleanPhone.slice(-10)}`);
-    queries.push(`phone:${cleanPhone.slice(-10)}`);
-  }
-
-  if (queries.length === 0) return null;
-
-  const queryStr = queries.join(" OR ");
-  const query = `
-    query findCustomer($queryStr: String!) {
-      customers(first: 1, query: $queryStr) {
-        edges {
-          node {
-            id
+    try {
+      const emailQuery = `
+        query findCustomerByEmail($queryStr: String!) {
+          customers(first: 1, query: $queryStr) {
+            edges {
+              node {
+                id
+                email
+              }
+            }
           }
         }
-      }
-    }
-  `;
+      `;
+      const res = await fetch(`https://${domain}/admin/api/${apiVersion}/graphql.json`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Shopify-Access-Token": adminToken,
+        },
+        body: JSON.stringify({ query: emailQuery, variables: { queryStr: `email:${cleanEmail}` } }),
+        cache: "no-store",
+      });
 
-  try {
-    const res = await fetch(`https://${domain}/admin/api/${apiVersion}/graphql.json`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Shopify-Access-Token": adminToken,
-      },
-      body: JSON.stringify({ query, variables: { queryStr } }),
-      cache: "no-store",
-    });
-
-    if (res.ok) {
-      const data = await res.json();
-      const gid = data?.data?.customers?.edges?.[0]?.node?.id;
-      if (gid) {
-        const num = Number(gid.split("/").pop());
-        return !isNaN(num) && num > 0 ? num : null;
+      if (res.ok) {
+        const data = await res.json();
+        const gid = data?.data?.customers?.edges?.[0]?.node?.id;
+        if (gid) {
+          const num = Number(gid.split("/").pop());
+          if (!isNaN(num) && num > 0) return num;
+        }
       }
+    } catch (err) {
+      console.warn("[ShopifyOrder] Email customer lookup error:", err);
     }
-  } catch (err) {
-    console.warn("[ShopifyOrder] Existing customer lookup error:", err);
+  }
+
+  // 2. Secondary lookup by phone only if email wasn't found
+  if (cleanPhone && cleanPhone.length >= 10) {
+    try {
+      const phoneQueries = [
+        `phone:+91${cleanPhone.slice(-10)}`,
+        `phone:${cleanPhone.slice(-10)}`
+      ].join(" OR ");
+
+      const phoneQuery = `
+        query findCustomerByPhone($queryStr: String!) {
+          customers(first: 1, query: $queryStr) {
+            edges {
+              node {
+                id
+                email
+                phone
+              }
+            }
+          }
+        }
+      `;
+      const res = await fetch(`https://${domain}/admin/api/${apiVersion}/graphql.json`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Shopify-Access-Token": adminToken,
+        },
+        body: JSON.stringify({ query: phoneQuery, variables: { queryStr: phoneQueries } }),
+        cache: "no-store",
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const node = data?.data?.customers?.edges?.[0]?.node;
+        if (node?.id) {
+          // Guard: If order has an email, but the customer found by phone has a DIFFERENT non-empty email,
+          // DO NOT link this customer ID (it will trigger a 422 customer.email_address conflict).
+          const matchedEmail = String(node.email || "").trim().toLowerCase();
+          if (cleanEmail && matchedEmail && matchedEmail !== cleanEmail) {
+            console.warn(`[ShopifyOrder] Phone match customer ${node.id} has different email (${matchedEmail}) vs order email (${cleanEmail}). Skipping customer link to prevent 422.`);
+            return null;
+          }
+          const num = Number(node.id.split("/").pop());
+          if (!isNaN(num) && num > 0) return num;
+        }
+      }
+    } catch (err) {
+      console.warn("[ShopifyOrder] Phone customer lookup error:", err);
+    }
   }
 
   return null;
@@ -447,9 +490,15 @@ export async function createOrGetShopifyOrder({
         const existingCustomerId = await findExistingShopifyCustomerId(email, phone || formattedShipping.phone);
 
         let customerPayload: any = undefined;
+        let topLevelPhone: string | undefined = undefined;
+
         if (existingCustomerId) {
           // Link cleanly to existing customer record
           customerPayload = { id: existingCustomerId };
+          // Do not set top-level phone when linking existing customer:
+          // In Shopify REST API, top-level order.phone attempts to update customer.phone, which throws 422
+          // if that phone is claimed by another account in the store. The shipping_address.phone is always preserved for delivery.
+          topLevelPhone = undefined;
         } else if (email || phone || formattedShipping.phone) {
           customerPayload = {
             first_name: formattedShipping.first_name,
@@ -457,12 +506,13 @@ export async function createOrGetShopifyOrder({
             email: email || undefined,
             phone: phone || formattedShipping.phone || undefined,
           };
+          topLevelPhone = phone || formattedShipping.phone || undefined;
         }
 
         const orderPayload = {
           order: {
             email: email || undefined,
-            phone: phone || formattedShipping.phone || undefined,
+            phone: topLevelPhone,
             financial_status: "paid",
             fulfillment_status: null,
             send_receipt: true,
@@ -516,14 +566,18 @@ export async function createOrGetShopifyOrder({
           const isPhoneError = errLower.includes("phone");
           const isEmailError = errLower.includes("email");
 
-          // Attempt 2: If customer conflict, strip customer and order.phone completely.
-          // Shopify will auto-associate from shipping_address without throwing 422.
+          // Attempt 2: If customer or phone conflict, strip customer and order.phone completely.
+          // Keep customer email so the order is cleanly attached to the buyer.
+          // Shopify will auto-associate from shipping_address and email without throwing 422.
+          const isInvalidEmailFormat = isEmailError && (errLower.includes("invalid") || errLower.includes("format"));
+          const cleanAttempt2Email = (isInvalidEmailFormat || !email || email.includes("void@razorpay.com")) ? undefined : email;
+
           const attempt2Payload: any = {
             order: {
               ...orderPayload.order,
               customer: undefined,
-              phone: isPhoneError ? undefined : orderPayload.order.phone,
-              email: (isEmailError || !email || email.includes("void@razorpay.com")) ? undefined : email,
+              phone: undefined, // Strip top-level phone to prevent phone uniqueness collisions
+              email: cleanAttempt2Email,
             },
           };
 
@@ -553,7 +607,7 @@ export async function createOrGetShopifyOrder({
                 ...orderPayload.order,
                 customer: undefined,
                 phone: undefined,
-                email: undefined,
+                email: cleanAttempt2Email,
                 line_items: fallbackLineItems,
                 note: `${orderNotes} | Customer Contact: ${contact}`,
               },
