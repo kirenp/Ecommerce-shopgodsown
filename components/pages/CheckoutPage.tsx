@@ -633,6 +633,13 @@ export default function CheckoutPageContent() {
         name: "God's Own Culture",
         description: "Streetwear Order Checkout",
         order_id: orderData.id,
+        config: {
+          display: {
+            hide: [
+              { method: "wallet", wallets: ["mobikwik"] },
+            ],
+          },
+        },
         handler: async function (response: any) {
           // Payment Success Callback
           setFinalPaidAmount(totalAmount);

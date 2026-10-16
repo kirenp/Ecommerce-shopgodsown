@@ -83,9 +83,11 @@ async function fetchAuthoritativeRazorpayNotesAndAmount(
  * Idempotent against multiple webhook deliveries and race conditions with client callbacks.
  */
 export async function POST(req: NextRequest) {
-  const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET || process.env.RAZORPAY_KEY_SECRET;
+  const candidateSecrets = Array.from(
+    new Set([process.env.RAZORPAY_WEBHOOK_SECRET, process.env.RAZORPAY_KEY_SECRET].filter(Boolean) as string[])
+  );
 
-  if (!webhookSecret) {
+  if (candidateSecrets.length === 0) {
     console.error("[Razorpay Webhook] Missing RAZORPAY_WEBHOOK_SECRET or RAZORPAY_KEY_SECRET in environment.");
     return NextResponse.json({ error: "Webhook secret not configured on server." }, { status: 500 });
   }
@@ -104,23 +106,28 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Failed to read payload." }, { status: 400 });
   }
 
-  // 1. Verify Razorpay Webhook HMAC-SHA256 signature
-  try {
-    const expectedSignature = crypto
-      .createHmac("sha256", webhookSecret)
-      .update(rawBody, "utf8")
-      .digest("hex");
+  // 1. Verify Razorpay Webhook HMAC-SHA256 signature against candidate secrets
+  let isSignatureValid = false;
+  const sigBuf = Buffer.from(signature, "utf8");
 
-    const sigBuf = Buffer.from(signature, "utf8");
-    const expBuf = Buffer.from(expectedSignature, "utf8");
+  for (const secret of candidateSecrets) {
+    try {
+      const expectedSignature = crypto
+        .createHmac("sha256", secret)
+        .update(rawBody, "utf8")
+        .digest("hex");
 
-    if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
-      console.error("[Razorpay Webhook] Invalid signature match.");
-      return NextResponse.json({ error: "Invalid webhook signature." }, { status: 400 });
-    }
-  } catch (sigErr) {
-    console.error("[Razorpay Webhook] Signature verification exception:", sigErr);
-    return NextResponse.json({ error: "Signature verification failed." }, { status: 400 });
+      const expBuf = Buffer.from(expectedSignature, "utf8");
+      if (sigBuf.length === expBuf.length && crypto.timingSafeEqual(sigBuf, expBuf)) {
+        isSignatureValid = true;
+        break;
+      }
+    } catch {}
+  }
+
+  if (!isSignatureValid) {
+    console.error("[Razorpay Webhook] Invalid signature match across candidate secrets.");
+    return NextResponse.json({ error: "Invalid webhook signature." }, { status: 400 });
   }
 
   // 2. Parse event payload
