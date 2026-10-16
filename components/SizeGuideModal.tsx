@@ -22,11 +22,12 @@ const TSHIRT_DATA = [
   { label: "Sleeve Opening (flat)", s: "18.5", m: "19", l: "19.5", xl: "20" },
 ];
 
-// Tank Top Measurements
+// Tank Top Measurements (Inches)
 const TANK_TOP_DATA = [
-  { label: "Length", s: "64", m: "65", l: "66", xl: "67" },
-  { label: "Chest", s: "52.5", m: "55", l: "57.5", xl: "60" },
-  { label: "Shoulder", s: "47.5", m: "49", l: "50.5", xl: "52" },
+  { label: "Length", s: "24.25", m: "25.25", l: "26.25", xl: "27.25" },
+  { label: "Chest", s: "20.5", m: "21.5", l: "22.5", xl: "23.5" },
+  { label: "Bottom", s: "20.5", m: "21.5", l: "22.5", xl: "23.5" },
+  { label: "Shoulder", s: "19.5", m: "20", l: "21", xl: "21.5" },
 ];
 
 function detectProductType(product?: any): 'tshirt' | 'tanktop' {
@@ -96,7 +97,7 @@ export default function SizeGuideModal({ isOpen, onClose, product }: SizeGuideMo
             <p className="text-xs uppercase tracking-wider text-gray-500 font-semibold mt-1">
               {isTshirt 
                 ? "260 GSM Cotton • Boxy Drop Shoulder T-Shirt" 
-                : "Tank Top • Size Specifications"}
+                : "Tank Top • Size Specifications (Inches)"}
             </p>
           </div>
 
@@ -160,7 +161,7 @@ export default function SizeGuideModal({ isOpen, onClose, product }: SizeGuideMo
         <p className="text-xs text-gray-500 mt-5 text-center">
           {isTshirt 
             ? "All measurements in CM | Tolerance: +/- 0.5 cm"
-            : "All measurements are in CM"}
+            : "All the measurements are in INCHES"}
         </p>
       </div>
     </div>
