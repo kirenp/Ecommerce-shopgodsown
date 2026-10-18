@@ -544,7 +544,6 @@ export async function createOrGetShopifyOrder({
             } : undefined,
             landing_site: reqContext?.landingSite || reqContext?.referer || "/",
             referring_site: reqContext?.referer || undefined,
-            source_name: "web",
           },
         };
 
