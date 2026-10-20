@@ -8,7 +8,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { usePreview } from "@/lib/preview";
 import { ArrowLeft, CreditCard, ShieldCheck, CheckCircle2, Trash2, Plus, Minus, AlertCircle } from "lucide-react";
 import Script from "next/script";
-import { trackInitiateCheckout, trackPurchase } from "@/lib/metaPixel";
+import { trackInitiateCheckout, trackPurchase, getMetaCookies } from "@/lib/metaPixel";
 import { validateContact } from "@/lib/emailValidation";
 
 // Array containing all states and Union Territories of India
@@ -644,6 +644,7 @@ export default function CheckoutPageContent() {
           // Payment Success Callback
           setFinalPaidAmount(totalAmount);
           try {
+            const metaCookies = getMetaCookies();
             const completeRes = await fetch("/api/checkout/complete", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -652,6 +653,8 @@ export default function CheckoutPageContent() {
                 paymentId: response.razorpay_payment_id,
                 orderId: response.razorpay_order_id,
                 razorpaySignature: response.razorpay_signature,
+                metaFbc: metaCookies.fbc,
+                metaFbp: metaCookies.fbp,
               }),
             });
             const completeData = await completeRes.json().catch(() => ({}));

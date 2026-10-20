@@ -26,13 +26,92 @@ export function getCookie(name: string): string | null {
 }
 
 /**
+ * Ensure window.fbq exists with standard queue stub so events fired before
+ * fbevents.js finishes downloading are properly queued and deduplicated.
+ */
+export function ensureFbq(): any {
+  if (typeof window === "undefined") return null;
+  if (typeof window.fbq === "function") return window.fbq;
+
+  const fbq: any = function () {
+    if (fbq.callMethod) {
+      fbq.callMethod.apply(fbq, arguments);
+    } else {
+      fbq.queue.push(arguments);
+    }
+  };
+  if (!window._fbq) window._fbq = fbq;
+  fbq.push = fbq;
+  fbq.loaded = true;
+  fbq.version = "2.0";
+  fbq.queue = [];
+  window.fbq = fbq;
+  return window.fbq;
+}
+
+/**
  * Get Meta click and browser IDs for enhanced server matching
  */
 export function getMetaCookies(): { fbp: string | null; fbc: string | null } {
-  return {
-    fbp: getCookie("_fbp"),
-    fbc: getCookie("_fbc"),
-  };
+  let fbp = getCookie("_fbp");
+  let fbc = getCookie("_fbc");
+
+  if (typeof window !== "undefined") {
+    try {
+      // LocalStorage fallbacks for iOS/In-App browsers
+      if (!fbc) {
+        fbc = localStorage.getItem("goc_fbc");
+      }
+      if (!fbp) {
+        fbp = localStorage.getItem("goc_fbp");
+      }
+
+      // URL searchParams fallback for direct ad clicks
+      if (!fbc) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const fbclid = urlParams.get("fbclid");
+        if (fbclid) {
+          fbc = `fb.1.${Date.now()}.${fbclid}`;
+          localStorage.setItem("goc_fbc", fbc);
+        }
+      }
+
+      // Sync active cookies back to localStorage
+      if (fbc) localStorage.setItem("goc_fbc", fbc);
+      if (fbp) localStorage.setItem("goc_fbp", fbp);
+    } catch {
+      // Non-blocking fail-safe
+    }
+  }
+
+  return { fbp, fbc };
+}
+
+/**
+ * Helper to retrieve stored customer profile or email from localStorage
+ * to boost Meta Conversions API Event Match Quality (EMQ).
+ */
+function getStoredCustomerData(): Record<string, any> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = localStorage.getItem("goc_customer_profile");
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return {
+        email: parsed.email || undefined,
+        firstName: parsed.firstName || undefined,
+        lastName: parsed.lastName || undefined,
+        phone: parsed.phone || undefined,
+      };
+    }
+    const lastEmail = localStorage.getItem("goc_last_email");
+    if (lastEmail) {
+      return { email: lastEmail };
+    }
+  } catch {
+    // Non-blocking fail-safe
+  }
+  return {};
 }
 
 /**
@@ -57,12 +136,14 @@ function dispatchServerCapiEvent(input: {
   if (typeof window === "undefined") return;
   try {
     const metaCookies = getMetaCookies();
+    const storedCustomer = getStoredCustomerData();
     const payload = {
       eventName: input.eventName,
       eventId: input.eventId,
       eventSourceUrl: window.location.href,
       customData: input.customData,
       userData: {
+        ...storedCustomer,
         ...input.userData,
         fbp: metaCookies.fbp,
         fbc: metaCookies.fbc,
@@ -87,9 +168,10 @@ function dispatchServerCapiEvent(input: {
  */
 export function trackCustomEvent(eventName: string, params?: Record<string, any>, options?: { eventID?: string }) {
   const eventId = options?.eventID || generateEventId(eventName.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 8));
-  if (typeof window !== "undefined" && typeof window.fbq === "function") {
+  const fbq = ensureFbq();
+  if (fbq) {
     try {
-      window.fbq("trackCustom", eventName, params, { eventID: eventId });
+      fbq("trackCustom", eventName, params, { eventID: eventId });
     } catch (e) {
       console.warn(`[Meta Pixel] Error tracking custom event ${eventName}:`, e);
     }
@@ -106,9 +188,10 @@ export function trackCustomEvent(eventName: string, params?: Record<string, any>
  */
 export function trackPageView(options?: { eventID?: string }) {
   const eventId = options?.eventID || generateEventId("pv");
-  if (typeof window !== "undefined" && typeof window.fbq === "function") {
+  const fbq = ensureFbq();
+  if (fbq) {
     try {
-      window.fbq("track", "PageView", {}, { eventID: eventId });
+      fbq("track", "PageView", {}, { eventID: eventId });
     } catch (e) {
       console.warn("[Meta Pixel] Error tracking PageView:", e);
     }
@@ -143,9 +226,10 @@ export function trackViewContent(
     currency: product.currency || "INR",
   };
 
-  if (typeof window !== "undefined" && typeof window.fbq === "function") {
+  const fbq = ensureFbq();
+  if (fbq) {
     try {
-      window.fbq("track", "ViewContent", payload, { eventID: eventId });
+      fbq("track", "ViewContent", payload, { eventID: eventId });
     } catch (e) {
       console.warn("[Meta Pixel] Error tracking ViewContent:", e);
     }
@@ -185,9 +269,10 @@ export function trackAddToCart(
     currency: item.currency || "INR",
   };
 
-  if (typeof window !== "undefined" && typeof window.fbq === "function") {
+  const fbq = ensureFbq();
+  if (fbq) {
     try {
-      window.fbq("track", "AddToCart", payload, { eventID: eventId });
+      fbq("track", "AddToCart", payload, { eventID: eventId });
     } catch (e) {
       console.warn("[Meta Pixel] Error tracking AddToCart:", e);
     }
@@ -235,9 +320,10 @@ export function trackInitiateCheckout(
     currency: data.currency || "INR",
   };
 
-  if (typeof window !== "undefined" && typeof window.fbq === "function") {
+  const fbq = ensureFbq();
+  if (fbq) {
     try {
-      window.fbq("track", "InitiateCheckout", payload, { eventID: eventId });
+      fbq("track", "InitiateCheckout", payload, { eventID: eventId });
     } catch (e) {
       console.warn("[Meta Pixel] Error tracking InitiateCheckout:", e);
     }
@@ -267,7 +353,8 @@ export function trackPurchase(order: {
     quantity?: number;
   }>;
 }) {
-  if (typeof window === "undefined" || typeof window.fbq !== "function") return;
+  const fbq = ensureFbq();
+  if (!fbq) return;
   try {
     const numericTotal = typeof order.amount === "string" ? parseFloat(order.amount) : order.amount;
     const items = order.items || [];
@@ -295,7 +382,7 @@ export function trackPurchase(order: {
     }
 
     // Deduplication key: pass eventID as 4th parameter to fbq
-    window.fbq("track", "Purchase", eventParams, {
+    fbq("track", "Purchase", eventParams, {
       eventID: String(order.orderId),
     });
 

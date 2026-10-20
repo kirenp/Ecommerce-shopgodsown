@@ -78,6 +78,30 @@ function TrackerLogic() {
           // Ignore invalid URL parse
         }
       }
+
+      // 5. Meta Click ID (fbclid / _fbc) & Browser ID (_fbp) Attribution Bridge
+      const fbclid = searchParams?.get('fbclid');
+      if (fbclid) {
+        const fbcValue = `fb.1.${Date.now()}.${fbclid}`;
+        setCookie('_fbc', fbcValue, 90 * 24 * 3600); // 90 days
+        try { localStorage.setItem('goc_fbc', fbcValue); } catch {}
+      } else {
+        const existingFbcCookie = getCookie('_fbc');
+        const storedFbc = typeof window !== 'undefined' ? localStorage.getItem('goc_fbc') : null;
+        if (existingFbcCookie && !storedFbc) {
+          try { localStorage.setItem('goc_fbc', existingFbcCookie); } catch {}
+        } else if (!existingFbcCookie && storedFbc) {
+          setCookie('_fbc', storedFbc, 90 * 24 * 3600);
+        }
+      }
+
+      const existingFbpCookie = getCookie('_fbp');
+      const storedFbp = typeof window !== 'undefined' ? localStorage.getItem('goc_fbp') : null;
+      if (existingFbpCookie && !storedFbp) {
+        try { localStorage.setItem('goc_fbp', existingFbpCookie); } catch {}
+      } else if (!existingFbpCookie && storedFbp) {
+        setCookie('_fbp', storedFbp, 90 * 24 * 3600);
+      }
     } catch (err) {
       // Non-blocking fail-safe
     }

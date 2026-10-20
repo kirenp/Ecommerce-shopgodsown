@@ -535,6 +535,8 @@ export async function createOrGetShopifyOrder({
             note_attributes: [
               { name: "razorpay_order_id", value: orderId },
               { name: "razorpay_payment_id", value: paymentId },
+              ...(reqContext?.fbc ? [{ name: "_fbc", value: String(reqContext.fbc) }] : []),
+              ...(reqContext?.fbp ? [{ name: "_fbp", value: String(reqContext.fbp) }] : []),
             ],
             tags: orderTags,
             browser_ip: reqContext?.ip || undefined,

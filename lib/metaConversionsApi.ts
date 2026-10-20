@@ -239,28 +239,41 @@ export async function sendMetaCapiEvent(input: MetaCapiEventInput): Promise<{
         customDataPayload.value = Number(input.customData.value);
       }
       if (input.customData.currency) {
-        customDataPayload.currency = input.customData.currency;
+        customDataPayload.currency = String(input.customData.currency).toUpperCase();
       }
-      if (input.customData.contentName) {
-        customDataPayload.content_name = input.customData.contentName;
+
+      const contentName = input.customData.contentName || input.customData.content_name;
+      if (contentName) {
+        customDataPayload.content_name = String(contentName);
       }
-      if (input.customData.contentCategory) {
-        customDataPayload.content_category = input.customData.contentCategory;
+
+      const contentCategory = input.customData.contentCategory || input.customData.content_category;
+      if (contentCategory) {
+        customDataPayload.content_category = String(contentCategory);
       }
-      if (input.customData.contentType) {
-        customDataPayload.content_type = input.customData.contentType;
+
+      const contentType = input.customData.contentType || input.customData.content_type;
+      if (contentType) {
+        customDataPayload.content_type = String(contentType);
       }
-      if (input.customData.contentIds && input.customData.contentIds.length > 0) {
-        customDataPayload.content_ids = input.customData.contentIds;
+
+      const contentIds = input.customData.contentIds || input.customData.content_ids;
+      if (Array.isArray(contentIds) && contentIds.length > 0) {
+        customDataPayload.content_ids = contentIds.map(String);
       }
-      if (input.customData.contents && input.customData.contents.length > 0) {
+
+      if (input.customData.contents && Array.isArray(input.customData.contents) && input.customData.contents.length > 0) {
         customDataPayload.contents = input.customData.contents;
       }
-      if (input.customData.numItems !== undefined) {
-        customDataPayload.num_items = input.customData.numItems;
+
+      const numItems = input.customData.numItems !== undefined ? input.customData.numItems : input.customData.num_items;
+      if (numItems !== undefined) {
+        customDataPayload.num_items = Number(numItems);
       }
-      if (input.customData.orderId) {
-        customDataPayload.order_id = input.customData.orderId;
+
+      const orderId = input.customData.orderId || input.customData.order_id;
+      if (orderId) {
+        customDataPayload.order_id = String(orderId);
       }
     }
 

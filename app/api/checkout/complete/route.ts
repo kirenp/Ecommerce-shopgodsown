@@ -25,6 +25,8 @@ export async function POST(req: NextRequest) {
       orderId,
       razorpaySignature,
       discountCode,
+      metaFbc,
+      metaFbp,
     } = body;
 
     // Validate essential inputs
@@ -105,8 +107,8 @@ export async function POST(req: NextRequest) {
       req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
       req.headers.get("x-real-ip");
     const userAgent = req.headers.get("user-agent");
-    const fbp = req.cookies.get("_fbp")?.value || null;
-    const fbc = req.cookies.get("_fbc")?.value || null;
+    const fbp = metaFbp || req.cookies.get("_fbp")?.value || null;
+    const fbc = metaFbc || req.cookies.get("_fbc")?.value || null;
     const referer = req.headers.get("referer");
     const landingSite = req.cookies.get("goc_landing")?.value || null;
 
