@@ -58,6 +58,7 @@ export default function Footer() {
               {[
                 { label: "Our Story", href: "/about" },
                 { label: "Contact", href: "/contact" },
+                { label: "Privacy Policy", href: "/privacy-policy" },
               ].map((item) => (
                 <li key={item.label}>
                   <Link href={getPreviewPath(item.href)} className="text-black/60 hover:text-black text-xs tracking-wider transition-colors font-medium">
