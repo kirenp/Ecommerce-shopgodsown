@@ -3,29 +3,20 @@
 import { useEffect, Suspense } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import Script from 'next/script';
+import { trackShopifyPageView, getOrCreateShopifyTokens } from '@/lib/shopifyAnalytics';
 
 /**
  * Shopify Headless Analytics & Visitor Attribution Tracker
  *
- * Implements standard Shopify headless tracking tokens:
+ * Implements standard Shopify headless tracking tokens & Monorail telemetry:
  * - `_shopify_y`: Long-lived unique visitor identifier (1-year cookie)
  * - `_shopify_s`: 30-minute rolling session identifier (session cookie)
  * - `goc_landing`: Captures initial landing URL and UTM parameters for order attribution
  * - `goc_referrer`: Captures external referring site (Meta, Instagram, Google)
+ * - Sends `page_view` telemetry to Shopify Monorail (`monorail-edge.shopifysvc.com`)
  *
  * Also initializes Shopify Customer Privacy API for cross-domain compliance.
  */
-
-function generateUUID(): string {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
-  }
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
 
 function getCookie(name: string): string | null {
   if (typeof document === 'undefined') return null;
@@ -44,20 +35,11 @@ function TrackerLogic() {
 
   useEffect(() => {
     try {
-      // 1. Maintain _shopify_y (Unique Visitor ID, 1 year = 31,536,000s)
-      let visitorId = getCookie('_shopify_y');
-      if (!visitorId) {
-        visitorId = generateUUID();
-        setCookie('_shopify_y', visitorId, 31536000);
-      }
+      // 1. Maintain _shopify_y & _shopify_s tokens
+      getOrCreateShopifyTokens();
 
-      // 2. Maintain _shopify_s (Session ID, 30 minutes = 1,800s inactivity timeout)
-      let sessionId = getCookie('_shopify_s');
-      if (!sessionId) {
-        sessionId = generateUUID();
-      }
-      // Refresh 30-minute session expiry on every page interaction
-      setCookie('_shopify_s', sessionId, 1800);
+      // 2. Dispatch page_view beacon to Shopify Monorail (populates Live View & Sessions)
+      trackShopifyPageView();
 
       // 3. Capture initial landing URL and UTM parameters for order attribution
       const existingLanding = getCookie('goc_landing');

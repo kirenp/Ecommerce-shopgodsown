@@ -7,6 +7,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { useCart } from "@/lib/cartContext";
 import { usePreview } from "@/lib/preview";
 import { useUI } from "@/lib/uiContext";
+import { trackShopifySearch } from "@/lib/shopifyAnalytics";
 
 export default function Navbar() {
   const [searchOpen, setSearchOpen] = useState(false);
@@ -27,6 +28,7 @@ export default function Navbar() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
+      trackShopifySearch(searchQuery.trim());
       router.push(`${getPreviewPath("/catalog")}?search=${encodeURIComponent(searchQuery.trim())}`);
       setSearchOpen(false);
       setSearchQuery("");

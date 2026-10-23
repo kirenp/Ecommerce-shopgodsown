@@ -111,6 +111,8 @@ export async function POST(req: NextRequest) {
     const fbc = metaFbc || req.cookies.get("_fbc")?.value || null;
     const referer = req.headers.get("referer");
     const landingSite = req.cookies.get("goc_landing")?.value || null;
+    const shopifyY = req.cookies.get("_shopify_y")?.value || null;
+    const shopifyS = req.cookies.get("_shopify_s")?.value || null;
 
     const orderResult = await createOrGetShopifyOrder({
       orderId,
@@ -129,6 +131,8 @@ export async function POST(req: NextRequest) {
         fbc,
         referer,
         landingSite,
+        shopifyY,
+        shopifyS,
       },
     });
 

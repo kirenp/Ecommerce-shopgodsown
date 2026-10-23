@@ -330,6 +330,8 @@ export async function createOrGetShopifyOrder({
     fbc?: string | null;
     referer?: string | null;
     landingSite?: string | null;
+    shopifyY?: string | null;
+    shopifyS?: string | null;
   };
 }): Promise<{
   success: boolean;
@@ -537,6 +539,8 @@ export async function createOrGetShopifyOrder({
               { name: "razorpay_payment_id", value: paymentId },
               ...(reqContext?.fbc ? [{ name: "_fbc", value: String(reqContext.fbc) }] : []),
               ...(reqContext?.fbp ? [{ name: "_fbp", value: String(reqContext.fbp) }] : []),
+              ...(reqContext?.shopifyY ? [{ name: "_shopify_y", value: String(reqContext.shopifyY) }] : []),
+              ...(reqContext?.shopifyS ? [{ name: "_shopify_s", value: String(reqContext.shopifyS) }] : []),
             ],
             tags: orderTags,
             browser_ip: reqContext?.ip || undefined,

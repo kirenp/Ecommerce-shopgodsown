@@ -10,6 +10,7 @@ import { usePreview } from "@/lib/preview";
 import { useRouter } from "next/navigation";
 import { Heart, Search, ArrowDown, X, Plus, Minus, Truck, ShieldCheck, ChevronLeft, ChevronRight } from "lucide-react";
 import { trackViewContent } from "@/lib/metaPixel";
+import { trackShopifyProductView } from "@/lib/shopifyAnalytics";
 import SizeGuideModal from "@/components/SizeGuideModal";
 
 interface ProductDetailProps {
@@ -205,13 +206,19 @@ export default function ProductDetail({ product }: ProductDetailProps) {
         category: product.category || "",
       });
 
-      // Track ViewContent for Meta Pixel
+      // Track ViewContent for Meta Pixel & Shopify Analytics
       trackViewContent({
         id: product.id,
         title: product.title,
         price: product.price,
         currency: product.currencyCode || "INR",
         category: product.category || "",
+      });
+
+      trackShopifyProductView({
+        id: product.id,
+        title: product.title,
+        price: product.price,
       });
     }
   }, [product.id, product.handle]);

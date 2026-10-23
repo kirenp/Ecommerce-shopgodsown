@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { trackAddToCart } from "@/lib/metaPixel";
+import { trackShopifyAddToCart } from "@/lib/shopifyAnalytics";
 
 export interface CartItem {
   id: string;
@@ -83,13 +84,21 @@ export function CartProvider({ children }: { children: ReactNode }) {
         console.error("Failed to save cart to localStorage:", e);
       }
 
-      // Track AddToCart for Meta Pixel
+      // Track AddToCart for Meta Pixel & Shopify Analytics
       trackAddToCart({
         id: item.id,
         variantId: item.variantId,
         title: item.title,
         price: item.price,
         currency: item.currencyCode || "INR",
+        quantity: item.quantity || 1,
+      });
+
+      trackShopifyAddToCart({
+        id: item.id,
+        variantId: item.variantId,
+        title: item.title,
+        price: item.price,
         quantity: item.quantity || 1,
       });
 
