@@ -14,6 +14,8 @@
 
 export const SHOPIFY_SHOP_ID =
   process.env.NEXT_PUBLIC_SHOPIFY_SHOP_ID || '65346109534';
+export const SHOPIFY_SUBCHANNEL_ID =
+  process.env.NEXT_PUBLIC_SHOPIFY_SUBCHANNEL_ID || '131840901214';
 export const SHOPIFY_MONORAIL_URL =
   'https://monorail-edge.shopifysvc.com/unstable/produce_batch';
 
@@ -93,9 +95,9 @@ export async function sendShopifyMonorailEvent(
     const userAgent = navigator.userAgent || '';
 
     const payload = {
-      source: 'headless',
+      source: 'hydrogen',
       shop_id: Number(SHOPIFY_SHOP_ID),
-      hydrogenSubchannelId: '0',
+      hydrogenSubchannelId: String(SHOPIFY_SUBCHANNEL_ID),
       is_persistent_cookie: true,
       unique_token: visitorId,
       deprecated_visit_token: sessionId,
