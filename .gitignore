@@ -55,6 +55,7 @@ coverage/
 .env.local
 .env
 .env.*
+!.env.local.example
 
 # Scratch and data files
 scratch/
