@@ -1,5 +1,10 @@
 import CollectionDetailPage from "@/components/pages/CollectionDetailPage";
 
-export default function CollectionPage({ params }: { params: { handle: string } }) {
-  return <CollectionDetailPage params={params} />;
+export default async function CollectionPage({
+  params,
+}: {
+  params: Promise<{ handle: string }>;
+}) {
+  const resolvedParams = await params;
+  return <CollectionDetailPage params={resolvedParams} />;
 }

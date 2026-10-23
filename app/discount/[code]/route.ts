@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { code: string } }
+  { params }: { params: Promise<{ code: string }> }
 ) {
-  const code = (params?.code || "").trim().toUpperCase();
+  const { code: rawCode } = await params;
+  const code = (rawCode || "").trim().toUpperCase();
   const searchParams = req.nextUrl.searchParams;
   const redirectParam = searchParams.get("redirect");
 

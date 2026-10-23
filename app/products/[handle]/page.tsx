@@ -1,5 +1,10 @@
 import ProductDetailPage from "@/components/pages/ProductDetailPage";
 
-export default function ProductPage({ params }: { params: { handle: string } }) {
-  return <ProductDetailPage params={params} />;
+export default async function ProductPage({
+  params,
+}: {
+  params: Promise<{ handle: string }>;
+}) {
+  const resolvedParams = await params;
+  return <ProductDetailPage params={resolvedParams} />;
 }

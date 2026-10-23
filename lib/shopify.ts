@@ -41,8 +41,10 @@ export async function shopifyFetch<T>({
     }
 
     return json;
-  } catch (error) {
-    console.error("Shopify Fetch Error:", error);
+  } catch (error: any) {
+    if (error?.digest !== 'DYNAMIC_SERVER_USAGE') {
+      console.error("Shopify Fetch Error:", error);
+    }
     throw error;
   }
 }
