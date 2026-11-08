@@ -1,9 +1,7 @@
-'use client';
-
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
-import { usePreview } from '@/lib/preview';
+import { getPreviewPath } from '@/lib/preview';
 
 interface CultureDuoBannerProps {
   productHandle?: string;
@@ -18,7 +16,6 @@ export default function CultureDuoBanner({
   bundlePrice = '₹1,349',
   savings = 'SAVE ₹349',
 }: CultureDuoBannerProps) {
-  const { getPreviewPath } = usePreview();
   const targetUrl = getPreviewPath(`/products/${productHandle}`);
 
   return (
