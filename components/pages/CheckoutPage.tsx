@@ -4,7 +4,7 @@ import { useCart } from "@/lib/cartContext";
 import { useUI } from "@/lib/uiContext";
 import { useCustomer } from "@/lib/customerContext";
 import Link from "next/link";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { usePreview } from "@/lib/preview";
 import { ArrowLeft, CreditCard, ShieldCheck, CheckCircle2, Trash2, Plus, Minus, AlertCircle } from "lucide-react";
 import Script from "next/script";
@@ -125,6 +125,11 @@ export default function CheckoutPageContent() {
   const [finalPaidAmount, setFinalPaidAmount] = useState(0);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [emailSuggestion, setEmailSuggestion] = useState("");
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Receipt Printer States
   const [isPrinting, setIsPrinting] = useState(false);
@@ -286,11 +291,67 @@ export default function CheckoutPageContent() {
     } catch {}
   }, []);
 
+  // Check if cart contains bundle product (e.g. THE CULTURE DUO)
+  const hasBundleItem = useMemo(() => {
+    return items.some((item: any) => {
+      const handle = String(item.handle || "").toLowerCase();
+      const title = String(item.title || "").toLowerCase();
+      return handle === "the-culture-duo" || title.includes("culture duo") || title.includes("duo") || title.includes("bundle");
+    });
+  }, [items]);
+
+  // If cart contains bundle, purge any previously saved or applied PLAY10 discount
+  useEffect(() => {
+    let checkItems = items;
+    if (checkItems.length === 0 && typeof window !== "undefined") {
+      try {
+        const raw = localStorage.getItem("goc_cart");
+        if (raw) checkItems = JSON.parse(raw);
+      } catch (_) {}
+    }
+    const cartHasBundle = hasBundleItem || checkItems.some((item: any) => {
+      const handle = String(item.handle || "").toLowerCase();
+      const title = String(item.title || "").toLowerCase();
+      return handle === "the-culture-duo" || title.includes("culture duo") || title.includes("duo") || title.includes("bundle");
+    });
+
+    if (cartHasBundle) {
+      if (appliedCouponCode === "PLAY10" || discountCode.toUpperCase() === "PLAY10") {
+        setAppliedDiscount(0);
+        setAppliedDiscountAmount(0);
+        setAppliedCouponCode("");
+        setDiscountCode("");
+      }
+      try {
+        if (localStorage.getItem("godsown_discount_code") === "PLAY10") {
+          localStorage.removeItem("godsown_discount_code");
+        }
+        const cookieMatch = document.cookie.match(/(?:^|;\s*)godsown_discount_code=([^;]+)/);
+        if (cookieMatch && decodeURIComponent(cookieMatch[1]).toUpperCase() === "PLAY10") {
+          document.cookie = "godsown_discount_code=; path=/; max-age=0;";
+        }
+      } catch (_) {}
+    }
+  }, [hasBundleItem, items, appliedCouponCode, discountCode]);
+
   // Auto-detect and apply coupon from URL params (?discount=..., ?coupon=...), cookie, or localStorage
   const autoApplyAttemptedRef = useRef(false);
 
   useEffect(() => {
     try {
+      let checkItems = items;
+      if (checkItems.length === 0 && typeof window !== "undefined") {
+        try {
+          const raw = localStorage.getItem("goc_cart");
+          if (raw) checkItems = JSON.parse(raw);
+        } catch (_) {}
+      }
+      const cartHasBundle = hasBundleItem || checkItems.some((item: any) => {
+        const handle = String(item.handle || "").toLowerCase();
+        const title = String(item.title || "").toLowerCase();
+        return handle === "the-culture-duo" || title.includes("culture duo") || title.includes("duo") || title.includes("bundle");
+      });
+
       const urlParams = new URLSearchParams(window.location.search);
       const queryCode = urlParams.get("discount") || urlParams.get("coupon") || urlParams.get("code");
       
@@ -301,6 +362,10 @@ export default function CheckoutPageContent() {
 
       const codeToApply = (queryCode || cookieCode || storedCode || "").trim().toUpperCase();
       if (codeToApply) {
+        if (codeToApply === "PLAY10" && cartHasBundle) {
+          // Do not auto-apply PLAY10 for bundle items
+          return;
+        }
         setDiscountCode(codeToApply);
         if (!appliedCouponCode) {
           autoApplyAttemptedRef.current = true;
@@ -310,7 +375,7 @@ export default function CheckoutPageContent() {
     } catch (e) {
       console.warn("Failed to check discount code on mount:", e);
     }
-  }, [items.length]);
+  }, [items.length, hasBundleItem]);
 
   // Apply Discount via Shopify API
   const handleApplyDiscount = async (codeToApply?: string) => {
@@ -324,12 +389,33 @@ export default function CheckoutPageContent() {
       setDiscountCode(codeToApply);
     }
 
+    // Hydrate items from localStorage if React state has not settled yet
+    let currentItems = items;
+    if (currentItems.length === 0 && typeof window !== "undefined") {
+      try {
+        const raw = localStorage.getItem("goc_cart");
+        if (raw) currentItems = JSON.parse(raw);
+      } catch (_) {}
+    }
+
+    const cartHasBundle = hasBundleItem || currentItems.some((item: any) => {
+      const handle = String(item.handle || "").toLowerCase();
+      const title = String(item.title || "").toLowerCase();
+      return handle === "the-culture-duo" || title.includes("culture duo") || title.includes("duo") || title.includes("bundle");
+    });
+
     setDiscountError("");
-    setIsApplyingDiscount(true);
 
     // Instant local application for PLAY10 so the user gets 10% OFF immediately on first landing
     const isPlay10 = trimmed.toUpperCase() === "PLAY10";
     if (isPlay10) {
+      if (cartHasBundle) {
+        setDiscountError("The PLAY10 coupon code cannot be applied to bundle offers.");
+        setAppliedDiscount(0);
+        setAppliedDiscountAmount(0);
+        setAppliedCouponCode("");
+        return;
+      }
       setAppliedDiscount(10);
       setAppliedDiscountAmount(0);
       setAppliedCouponCode("PLAY10");
@@ -339,14 +425,7 @@ export default function CheckoutPageContent() {
       } catch (_) {}
     }
 
-    // Hydrate items from localStorage if React state has not settled yet
-    let currentItems = items;
-    if (currentItems.length === 0 && typeof window !== "undefined") {
-      try {
-        const raw = localStorage.getItem("goc_cart");
-        if (raw) currentItems = JSON.parse(raw);
-      } catch (_) {}
-    }
+    setIsApplyingDiscount(true);
 
     try {
       const res = await fetch("/api/checkout/discount", {
@@ -361,8 +440,8 @@ export default function CheckoutPageContent() {
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok || !data.valid) {
-        // If server had an error or 429/404, but code was PLAY10, retain the 10% discount
-        if (isPlay10) {
+        // If server had an error or 429/404, but code was PLAY10 and not bundle, retain the 10% discount
+        if (isPlay10 && !hasBundleItem) {
           setAppliedDiscount(10);
           setAppliedDiscountAmount(0);
           setAppliedCouponCode("PLAY10");
@@ -396,13 +475,16 @@ export default function CheckoutPageContent() {
       setDiscountError("");
     } catch (err) {
       console.error("Failed to apply discount:", err);
-      if (isPlay10) {
+      if (isPlay10 && !hasBundleItem) {
         setAppliedDiscount(10);
         setAppliedDiscountAmount(0);
         setAppliedCouponCode("PLAY10");
         setDiscountError("");
         return;
       }
+      setAppliedDiscount(0);
+      setAppliedDiscountAmount(0);
+      setAppliedCouponCode("");
       setDiscountError("Failed to apply coupon. Please try again.");
     } finally {
       setIsApplyingDiscount(false);
@@ -1266,7 +1348,7 @@ export default function CheckoutPageContent() {
                           </div>
 
                           {/* First purchase coupon suggestion */}
-                          {!appliedCouponCode && (
+                          {isMounted && !appliedCouponCode && !hasBundleItem && (
                             <p className="receipt-coupon-hint">
                               Use{" "}
                               <button

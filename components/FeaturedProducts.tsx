@@ -3,9 +3,16 @@ import { getProducts } from "@/lib/shopify";
 import NextImage from "next/image";
 
 export default async function FeaturedProducts() {
-  const products = await getProducts(4);
+  const allProducts = await getProducts(8);
 
-  if (!products || products.length === 0) {
+  if (!allProducts || allProducts.length === 0) {
+    return null;
+  }
+
+  // Filter out bundle products so "Our Drops" displays the standalone apparel drops as shown in design
+  const products = allProducts.filter((product: any) => product.handle !== 'the-culture-duo');
+
+  if (products.length === 0) {
     return null;
   }
 

@@ -1,6 +1,7 @@
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
 import FeaturedProducts from "@/components/FeaturedProducts";
+import CultureDuoBanner from "@/components/CultureDuoBanner";
 import ShopTheLook from "@/components/ShopTheLook";
 import InstagramFeed from "@/components/InstagramFeed";
 import PromiseBanner from "@/components/PromiseBanner";
@@ -12,6 +13,7 @@ export default function HomePage() {
       <Navbar />
       <Hero />
       <FeaturedProducts />
+      <CultureDuoBanner />
       <ShopTheLook />
       <InstagramFeed />
       <PromiseBanner />

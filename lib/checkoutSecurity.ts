@@ -11,6 +11,7 @@ export interface AuthoritativeLineItem {
   variantId: string;
   numericVariantId: number | null;
   title: string;
+  handle?: string;
   price: number; // In INR Rupees
   quantity: number;
   color?: string;
@@ -62,8 +63,8 @@ export function extractNumericVariantId(rawId: string | number): number | null {
  * Queries Shopify Storefront API GraphQL for canonical variant prices and availability.
  * Server-authoritative lookup.
  */
-export async function getAuthoritativeVariantDetails(variantIds: string[]): Promise<Map<string, { price: number; title: string; availableForSale: boolean }>> {
-  const details = new Map<string, { price: number; title: string; availableForSale: boolean }>();
+export async function getAuthoritativeVariantDetails(variantIds: string[]): Promise<Map<string, { price: number; title: string; availableForSale: boolean; productHandle?: string; productTitle?: string }>> {
+  const details = new Map<string, { price: number; title: string; availableForSale: boolean; productHandle?: string; productTitle?: string }>();
   if (!domain || !storefrontToken || variantIds.length === 0) return details;
 
   const gids = Array.from(new Set(variantIds.map(normalizeVariantGid)));
@@ -79,6 +80,11 @@ export async function getAuthoritativeVariantDetails(variantIds: string[]): Prom
           price {
             amount
             currencyCode
+          }
+          product {
+            id
+            title
+            handle
           }
         }
       }
@@ -107,6 +113,8 @@ export async function getAuthoritativeVariantDetails(variantIds: string[]): Prom
             price: isNaN(parsedPrice) ? 0 : parsedPrice,
             title: node.title || "",
             availableForSale: Boolean(node.availableForSale),
+            productHandle: node.product?.handle,
+            productTitle: node.product?.title,
           };
           details.set(node.id, itemDetail);
 
@@ -212,6 +220,38 @@ export async function validateCouponCode(
   const cleanCode = String(code || "").trim().toUpperCase();
   if (!cleanCode) {
     return { valid: false, error: "Please enter a coupon code." };
+  }
+
+  // PLAY10 is not valid for bundle offers (e.g. THE CULTURE DUO)
+  if (cleanCode === "PLAY10") {
+    let hasBundle = Array.isArray(items) && items.some((i: any) => {
+      const handle = String(i.handle || "").toLowerCase();
+      const title = String(i.title || "").toLowerCase();
+      return handle === "the-culture-duo" || title.includes("culture duo") || title.includes("duo") || title.includes("bundle");
+    });
+
+    if (!hasBundle && Array.isArray(items) && items.length > 0) {
+      const variantIds = items.map((i: any) => String(i.variantId || "").trim()).filter(Boolean);
+      if (variantIds.length > 0) {
+        try {
+          const variantDetails = await getAuthoritativeVariantDetails(variantIds);
+          variantDetails.forEach((detail) => {
+            const pHandle = String(detail.productHandle || "").toLowerCase();
+            const pTitle = String(detail.productTitle || "").toLowerCase();
+            if (pHandle === "the-culture-duo" || pTitle.includes("culture duo") || pTitle.includes("duo") || pTitle.includes("bundle")) {
+              hasBundle = true;
+            }
+          });
+        } catch (_) {}
+      }
+    }
+
+    if (hasBundle) {
+      return {
+        valid: false,
+        error: "The PLAY10 coupon code cannot be applied to bundle offers.",
+      };
+    }
   }
 
   // 1. Check Storefront API Cart for standard coupon codes if items are provided
@@ -375,6 +415,20 @@ export async function validateCouponCode(
 
   // 3. SEC-04 Remediation: First-purchase promotion code PLAY10 (10% OFF)
   if (cleanCode === "PLAY10") {
+    // PLAY10 is not valid for bundle offers (e.g. THE CULTURE DUO)
+    const hasBundle = Array.isArray(items) && items.some((i: any) => {
+      const handle = String(i.handle || "").toLowerCase();
+      const title = String(i.title || "").toLowerCase();
+      return handle === "the-culture-duo" || title.includes("culture duo") || title.includes("bundle");
+    });
+
+    if (hasBundle) {
+      return {
+        valid: false,
+        error: "The PLAY10 coupon code cannot be applied to bundle offers.",
+      };
+    }
+
     // If customer contact is provided, authoritatively verify if customer has prior orders
     if (customerEmail || customerPhone) {
       const hasPriorOrders = await hasCustomerPlacedOrders(customerEmail, customerPhone);
@@ -480,6 +534,7 @@ export async function calculateAuthoritativeOrder({
       variantId: gid,
       numericVariantId: numericId,
       title: String(item.title || detail.title || "").slice(0, 256),
+      handle: item.handle || detail.productHandle,
       price: canonicalPrice,
       quantity,
       color: item.color ? String(item.color).slice(0, 100) : undefined,

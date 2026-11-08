@@ -63,9 +63,12 @@ function renderProductTitle(title: string) {
   return title;
 }
 
-function getProductPieceType(product?: any): 'tshirt' | 'tanktop' | null {
+function getProductPieceType(product?: any): 'tshirt' | 'tanktop' | 'bundle' | null {
   if (!product) return null;
   const text = `${product.title || ''} ${product.category || ''} ${product.handle || ''}`.toLowerCase();
+  if (text.includes('duo') || text.includes('bundle') || text.includes('the-culture-duo')) {
+    return 'bundle';
+  }
   if (text.includes('tank') || text.includes('tank top') || text.includes('tank-top')) {
     return 'tanktop';
   }
@@ -83,6 +86,14 @@ export default function ProductDetail({ product }: ProductDetailProps) {
   const router = useRouter();
 
   const pieceType = useMemo(() => getProductPieceType(product), [product]);
+
+  const categoryLabel = useMemo(() => {
+    const raw = (product.category || "").toLowerCase();
+    if (product.handle === 'the-culture-duo' || pieceType === 'bundle' || raw.includes('uncategorized')) {
+      return "Bundle Collection";
+    }
+    return product.category || "New Arrival";
+  }, [product.category, product.handle, pieceType]);
 
   const availableColors = product.colors || [];
 
@@ -250,17 +261,49 @@ export default function ProductDetail({ product }: ProductDetailProps) {
     return sorted.length > 0 ? sorted : sortSizesList(product.sizes || []);
   }, [selectedColor, product.variants, product.sizes]);
 
+  // Support for bundle products with multiple custom options (e.g. "T-Shirt (Size)" and "Tank Top (Size)")
+  const hasCustomOptions = useMemo(() => {
+    if (!product.options || product.options.length === 0) return false;
+    const nonColorSize = product.options.filter(
+      (o: any) => o.name && o.name.toLowerCase() !== "color" && o.name.toLowerCase() !== "size"
+    );
+    return nonColorSize.length > 0;
+  }, [product.options]);
+
+  const [selectedCustomOptions, setSelectedCustomOptions] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    setSelectedCustomOptions({});
+  }, [product.id]);
+
+  const areCustomOptionsComplete = useMemo(() => {
+    if (!hasCustomOptions) return true;
+    return product.options.every((opt: any) => Boolean(selectedCustomOptions[opt.name]));
+  }, [hasCustomOptions, product.options, selectedCustomOptions]);
+
   const currentVariant = useMemo(() => {
+    if (hasCustomOptions) {
+      if (!areCustomOptionsComplete) return null;
+      return product.variants.find((v: any) => {
+        return product.options.every((opt: any) => {
+          const vOpt = v.options.find((o: any) => o.name === opt.name);
+          return vOpt && vOpt.value === selectedCustomOptions[opt.name];
+        });
+      });
+    }
+
     return product.variants.find((v: any) => {
       const colorMatch = !selectedColor || v.options.some((opt: any) => opt.name.toLowerCase() === "color" && opt.value.toLowerCase() === selectedColor.toLowerCase());
       const sizeMatch = !selectedSize || v.options.some((opt: any) => opt.name.toLowerCase() === "size" && opt.value.toLowerCase() === selectedSize.toLowerCase());
       return colorMatch && sizeMatch;
     });
-  }, [product.variants, selectedColor, selectedSize]);
+  }, [hasCustomOptions, areCustomOptionsComplete, product.options, product.variants, selectedCustomOptions, selectedColor, selectedSize]);
 
   const isColorSelected = availableColors.length <= 1 || selectedColor !== null;
   const isSizeRequired = (product?.sizes && product.sizes.length > 0) || availableSizesForColor.length > 0;
-  const isVariantSelected = isColorSelected && (!isSizeRequired || selectedSize !== null);
+  const isVariantSelected = hasCustomOptions
+    ? areCustomOptionsComplete && Boolean(currentVariant)
+    : (isColorSelected && (!isSizeRequired || selectedSize !== null));
   const isAvailable = currentVariant ? Boolean(currentVariant.available) : Boolean(product.available);
   const availableStock = currentVariant?.quantityAvailable ?? 999;
   const isOutOfStock = isVariantSelected && (!currentVariant || !isAvailable || availableStock <= 0);
@@ -274,10 +317,14 @@ export default function ProductDetail({ product }: ProductDetailProps) {
     if (selectedQty > maxVal) {
       setSelectedQty(maxVal);
     }
-  }, [selectedSize, selectedColor, availableStock]);
+  }, [selectedSize, selectedColor, selectedCustomOptions, availableStock]);
 
   const handleAddToCart = () => {
     if (!isVariantSelected || isOutOfStock) return;
+    const effectiveSize = hasCustomOptions
+      ? Object.entries(selectedCustomOptions).map(([, v]) => v).join(" / ")
+      : (selectedSize || "");
+
     addToCart({
       id: product.id,
       variantId: currentVariant?.id || product.id,
@@ -285,7 +332,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
       title: product.title,
       image: displayImage,
       color: selectedColor || defaultColor || "Black",
-      size: selectedSize || "",
+      size: effectiveSize,
       price: currentVariant?.price || product.price,
       currencyCode: product.currencyCode || "INR",
       quantityAvailable: currentVariant?.quantityAvailable,
@@ -297,6 +344,10 @@ export default function ProductDetail({ product }: ProductDetailProps) {
 
   const handleBuyNow = () => {
     if (!isVariantSelected || isOutOfStock) return;
+    const effectiveSize = hasCustomOptions
+      ? Object.entries(selectedCustomOptions).map(([, v]) => v).join(" / ")
+      : (selectedSize || "");
+
     addToCart({
       id: product.id,
       variantId: currentVariant?.id || product.id,
@@ -304,7 +355,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
       title: product.title,
       image: displayImage,
       color: selectedColor || defaultColor || "Black",
-      size: selectedSize || "",
+      size: effectiveSize,
       price: currentVariant?.price || product.price,
       currencyCode: product.currencyCode || "INR",
       quantityAvailable: currentVariant?.quantityAvailable,
@@ -445,97 +496,197 @@ export default function ProductDetail({ product }: ProductDetailProps) {
       <div className="flex flex-col space-y-10">
         {/* Header */}
         <div>
-          <div className="flex items-center space-x-2 text-white/40 text-[11px] tracking-[0.25em] uppercase mb-3">
-            <span>{product.category || "New Arrival"}</span>
-            <div className="w-8 h-[1px] bg-white/20" />
+          <div className="text-white/40 text-[11px] tracking-[0.25em] uppercase mb-3">
+            <span>{categoryLabel}</span>
           </div>
           <h1 className="font-sans text-2xl sm:text-3xl md:text-3xl lg:text-4xl font-bold text-white tracking-wide uppercase leading-tight mb-6 [hyphens:none]">
             {renderProductTitle(product.title)}
           </h1>
-          <p className="font-sans text-2xl sm:text-3xl font-semibold text-white tracking-wide flex items-baseline gap-4 sm:gap-5 mt-2">
-            <span>₹ {parseFloat(currentVariant?.price || product.price).toLocaleString("en-IN")}</span>
-            <span className="text-xs sm:text-sm font-normal text-white/60 tracking-[0.25em] uppercase">{product.currencyCode || "INR"}</span>
-          </p>
-        </div>
 
-
-        {/* Colors + Sizes */}
-        <div className="space-y-8">
-          {availableColors.length > 1 && (
-            <div className="space-y-4">
-              <h4 className="text-[10px] text-white uppercase tracking-[0.3em]">
-                Color
-                {selectedColor && <span className="text-white ml-3 font-medium tracking-widest">— {selectedColor}</span>}
-              </h4>
-              <div className="flex flex-wrap gap-4">
-                {availableColors.map((c: any, i: number) => (
-                  <div key={i} className="group relative" onClick={() => { setSelectedColor(c.label); setSelectedSize(null); }}>
-                    <div
-                      className={`w-10 h-10 rounded-full border-2 transition-all duration-300 cursor-pointer ${selectedColor === c.label ? "border-white scale-110 shadow-[0_0_16px_rgba(255,255,255,0.2)]" : "border-white/40 hover:scale-110 hover:border-white/80"}`}
-                      style={{ backgroundColor: c.color.toLowerCase() }}
-                      title={c.label}
-                    />
-                    <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[8px] text-white/0 group-hover:text-white uppercase tracking-widest whitespace-nowrap transition-all duration-300">
-                      {c.label}
-                    </span>
-                  </div>
-                ))}
+          {pieceType === 'bundle' || product.handle === 'the-culture-duo' ? (
+            <div className="space-y-1.5 mt-2">
+              <div className="flex items-baseline gap-2.5 sm:gap-3">
+                <span className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white tracking-tight">
+                  <span className="mr-1 sm:mr-1.5">₹</span>1,349
+                </span>
+                <span className="text-base sm:text-lg lg:text-xl font-semibold text-emerald-400">
+                  21% Off
+                </span>
+              </div>
+              <div className="text-xs sm:text-sm text-neutral-400 font-normal flex items-baseline gap-1.5">
+                <span>MRP</span>
+                <span className="line-through text-neutral-400"><span className="mr-0.5">₹</span>1,698</span>
+                <span>Inclusive of all taxes</span>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-1 mt-2">
+              <div className="flex items-baseline gap-3">
+                <span className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white tracking-tight">
+                  ₹{parseFloat(currentVariant?.price || product.price).toLocaleString("en-IN")}
+                </span>
+                <span className="text-xs sm:text-sm font-normal text-white/60 tracking-[0.25em] uppercase">
+                  {product.currencyCode || "INR"}
+                </span>
+              </div>
+              <div className="text-xs sm:text-sm text-neutral-400 font-normal">
+                Inclusive of all taxes
               </div>
             </div>
           )}
+        </div>
 
-          {/* Sizes */}
-          {(availableSizesForColor.length > 0 || (product.sizes && product.sizes.length > 0)) && (
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h4 className="text-[10px] text-white uppercase tracking-[0.3em]">
-                  Size
-                  {selectedSize && <span className="text-white ml-3 font-medium tracking-widest">— {selectedSize}</span>}
-                </h4>
-                <button
-                  type="button"
-                  onClick={() => setShowSizeGuide(true)}
-                  className="inline-flex items-center gap-1.5 text-[10px] text-white/90 hover:text-white uppercase tracking-wider underline underline-offset-4 font-medium transition-colors cursor-pointer group"
-                >
-                  <svg
-                    viewBox="0 0 24 16"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.75"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="w-3.5 h-2.5 shrink-0 text-white/90 group-hover:text-white transition-colors"
-                    aria-hidden="true"
-                  >
-                    <rect x="1.5" y="1.5" width="21" height="13" rx="1.5" />
-                    <line x1="5.5" y1="1.5" x2="5.5" y2="6.5" />
-                    <line x1="9" y1="1.5" x2="9" y2="5" />
-                    <line x1="12" y1="1.5" x2="12" y2="7.5" />
-                    <line x1="15.5" y1="1.5" x2="15.5" y2="5" />
-                    <line x1="18.5" y1="1.5" x2="18.5" y2="6.5" />
-                  </svg>
-                  <span>Size Guide</span>
-                </button>
-              </div>
-              <div className="flex flex-wrap gap-3">
-                {sortSizesList(availableSizesForColor.length > 0 ? availableSizesForColor : product.sizes || []).map((s: any, i: number) => (
-                  <button
-                    key={i}
-                    onClick={() => setSelectedSize(s.label)}
-                    className={`w-14 h-14 border text-[11px] font-medium uppercase tracking-wider rounded-xl transition-all duration-300 cursor-pointer ${selectedSize === s.label ? "bg-white text-black border-white shadow-lg" : "border-white/40 text-white hover:border-white/80"}`}
-                  >
-                    {s.label}
-                  </button>
-                ))}
-              </div>
+
+        {/* Options / Colors + Sizes */}
+        <div className="space-y-8">
+          {hasCustomOptions ? (
+            <div className="space-y-6">
+              {product.options.map((opt: any, optIdx: number) => {
+                const selectedVal = selectedCustomOptions[opt.name];
+                const sortedValues = sortSizesList((opt.values || []).map((v: string) => ({ label: v })));
+                return (
+                  <div key={opt.name || optIdx} className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <h4 className="text-[10px] text-white uppercase tracking-[0.3em]">
+                        {opt.name}
+                        {selectedVal && <span className="text-white ml-3 font-medium tracking-widest">— {selectedVal}</span>}
+                      </h4>
+                      {optIdx === 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setShowSizeGuide(true)}
+                          className="inline-flex items-center gap-1.5 text-[10px] text-white/90 hover:text-white uppercase tracking-wider underline underline-offset-4 font-medium transition-colors cursor-pointer group"
+                        >
+                          <svg
+                            viewBox="0 0 24 16"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.75"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="w-3.5 h-2.5 shrink-0 text-white/90 group-hover:text-white transition-colors"
+                            aria-hidden="true"
+                          >
+                            <rect x="1.5" y="1.5" width="21" height="13" rx="1.5" />
+                            <line x1="5.5" y1="1.5" x2="5.5" y2="6.5" />
+                            <line x1="9" y1="1.5" x2="9" y2="5" />
+                            <line x1="12" y1="1.5" x2="12" y2="7.5" />
+                            <line x1="15.5" y1="1.5" x2="15.5" y2="5" />
+                            <line x1="18.5" y1="1.5" x2="18.5" y2="6.5" />
+                          </svg>
+                          <span>Size Guide</span>
+                        </button>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-3">
+                      {sortedValues.map((s: any, i: number) => {
+                        const isSelected = selectedVal === s.label;
+                        return (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => {
+                              setSelectedCustomOptions(prev => ({
+                                ...prev,
+                                [opt.name]: s.label
+                              }));
+                            }}
+                            className={`w-14 h-14 border text-[11px] font-medium uppercase tracking-wider rounded-xl transition-all duration-300 cursor-pointer ${
+                              isSelected
+                                ? "bg-white text-black border-white shadow-lg scale-105"
+                                : "border-white/40 text-white hover:border-white/80"
+                            }`}
+                          >
+                            {s.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
+          ) : (
+            <>
+              {availableColors.length > 1 && (
+                <div className="space-y-4">
+                  <h4 className="text-[10px] text-white uppercase tracking-[0.3em]">
+                    Color
+                    {selectedColor && <span className="text-white ml-3 font-medium tracking-widest">— {selectedColor}</span>}
+                  </h4>
+                  <div className="flex flex-wrap gap-4">
+                    {availableColors.map((c: any, i: number) => (
+                      <div key={i} className="group relative" onClick={() => { setSelectedColor(c.label); setSelectedSize(null); }}>
+                        <div
+                          className={`w-10 h-10 rounded-full border-2 transition-all duration-300 cursor-pointer ${selectedColor === c.label ? "border-white scale-110 shadow-[0_0_16px_rgba(255,255,255,0.2)]" : "border-white/40 hover:scale-110 hover:border-white/80"}`}
+                          style={{ backgroundColor: c.color.toLowerCase() }}
+                          title={c.label}
+                        />
+                        <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[8px] text-white/0 group-hover:text-white uppercase tracking-widest whitespace-nowrap transition-all duration-300">
+                          {c.label}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Sizes */}
+              {(availableSizesForColor.length > 0 || (product.sizes && product.sizes.length > 0)) && (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h4 className="text-[10px] text-white uppercase tracking-[0.3em]">
+                      Size
+                      {selectedSize && <span className="text-white ml-3 font-medium tracking-widest">— {selectedSize}</span>}
+                    </h4>
+                    <button
+                      type="button"
+                      onClick={() => setShowSizeGuide(true)}
+                      className="inline-flex items-center gap-1.5 text-[10px] text-white/90 hover:text-white uppercase tracking-wider underline underline-offset-4 font-medium transition-colors cursor-pointer group"
+                    >
+                      <svg
+                        viewBox="0 0 24 16"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.75"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="w-3.5 h-2.5 shrink-0 text-white/90 group-hover:text-white transition-colors"
+                        aria-hidden="true"
+                      >
+                        <rect x="1.5" y="1.5" width="21" height="13" rx="1.5" />
+                        <line x1="5.5" y1="1.5" x2="5.5" y2="6.5" />
+                        <line x1="9" y1="1.5" x2="9" y2="5" />
+                        <line x1="12" y1="1.5" x2="12" y2="7.5" />
+                        <line x1="15.5" y1="1.5" x2="15.5" y2="5" />
+                        <line x1="18.5" y1="1.5" x2="18.5" y2="6.5" />
+                      </svg>
+                      <span>Size Guide</span>
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-3">
+                    {sortSizesList(availableSizesForColor.length > 0 ? availableSizesForColor : product.sizes || []).map((s: any, i: number) => (
+                      <button
+                        key={i}
+                        onClick={() => setSelectedSize(s.label)}
+                        className={`w-14 h-14 border text-[11px] font-medium uppercase tracking-wider rounded-xl transition-all duration-300 cursor-pointer ${selectedSize === s.label ? "bg-white text-black border-white shadow-lg" : "border-white/40 text-white hover:border-white/80"}`}
+                      >
+                        {s.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
 
         {/* Selection guard hint */}
         {!isVariantSelected && (
           <p className="text-white text-[11px] tracking-[0.15em] font-medium uppercase animate-pulse">
-            {!selectedSize ? "Select a size to continue" : "Select a color to continue"}
+            {hasCustomOptions
+              ? "Select both sizes to continue"
+              : (!selectedSize ? "Select a size to continue" : "Select a color to continue")}
           </p>
         )}
 
@@ -760,6 +911,64 @@ export default function ProductDetail({ product }: ProductDetailProps) {
           </div>
 
           {/* Product Specifications / Piece Details */}
+          {pieceType === 'bundle' && (
+            <div className="pt-6 border-t border-white/10 space-y-7 max-w-xl text-xs sm:text-[13px] leading-relaxed">
+              {/* Product 1: T-Shirt */}
+              <div className="space-y-3">
+                <h4 className="text-[11px] sm:text-xs font-bold text-white tracking-[0.2em] uppercase pb-1.5 border-b border-white/10 flex items-center justify-between">
+                  <span>01 / GOD&apos;S OWN CULTURE T-SHIRT</span>
+                  <span className="text-[10px] text-white/50 font-normal">Boxy Fit</span>
+                </h4>
+                <div>
+                  <span className="font-semibold text-white tracking-wider uppercase text-[11px] sm:text-xs">MATERIAL:</span>{" "}
+                  <span className="text-white/75 font-normal">100% cotton</span>
+                </div>
+                <div>
+                  <span className="font-semibold text-white tracking-wider uppercase text-[11px] sm:text-xs">FABRIC WEIGHT:</span>{" "}
+                  <span className="text-white/75 font-normal">260 GSM</span>
+                </div>
+                <div>
+                  <span className="font-semibold text-white tracking-wider uppercase text-[11px] sm:text-xs">FIT:</span>{" "}
+                  <span className="text-white/75 font-normal">Boxy</span>
+                </div>
+                <div>
+                  <span className="font-semibold text-white tracking-wider uppercase text-[11px] sm:text-xs">DESIGN:</span>{" "}
+                  <span className="text-white/75 font-normal">
+                    Boxy-fit black T-shirt designed with a relaxed, structured silhouette and a clean minimal front. Features a small embroidered-style GOD’S OWN chest graphic with contrasting red and white detailing, paired with a bold oversized gothic GOD’S OWN graphic across the back. The back also incorporates “GOD’S OWN CULTURE” typography and geographic coordinates, adding a distinct Kerala-inspired identity.
+                  </span>
+                </div>
+                <div>
+                  <span className="font-semibold text-white tracking-wider uppercase text-[11px] sm:text-xs">MODEL:</span>{" "}
+                  <span className="text-white/75 font-normal">
+                    The model in the photo is wearing a size Medium. Weight: 90 kgs Height: 5&apos;10
+                  </span>
+                </div>
+              </div>
+
+              {/* Product 2: Tank Top */}
+              <div className="space-y-3 pt-3 border-t border-white/10">
+                <h4 className="text-[11px] sm:text-xs font-bold text-white tracking-[0.2em] uppercase pb-1.5 border-b border-white/10 flex items-center justify-between">
+                  <span>02 / MALAYALI DEPT. TANK TOP</span>
+                  <span className="text-[10px] text-white/50 font-normal">Oversized Cut</span>
+                </h4>
+                <div>
+                  <span className="font-semibold text-white tracking-wider uppercase text-[11px] sm:text-xs">DESIGN:</span>{" "}
+                  <span className="text-white/75 font-normal">
+                    Sleeveless oversized-cut athletic tank designed with a relaxed, boxy silhouette for unrestricted movement. Features a clean black base with a subtle GOD’S OWN chest mark and bold vertical “MALAYALI DEPT.” typography running down the back in contrasting yellow. The lower back is finished with “GOD’S OWN ATHLETE” lettering, creating a strong athletic identity while maintaining a minimal streetwear aesthetic.
+                  </span>
+                </div>
+                <div>
+                  <span className="font-semibold text-white tracking-wider uppercase text-[11px] sm:text-xs">FIT:</span>{" "}
+                  <span className="text-white/75 font-normal">
+                    Model is wearing Medium (M) — model height: 5&apos;6&quot; (168 cm).
+                    <br className="hidden sm:inline" />{" "}
+                    The fit sits relaxed through the body with dropped shoulders and a wide sleeveless opening for a structured, oversized appearance.
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
           {pieceType === 'tshirt' && (
             <div className="pt-6 border-t border-white/10 space-y-3 max-w-xl text-xs sm:text-[13px] leading-relaxed">
               <div>
