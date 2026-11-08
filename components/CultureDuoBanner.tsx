@@ -108,9 +108,9 @@ export default function CultureDuoBanner({
           {/* ============================================================== */}
           {/* MOBILE BANNER (< md)                                            */}
           {/* Uses: public/images/GODS OWN Models Against Red Stripes.png      */}
-          {/* Aspect: 1086 x 1448 (approx 3:4 ratio)                         */}
+          {/* Aspect: 1086 x 1448 (exact 3:4 ratio)                           */}
           {/* ============================================================== */}
-          <div className="block md:hidden relative w-full aspect-[1086/1448] min-h-[500px]">
+          <div className="block md:hidden relative w-full aspect-[1086/1448]">
             {/* Background Photographic Artwork */}
             <Image
               src="/images/GODS OWN Models Against Red Stripes.png"
@@ -123,62 +123,61 @@ export default function CultureDuoBanner({
 
             {/* Top gradient for title contrast */}
             <div
-              className="absolute inset-x-0 top-0 h-[45%] bg-gradient-to-b from-black/95 via-black/60 to-transparent pointer-events-none"
+              className="absolute inset-x-0 top-0 h-[40%] bg-gradient-to-b from-black/95 via-black/50 to-transparent pointer-events-none"
               aria-hidden="true"
             />
 
             {/* Bottom gradient for button contrast */}
             <div
-              className="absolute inset-x-0 bottom-0 h-[30%] bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none"
+              className="absolute inset-x-0 bottom-0 h-[28%] bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none"
               aria-hidden="true"
             />
 
             {/* Top Content: Eyebrow + Headline + Description + Prices */}
-            <div className="relative z-10 flex flex-col px-5 pt-6 sm:px-8 sm:pt-8 text-left">
+            <div className="relative z-10 flex flex-col px-4 pt-4 sm:px-6 sm:pt-6 text-left">
               {/* Eyebrow: BUNDLE OFFER (no dash line) */}
-              <div className="mb-2.5">
-                <span className="text-[#DC2626] text-[11px] sm:text-xs font-extrabold tracking-[0.25em] uppercase">
+              <div className="mb-1 sm:mb-1.5">
+                <span className="text-[#DC2626] text-[10px] sm:text-xs font-extrabold tracking-[0.22em] uppercase">
                   Bundle Offer
                 </span>
               </div>
 
               {/* Headline: THE CULTURE DUO in normal bold sans-serif */}
-              <h2 className="font-sans font-black uppercase text-[28px] sm:text-[34px] leading-[0.92] tracking-tight text-[#FAF7F2] select-none">
+              <h2 className="font-sans font-black uppercase text-[21px] xs:text-[23px] sm:text-[28px] leading-[0.92] tracking-tight text-[#FAF7F2] select-none">
                 <span className="block">The</span>
-                <span className="block mt-1">Culture Duo</span>
+                <span className="block mt-0.5">Culture Duo</span>
               </h2>
 
               {/* Description with Culture Duo kept together */}
-              <p className="mt-2.5 sm:mt-3 text-[#D2CCC0] text-[11px] sm:text-xs leading-relaxed max-w-xs">
-                Two essentials. One statement.<br />
-                Get your hands on{' '}
+              <p className="mt-1.5 sm:mt-2 text-[#D2CCC0] text-[10px] xs:text-[11px] sm:text-xs leading-[1.35] max-w-[280px] sm:max-w-xs">
+                Two essentials. One statement. Get your hands on{' '}
                 <span className="whitespace-nowrap font-medium text-white">the Culture Duo</span>: a T-shirt and tank top for just{' '}
                 <span className="font-semibold text-white">{bundlePrice}</span>.
               </p>
 
               {/* Prices */}
-              <div className="flex items-center gap-2.5 sm:gap-3 mt-3.5 sm:mt-4 flex-wrap">
-                <span className="text-[#8E877D] line-through text-sm sm:text-base font-semibold tracking-wide">
+              <div className="flex items-center gap-2 sm:gap-2.5 mt-2 sm:mt-3 flex-nowrap">
+                <span className="text-[#8E877D] line-through text-xs sm:text-sm font-semibold tracking-wide">
                   {originalPrice}
                 </span>
 
-                <span className="text-white/20 text-sm select-none" aria-hidden="true">
+                <span className="text-white/20 text-xs sm:text-sm select-none" aria-hidden="true">
                   |
                 </span>
 
-                <span className="bg-[#B31919] text-white font-bold text-sm sm:text-base px-3 py-0.5 rounded-md shadow-md tracking-tight">
+                <span className="bg-[#B31919] text-white font-bold text-xs sm:text-sm px-2.5 sm:px-3 py-0.5 rounded-md shadow-md tracking-tight">
                   {bundlePrice}
                 </span>
 
-                <span className="border border-white/40 rounded-full px-2.5 py-0.5 text-[10px] sm:text-[11px] font-bold text-white tracking-wider uppercase">
+                <span className="border border-white/40 rounded-full px-2 sm:px-2.5 py-0.5 text-[9px] sm:text-[10px] font-bold text-white tracking-wider uppercase whitespace-nowrap">
                   {savings}
                 </span>
               </div>
             </div>
 
             {/* Bottom Content: Centered Action Button */}
-            <div className="absolute bottom-5 sm:bottom-7 inset-x-0 z-10 flex justify-center px-5">
-              <span className="w-full max-w-xs inline-flex items-center justify-center gap-2 rounded-full bg-[#EFE9DF] group-hover:bg-white text-black font-extrabold uppercase tracking-widest text-[11px] sm:text-xs py-3.5 shadow-2xl transition-all duration-300 group-hover:scale-105 active:scale-95">
+            <div className="absolute bottom-4 sm:bottom-6 inset-x-0 z-10 flex justify-center px-4 sm:px-6">
+              <span className="w-full max-w-[280px] sm:max-w-xs inline-flex items-center justify-center gap-2 rounded-full bg-[#EFE9DF] group-hover:bg-white text-black font-extrabold uppercase tracking-widest text-[10.5px] sm:text-xs py-3 sm:py-3.5 shadow-2xl transition-all duration-300 group-hover:scale-105 active:scale-95">
                 <span>Shop The Combo</span>
                 <ArrowRight
                   className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-1"
