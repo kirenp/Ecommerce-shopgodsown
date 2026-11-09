@@ -160,11 +160,11 @@ export default function EarlyAccessExperience() {
               );
               mix-blend-mode: overlay;
               animation: logoShine 4s ease-in-out infinite 1.4s;
-              mask-image: url("/images/ChatGPT%20Image%20Jul%208,%202026,%2002_49_03%20PM%20(2).png");
+              mask-image: url("/images/early-access-temple-skyline.png");
               mask-size: contain;
               mask-repeat: no-repeat;
               mask-position: center;
-              -webkit-mask-image: url("/images/ChatGPT%20Image%20Jul%208,%202026,%2002_49_03%20PM%20(2).png");
+              -webkit-mask-image: url("/images/early-access-temple-skyline.png");
               -webkit-mask-size: contain;
               -webkit-mask-repeat: no-repeat;
               -webkit-mask-position: center;
@@ -180,7 +180,7 @@ export default function EarlyAccessExperience() {
           <div className="w-[280px] md:w-[440px] aspect-square flex items-center justify-center mb-6 relative overflow-hidden">
             <div className="relative w-[90%] h-[90%] flex items-center justify-center">
               <img 
-                src="/images/ChatGPT%20Image%20Jul%208,%202026,%2002_49_03%20PM%20(2).png" 
+                src="/images/early-access-temple-skyline.png" 
                 alt="God's Own Logo" 
                 className="w-full h-auto object-contain splash-logo select-none pointer-events-none"
               />
@@ -229,7 +229,7 @@ export default function EarlyAccessExperience() {
         <div
           className="block md:hidden absolute inset-0 z-0"
           style={{
-            backgroundImage: `url("/images/ChatGPT Image Jun 28, 2026, 06_19_01 PM.png")`,
+            backgroundImage: `url("/images/early-access-temple-bg.png")`,
             backgroundSize: 'cover',
             backgroundPosition: 'center center',
             backgroundRepeat: 'no-repeat',

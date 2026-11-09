@@ -14,7 +14,7 @@ interface InstagramPost {
 const FALLBACK_POSTS: InstagramPost[] = [
   {
     id: "fb-1",
-    mediaUrl: "/images/ChatGPT Image Jul 8, 2026, 02_49_03 PM (2).png",
+    mediaUrl: "/images/instagram-feed-1.png",
     permalink: "https://www.instagram.com/godsownculture/",
     caption: "GOD'S OWN CULTURE — Luxury redefined.",
   },
@@ -26,7 +26,7 @@ const FALLBACK_POSTS: InstagramPost[] = [
   },
   {
     id: "fb-3",
-    mediaUrl: "/images/Adobe%234732.png",
+    mediaUrl: "/images/instagram-feed-3.png",
     permalink: "https://www.instagram.com/godsownculture/",
     caption: "Our Drops — Limited Edition.",
   },
@@ -38,13 +38,13 @@ const FALLBACK_POSTS: InstagramPost[] = [
   },
   {
     id: "fb-5",
-    mediaUrl: "/images/ChatGPT Image Sep 8, 2026, 02_51_15 PM.png",
+    mediaUrl: "/images/instagram-feed-5.png",
     permalink: "https://www.instagram.com/godsownculture/",
     caption: "Follow @godsownculture on Instagram.",
   },
   {
     id: "fb-6",
-    mediaUrl: "/images/ChatGPT Image Jul 8, 2026, 05_25_11 PM.png",
+    mediaUrl: "/images/instagram-feed-6.png",
     permalink: "https://www.instagram.com/godsownculture/",
     caption: "Malayali Dept. Collection.",
   },
