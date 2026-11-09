@@ -949,7 +949,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
               <div className="space-y-3 pt-3 border-t border-white/10">
                 <h4 className="text-[11px] sm:text-xs font-bold text-white tracking-[0.2em] uppercase pb-1.5 border-b border-white/10 flex items-center justify-between">
                   <span>02 / MALAYALI DEPT. TANK TOP</span>
-                  <span className="text-[10px] text-white/50 font-normal">Oversized Cut</span>
+                  <span className="text-[10px] text-white/50 font-normal">Tank Top</span>
                 </h4>
                 <div>
                   <span className="font-semibold text-white tracking-wider uppercase text-[11px] sm:text-xs">DESIGN:</span>{" "}
