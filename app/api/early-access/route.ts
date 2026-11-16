@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createOrUpdateProfile, subscribeProfileToList } from '@/lib/klaviyo';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/rateLimit';
+import { validateIndianPhone } from '@/lib/emailValidation';
 
 interface SignupData {
   email: string;
@@ -50,7 +51,14 @@ export async function POST(request: NextRequest) {
       // 1. Create or Update Klaviyo Profile
       let profileResult;
       try {
-        profileResult = await createOrUpdateProfile(email, phone);
+        let cleanPhone = phone;
+        if (phone && typeof phone === 'string' && phone.trim()) {
+          const phoneCheck = validateIndianPhone(phone);
+          if (phoneCheck.isValid) {
+            cleanPhone = phoneCheck.e164Phone;
+          }
+        }
+        profileResult = await createOrUpdateProfile(email, cleanPhone);
       } catch (error: any) {
         console.error('[Klaviyo] Profile creation/lookup error:', error);
         return NextResponse.json(

@@ -301,6 +301,105 @@ export function validateEmail(email: string): {
   return { isValid: true };
 }
 
+export interface PhoneValidationResult {
+  isValid: boolean;
+  normalizedPhone: string;
+  e164Phone: string;
+  error?: string;
+}
+
+/**
+ * Normalizes an Indian phone number string by stripping spaces, dashes, parentheses,
+ * national trunk prefix (0), and international country codes (+91, 91).
+ */
+export function normalizeIndianPhone(phone: string): string {
+  if (!phone) return "";
+  let digits = String(phone).trim().replace(/[^\d+]/g, "");
+
+  if (digits.startsWith("+91")) {
+    digits = digits.slice(3);
+  } else if (digits.startsWith("+")) {
+    digits = digits.slice(1);
+  }
+
+  digits = digits.replace(/\D/g, "");
+
+  if (digits.length === 12 && digits.startsWith("91")) {
+    digits = digits.slice(2);
+  }
+
+  if (digits.length === 11 && digits.startsWith("0")) {
+    digits = digits.slice(1);
+  } else if (digits.startsWith("0") && digits.length <= 10) {
+    digits = digits.replace(/^0+/, "");
+  }
+
+  return digits;
+}
+
+/**
+ * Strict Indian mobile phone validation.
+ * In India:
+ * - Mobile numbers are strictly 10 digits.
+ * - Mobile numbers MUST start with 6, 7, 8, or 9 (CMTS allocation by TRAI/DoT).
+ * - Fixed line numbers (starting with 2, 3, 4, 5) or 9-digit numbers are NOT accepted for delivery couriers.
+ */
+export function validateIndianPhone(phone: string): PhoneValidationResult {
+  const raw = String(phone || "").trim();
+  if (!raw) {
+    return {
+      isValid: false,
+      normalizedPhone: "",
+      e164Phone: "",
+      error: "Phone number is required.",
+    };
+  }
+
+  const normalized = normalizeIndianPhone(raw);
+
+  if (!normalized) {
+    return {
+      isValid: false,
+      normalizedPhone: "",
+      e164Phone: "",
+      error: "Phone number is required.",
+    };
+  }
+
+  if (normalized.length < 10) {
+    return {
+      isValid: false,
+      normalizedPhone: normalized,
+      e164Phone: "",
+      error: `Phone number has only ${normalized.length} digits. A 10-digit mobile number is required.`,
+    };
+  }
+
+  if (normalized.length > 10) {
+    return {
+      isValid: false,
+      normalizedPhone: normalized,
+      e164Phone: "",
+      error: "Phone number cannot exceed 10 digits.",
+    };
+  }
+
+  if (!/^[6-9]/.test(normalized)) {
+    return {
+      isValid: false,
+      normalizedPhone: normalized,
+      e164Phone: "",
+      error: "Enter a valid Indian mobile number starting with 6, 7, 8, or 9.",
+    };
+  }
+
+  return {
+    isValid: true,
+    normalizedPhone: normalized,
+    e164Phone: `+91${normalized}`,
+  };
+}
+
 /**
  * Validates the contact field which can be either an email or a mobile phone number.
  */
@@ -332,30 +431,23 @@ export function validateContact(contact: string): ContactValidationResult {
   }
 
   // Otherwise, validate as a mobile phone number
-  const cleanPhone = trimmed.replace(/[\s\-\+\(\)]/g, "");
-  // Support 10-digit Indian numbers, optional 0 prefix (11 digits), or +91 prefix (12 digits)
-  const is10Digit = /^[6-9]\d{9}$/.test(cleanPhone);
-  const is11DigitWithZero = /^0[6-9]\d{9}$/.test(cleanPhone);
-  const is12DigitWith91 = /^91[6-9]\d{9}$/.test(cleanPhone);
-
-  if (is10Digit || is11DigitWithZero || is12DigitWith91) {
-    // Standardize to 10 digits
-    const normalized = cleanPhone.slice(-10);
+  const phoneRes = validateIndianPhone(trimmed);
+  if (phoneRes.isValid) {
     return {
       isValid: true,
       isEmail: false,
       isPhone: true,
-      normalizedValue: normalized,
+      normalizedValue: phoneRes.normalizedPhone,
     };
   }
 
-  if (/^\d+$/.test(cleanPhone)) {
+  if (/^[\d\s\-\+\(\)]+$/.test(trimmed)) {
     return {
       isValid: false,
       isEmail: false,
       isPhone: true,
-      error: "Please enter a valid 10-digit mobile number.",
-      normalizedValue: cleanPhone,
+      error: phoneRes.error || "Please enter a valid 10-digit mobile number.",
+      normalizedValue: phoneRes.normalizedPhone || trimmed.replace(/\D/g, ""),
     };
   }
 

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rateLimit";
 import { calculateAuthoritativeOrder } from "@/lib/checkoutSecurity";
 import { savePendingCheckout } from "@/lib/checkoutStore";
-import { validateContact } from "@/lib/emailValidation";
+import { validateContact, validateIndianPhone } from "@/lib/emailValidation";
 
 export const dynamic = "force-dynamic";
 
@@ -60,7 +60,6 @@ export async function POST(req: NextRequest) {
     const cleanAddress = String(shippingAddress.address || "").trim();
     const cleanCity = String(shippingAddress.city || "").trim();
     const cleanPinCode = String(shippingAddress.pinCode || "").trim().replace(/\D/g, "");
-    const cleanPhone = String(shippingAddress.phone || (contact.includes("@") ? "" : contact)).trim().replace(/\D/g, "");
 
     if (!cleanFirstName) {
       return NextResponse.json(
@@ -92,11 +91,28 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    if (!cleanPhone || cleanPhone.length < 10) {
+
+    const rawShippingPhone = String(shippingAddress.phone || (contact.includes("@") ? "" : contact)).trim();
+    const phoneValidation = validateIndianPhone(rawShippingPhone);
+    if (!phoneValidation.isValid) {
       return NextResponse.json(
-        { error: "A valid 10-digit phone number is required for shipping." },
+        { error: phoneValidation.error || "A valid 10-digit Indian mobile number is required for shipping." },
         { status: 400 }
       );
+    }
+    const cleanPhone = phoneValidation.normalizedPhone;
+
+    // Validate billing phone if provided
+    let cleanBillingPhone: string | undefined = undefined;
+    if (billingAddress && typeof billingAddress === "object" && billingAddress.phone) {
+      const billingPhoneValidation = validateIndianPhone(String(billingAddress.phone));
+      if (!billingPhoneValidation.isValid) {
+        return NextResponse.json(
+          { error: billingPhoneValidation.error || "A valid 10-digit Indian mobile number is required for billing." },
+          { status: 400 }
+        );
+      }
+      cleanBillingPhone = billingPhoneValidation.normalizedPhone;
     }
 
     const customerEmail = contact.includes("@") ? contact.trim().toLowerCase() : undefined;
@@ -177,7 +193,10 @@ export async function POST(req: NextRequest) {
         pinCode: cleanPinCode,
         phone: cleanPhone,
       },
-      billingAddress: billingAddress || undefined,
+      billingAddress: billingAddress ? {
+        ...billingAddress,
+        phone: cleanBillingPhone || cleanPhone,
+      } : undefined,
       discountCode: calculation.appliedDiscount?.code,
       discountAmount: calculation.discountAmount,
       finalTotal: calculation.finalTotal,

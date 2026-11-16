@@ -6,6 +6,7 @@ import {
   createOrGetShopifyOrder,
 } from "@/lib/shopifyOrder";
 import { getAuthoritativeVariantDetails, normalizeVariantGid } from "@/lib/checkoutSecurity";
+import { validateIndianPhone } from "@/lib/emailValidation";
 
 export const dynamic = "force-dynamic";
 
@@ -192,9 +193,11 @@ export async function POST(req: NextRequest) {
     ? rawEmail.trim().toLowerCase()
     : undefined;
   const rawPhone = notes.phone || notes.contact || paymentEntity?.contact || "";
-  const cleanPhone = String(rawPhone || "").replace(/\D/g, "").slice(-10);
+  const phoneVal = validateIndianPhone(rawPhone);
+  const cleanPhone = phoneVal.isValid ? phoneVal.normalizedPhone : "";
+  const e164Phone = phoneVal.isValid ? phoneVal.e164Phone : "";
 
-  let contact = cleanEmail || (cleanPhone.length === 10 ? `+91${cleanPhone}` : (pending?.contact || notes.contact || ""));
+  let contact = cleanEmail || (e164Phone || (pending?.contact || notes.contact || ""));
   let lineItems = pending?.items;
   let shippingAddress = pending?.shippingAddress;
   let billingAddress = pending?.billingAddress;
@@ -225,7 +228,7 @@ export async function POST(req: NextRequest) {
           city: notes.ship_city || "",
           state: notes.ship_state || "Kerala",
           pinCode: notes.ship_pin || "",
-          phone: notes.phone || paymentEntity?.contact || "",
+          phone: cleanPhone || notes.phone || paymentEntity?.contact || "",
         };
 
         // Query authoritative catalog prices and titles for reconstructed items

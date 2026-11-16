@@ -9,7 +9,7 @@ import { usePreview } from "@/lib/preview";
 import { ArrowLeft, CreditCard, ShieldCheck, CheckCircle2, Trash2, Plus, Minus, AlertCircle } from "lucide-react";
 import Script from "next/script";
 import { trackInitiateCheckout, trackPurchase, getMetaCookies } from "@/lib/metaPixel";
-import { validateContact } from "@/lib/emailValidation";
+import { validateContact, validateIndianPhone, normalizeIndianPhone } from "@/lib/emailValidation";
 
 // Array containing all states and Union Territories of India
 const INDIAN_STATES = [
@@ -127,6 +127,26 @@ export default function CheckoutPageContent() {
   const [emailSuggestion, setEmailSuggestion] = useState("");
   const [isMounted, setIsMounted] = useState(false);
 
+  const handlePhoneInputChange = (rawVal: string, setter: (val: string) => void, fieldKey: string) => {
+    let digits = rawVal.replace(/[^\d+]/g, "");
+    if (digits.startsWith("+91")) {
+      digits = digits.slice(3);
+    } else if (digits.startsWith("+")) {
+      digits = digits.slice(1);
+    }
+    digits = digits.replace(/\D/g, "");
+    if (digits.length === 12 && digits.startsWith("91")) {
+      digits = digits.slice(2);
+    } else if (digits.length === 11 && digits.startsWith("0")) {
+      digits = digits.slice(1);
+    }
+    const finalVal = digits.slice(0, 10);
+    setter(finalVal);
+    if (validationErrors[fieldKey]) {
+      setValidationErrors(prev => ({ ...prev, [fieldKey]: "" }));
+    }
+  };
+
   useEffect(() => {
     setIsMounted(true);
   }, []);
@@ -225,11 +245,11 @@ export default function CheckoutPageContent() {
         if (!city && defaultAddr.city) setCity(defaultAddr.city);
         if (!state && defaultAddr.state) setState(defaultAddr.state);
         if (!pinCode && defaultAddr.pinCode) setPinCode(defaultAddr.pinCode);
-        if (!phone && defaultAddr.phone) setPhone(defaultAddr.phone);
+        if (!phone && defaultAddr.phone) setPhone(normalizeIndianPhone(defaultAddr.phone).slice(0, 10));
       } else if (customer.firstName) {
         if (!firstName) setFirstName(customer.firstName);
         if (!lastName && customer.lastName) setLastName(customer.lastName);
-        if (!phone && customer.phone) setPhone(customer.phone);
+        if (!phone && customer.phone) setPhone(normalizeIndianPhone(customer.phone).slice(0, 10));
       }
     }
   }, [isLoggedIn, customer, savedAddresses]);
@@ -248,7 +268,7 @@ export default function CheckoutPageContent() {
         if (parsed.city && !city) setCity(parsed.city);
         if (parsed.state && !state) setState(parsed.state);
         if (parsed.pinCode && !pinCode) setPinCode(parsed.pinCode);
-        if (parsed.phone && !phone) setPhone(parsed.phone);
+        if (parsed.phone && !phone) setPhone(normalizeIndianPhone(parsed.phone).slice(0, 10));
         if (parsed.billingSame !== undefined) setBillingSame(parsed.billingSame);
         if (parsed.billingFirstName) setBillingFirstName(parsed.billingFirstName);
         if (parsed.billingLastName) setBillingLastName(parsed.billingLastName);
@@ -257,7 +277,7 @@ export default function CheckoutPageContent() {
         if (parsed.billingCity) setBillingCity(parsed.billingCity);
         if (parsed.billingState) setBillingState(parsed.billingState);
         if (parsed.billingPinCode) setBillingPinCode(parsed.billingPinCode);
-        if (parsed.billingPhone) setBillingPhone(parsed.billingPhone);
+        if (parsed.billingPhone) setBillingPhone(normalizeIndianPhone(parsed.billingPhone).slice(0, 10));
       }
     } catch (e) {
       console.warn("Failed to load saved checkout address:", e);
@@ -527,10 +547,9 @@ export default function CheckoutPageContent() {
     } else if (pinCode.trim().length !== 6) {
       errors.pinCode = "PIN code must be 6 digits";
     }
-    if (!phone.trim()) {
-      errors.phone = "Phone number is required";
-    } else if (phone.trim().length !== 10) {
-      errors.phone = "Phone number must be 10 digits";
+    const phoneValidation = validateIndianPhone(phone);
+    if (!phoneValidation.isValid) {
+      errors.phone = phoneValidation.error || "A valid 10-digit Indian mobile number is required";
     }
 
     // Validate Billing details conditionally
@@ -545,10 +564,9 @@ export default function CheckoutPageContent() {
       } else if (billingPinCode.trim().length !== 6) {
         errors.billingPinCode = "Billing PIN code must be 6 digits";
       }
-      if (!billingPhone.trim()) {
-        errors.billingPhone = "Billing phone number is required";
-      } else if (billingPhone.trim().length !== 10) {
-        errors.billingPhone = "Billing phone number must be 10 digits";
+      const billingPhoneValidation = validateIndianPhone(billingPhone);
+      if (!billingPhoneValidation.isValid) {
+        errors.billingPhone = billingPhoneValidation.error || "A valid 10-digit Indian mobile number is required";
       }
     }
 
@@ -566,9 +584,17 @@ export default function CheckoutPageContent() {
 
     if (!validateForm()) {
       const contactEl = document.getElementById("checkout-email");
+      const phoneEl = document.getElementById("checkout-phone");
+      const billingPhoneEl = document.getElementById("checkout-billing-phone");
       if (emailOrPhone.trim() && !validateContact(emailOrPhone.trim()).isValid && contactEl) {
         contactEl.scrollIntoView({ behavior: "smooth", block: "center" });
         contactEl.focus();
+      } else if (phoneEl && (!phone.trim() || !validateIndianPhone(phone).isValid)) {
+        phoneEl.scrollIntoView({ behavior: "smooth", block: "center" });
+        phoneEl.focus();
+      } else if (!billingSame && billingPhoneEl && (!billingPhone.trim() || !validateIndianPhone(billingPhone).isValid)) {
+        billingPhoneEl.scrollIntoView({ behavior: "smooth", block: "center" });
+        billingPhoneEl.focus();
       } else {
         window.scrollTo({ top: 0, behavior: "smooth" });
       }
@@ -617,6 +643,9 @@ export default function CheckoutPageContent() {
       localStorage.removeItem("goc_saved_address");
     }
 
+    const validatedPhone = validateIndianPhone(phone).normalizedPhone;
+    const validatedBillingPhone = !billingSame ? validateIndianPhone(billingPhone).normalizedPhone : validatedPhone;
+
     // Collect order details, including selected shipping/billing addresses to send to the backend order/Shopify sync logs
     const orderPayload = {
       items: items.map(item => ({
@@ -641,7 +670,7 @@ export default function CheckoutPageContent() {
         city,
         state,
         pinCode,
-        phone,
+        phone: validatedPhone,
       },
       billingAddress: billingSame ? {
         firstName,
@@ -651,7 +680,7 @@ export default function CheckoutPageContent() {
         city,
         state,
         pinCode,
-        phone,
+        phone: validatedPhone,
       } : {
         firstName: billingFirstName,
         lastName: billingLastName,
@@ -660,7 +689,7 @@ export default function CheckoutPageContent() {
         city: billingCity,
         state: billingState,
         pinCode: billingPinCode,
-        phone: billingPhone,
+        phone: validatedBillingPhone,
       }
     };
 
@@ -802,7 +831,7 @@ export default function CheckoutPageContent() {
         prefill: {
           name: `${firstName} ${lastName}`.trim(),
           email: emailOrPhone.includes("@") ? emailOrPhone : "",
-          contact: phone || (emailOrPhone.includes("@") ? "" : emailOrPhone),
+          contact: validatedPhone || (emailOrPhone.includes("@") ? "" : emailOrPhone),
         },
         theme: {
           color: "#C81E1E",
@@ -1796,21 +1825,29 @@ export default function CheckoutPageContent() {
                     autoComplete="shipping tel"
                     inputMode="numeric"
                     pattern="[0-9]*"
-                    maxLength={10}
-                    placeholder="Phone"
+                    maxLength={14}
+                    placeholder="10-digit mobile number"
                     value={phone}
+                    onPaste={(e) => {
+                      e.preventDefault();
+                      const pasted = e.clipboardData.getData("text");
+                      handlePhoneInputChange(pasted, setPhone, "phone");
+                    }}
                     onInput={(e) => {
-                      const val = (e.target as HTMLInputElement).value.replace(/\D/g, "").slice(0, 10);
-                      setPhone(val);
-                      if (validationErrors.phone) {
-                        setValidationErrors(prev => ({ ...prev, phone: "" }));
-                      }
+                      handlePhoneInputChange((e.target as HTMLInputElement).value, setPhone, "phone");
                     }}
                     onChange={(e) => {
-                      const val = e.target.value.replace(/\D/g, "").slice(0, 10);
-                      setPhone(val);
-                      if (validationErrors.phone) {
-                        setValidationErrors(prev => ({ ...prev, phone: "" }));
+                      handlePhoneInputChange(e.target.value, setPhone, "phone");
+                    }}
+                    onBlur={() => {
+                      if (phone.trim()) {
+                        const res = validateIndianPhone(phone);
+                        if (!res.isValid) {
+                          setValidationErrors(prev => ({ ...prev, phone: res.error || "Enter a valid 10-digit mobile number" }));
+                        } else {
+                          setPhone(res.normalizedPhone);
+                          setValidationErrors(prev => ({ ...prev, phone: "" }));
+                        }
                       }
                     }}
                     className={`w-full bg-white border rounded-xl px-4 py-4 text-sm text-black placeholder:text-black/30 outline-none transition-all ${
@@ -2198,21 +2235,29 @@ export default function CheckoutPageContent() {
                       autoComplete="billing tel"
                       inputMode="numeric"
                       pattern="[0-9]*"
-                      maxLength={10}
-                      placeholder="Phone"
+                      maxLength={14}
+                      placeholder="10-digit mobile number"
                       value={billingPhone}
+                      onPaste={(e) => {
+                        e.preventDefault();
+                        const pasted = e.clipboardData.getData("text");
+                        handlePhoneInputChange(pasted, setBillingPhone, "billingPhone");
+                      }}
                       onInput={(e) => {
-                        const val = (e.target as HTMLInputElement).value.replace(/\D/g, "").slice(0, 10);
-                        setBillingPhone(val);
-                        if (validationErrors.billingPhone) {
-                          setValidationErrors(prev => ({ ...prev, billingPhone: "" }));
-                        }
+                        handlePhoneInputChange((e.target as HTMLInputElement).value, setBillingPhone, "billingPhone");
                       }}
                       onChange={(e) => {
-                        const val = e.target.value.replace(/\D/g, "").slice(0, 10);
-                        setBillingPhone(val);
-                        if (validationErrors.billingPhone) {
-                          setValidationErrors(prev => ({ ...prev, billingPhone: "" }));
+                        handlePhoneInputChange(e.target.value, setBillingPhone, "billingPhone");
+                      }}
+                      onBlur={() => {
+                        if (billingPhone.trim()) {
+                          const res = validateIndianPhone(billingPhone);
+                          if (!res.isValid) {
+                            setValidationErrors(prev => ({ ...prev, billingPhone: res.error || "Enter a valid 10-digit mobile number" }));
+                          } else {
+                            setBillingPhone(res.normalizedPhone);
+                            setValidationErrors(prev => ({ ...prev, billingPhone: "" }));
+                          }
                         }
                       }}
                       className={`w-full bg-white border rounded-xl px-4 py-3.5 text-xs text-black placeholder:text-black/30 outline-none transition-all ${

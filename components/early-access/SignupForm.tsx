@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, FormEvent, useEffect } from 'react';
+import { validateIndianPhone } from '@/lib/emailValidation';
 
 interface SignupFormProps {
   onComplete: () => void;
@@ -35,10 +36,15 @@ export default function SignupForm({ onComplete }: SignupFormProps) {
       return;
     }
 
-    // Validate phone number format (must be 10 digits if provided)
-    if (phone && phone.trim().length !== 10) {
-      setError('Phone number must be exactly 10 digits.');
-      return;
+    // Validate phone number format if provided
+    let cleanPhone = phone.trim();
+    if (cleanPhone) {
+      const phoneCheck = validateIndianPhone(cleanPhone);
+      if (!phoneCheck.isValid) {
+        setError(phoneCheck.error || 'Please enter a valid 10-digit mobile number.');
+        return;
+      }
+      cleanPhone = phoneCheck.normalizedPhone;
     }
 
     setIsSubmitting(true);
@@ -51,7 +57,7 @@ export default function SignupForm({ onComplete }: SignupFormProps) {
           action: 'signup',
           name: 'Early Access Request',
           email,
-          phone,
+          phone: cleanPhone || undefined,
         }),
       });
 

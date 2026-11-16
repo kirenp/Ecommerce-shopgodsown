@@ -6,6 +6,7 @@ import {
   verifyRazorpayPaymentCapture,
 } from "@/lib/checkoutSecurity";
 import { createOrGetShopifyOrder } from "@/lib/shopifyOrder";
+import { validateIndianPhone } from "@/lib/emailValidation";
 
 export const dynamic = "force-dynamic";
 
@@ -66,7 +67,27 @@ export async function POST(req: NextRequest) {
     }
 
     const customerEmail = contact.includes("@") ? contact.trim().toLowerCase() : undefined;
-    const cleanPhone = String(shippingAddress.phone || (contact.includes("@") ? "" : contact) || "").trim().replace(/\D/g, "");
+    const rawShippingPhone = String(shippingAddress.phone || (contact.includes("@") ? "" : contact) || "").trim();
+    const phoneValidation = validateIndianPhone(rawShippingPhone);
+    if (!phoneValidation.isValid) {
+      return NextResponse.json(
+        { error: phoneValidation.error || "A valid 10-digit Indian mobile number is required for shipping." },
+        { status: 400 }
+      );
+    }
+    const cleanPhone = phoneValidation.normalizedPhone;
+
+    let cleanBillingPhone: string | undefined = undefined;
+    if (billingAddress && typeof billingAddress === "object" && billingAddress.phone) {
+      const billingPhoneValidation = validateIndianPhone(String(billingAddress.phone));
+      if (!billingPhoneValidation.isValid) {
+        return NextResponse.json(
+          { error: billingPhoneValidation.error || "A valid 10-digit Indian mobile number is required for billing." },
+          { status: 400 }
+        );
+      }
+      cleanBillingPhone = billingPhoneValidation.normalizedPhone;
+    }
 
     // ── 2. AUTHORITATIVE PRICE & DISCOUNT RE-CALCULATION (SEC-01 & SEC-02) ──
     // Never trust client-supplied prices (item.price) or client-supplied amounts (amount, discountAmount).
@@ -119,8 +140,14 @@ export async function POST(req: NextRequest) {
       paymentId,
       lineItems: calculation.lineItems,
       contact,
-      shippingAddress,
-      billingAddress,
+      shippingAddress: {
+        ...shippingAddress,
+        phone: cleanPhone,
+      },
+      billingAddress: billingAddress ? {
+        ...billingAddress,
+        phone: cleanBillingPhone || cleanPhone,
+      } : undefined,
       discountCode: calculation.appliedDiscount?.code,
       discountAmount: calculation.discountAmount,
       finalTotal: calculation.finalTotal,

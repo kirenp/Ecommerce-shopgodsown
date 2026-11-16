@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import { validateIndianPhone } from "@/lib/emailValidation";
 import { escapeHtml } from "@/lib/security";
 import { sendMetaPurchaseEvent } from "@/lib/metaConversionsApi";
 import { removePendingCheckout } from "@/lib/checkoutStore";
@@ -87,7 +88,8 @@ export function formatShopifyAddress(addr: any): any {
   const stateStr = String(addr?.state || addr?.province || "Kerala").trim();
   const provinceCode = STATE_TO_CODE[stateStr] || undefined;
   const pinCode = String(addr?.pinCode || addr?.zip || "").replace(/\D/g, "").slice(0, 6);
-  const phone = String(addr?.phone || "").replace(/\D/g, "").slice(-10);
+  const phoneVal = validateIndianPhone(addr?.phone);
+  const phone = phoneVal.isValid ? phoneVal.e164Phone : undefined;
 
   return {
     first_name: firstName,
@@ -203,7 +205,8 @@ export async function findExistingShopifyCustomerId(email?: string, phone?: stri
   if (!adminToken || !domain) return null;
 
   const cleanEmail = email && !email.includes("void@razorpay.com") && email.includes("@") ? email.trim().toLowerCase() : "";
-  const cleanPhone = phone ? phone.replace(/\D/g, "") : "";
+  const phoneVal = phone ? validateIndianPhone(phone) : null;
+  const cleanPhone = phoneVal?.isValid ? phoneVal.normalizedPhone : "";
 
   // 1. Authoritative lookup by email first
   if (cleanEmail) {
@@ -351,8 +354,8 @@ export async function createOrGetShopifyOrder({
       const isEmail = contact?.includes("@") && !contact.includes("void@razorpay.com");
       const email = isEmail ? contact.trim().toLowerCase() : "";
       const rawPhone = isEmail ? (shippingAddress?.phone || "") : (contact?.trim() || shippingAddress?.phone || "");
-      const clean10Digits = String(rawPhone || "").replace(/\D/g, "").slice(-10);
-      const phone = clean10Digits.length === 10 ? `+91${clean10Digits}` : undefined;
+      const phoneVal = validateIndianPhone(rawPhone);
+      const phone = phoneVal.isValid ? phoneVal.e164Phone : undefined;
       const formattedShipping = formatShopifyAddress(shippingAddress);
 
       sendMetaPurchaseEvent({
@@ -424,8 +427,8 @@ export async function createOrGetShopifyOrder({
 
       // Sanitize phone to valid E.164 (+91XXXXXXXXXX for 10-digit Indian numbers)
       const rawPhone = isEmail ? (shippingAddress?.phone || "") : (contact?.trim() || shippingAddress?.phone || "");
-      const clean10Digits = String(rawPhone || "").replace(/\D/g, "").slice(-10);
-      const phone = clean10Digits.length === 10 ? `+91${clean10Digits}` : undefined;
+      const phoneVal = validateIndianPhone(rawPhone);
+      const phone = phoneVal.isValid ? phoneVal.e164Phone : undefined;
 
       const formattedShipping = formatShopifyAddress(shippingAddress);
       const formattedBilling = billingAddress ? formatShopifyAddress(billingAddress) : formattedShipping;
