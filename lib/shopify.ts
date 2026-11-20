@@ -85,6 +85,10 @@ export const GET_PRODUCTS_QUERY = `
   }
 `;
 
+export const HIDDEN_PRODUCT_HANDLES = new Set([
+  "the-culture-duo",
+]);
+
 export async function getProducts(first: number = 8) {
   const res = await shopifyFetch<any>({
     query: GET_PRODUCTS_QUERY,
@@ -96,26 +100,28 @@ export async function getProducts(first: number = 8) {
     return [];
   }
 
-  const products = res.data.products.edges.map((edge: any) => {
-    const product = edge.node;
-    const colorsOption = product.options?.find((o: any) => o.name.toLowerCase() === 'color');
-    const sizesOption = product.options?.find((o: any) => o.name.toLowerCase() === 'size');
-    const images = product.images?.edges?.map((e: any) => e.node.url) || [];
-    return {
-      id: product.id,
-      title: product.title,
-      handle: product.handle,
-      image: images[0] || "/images/placeholder.png",
-      secondaryImage: images[1] || null,
-      images,
-      price: product.priceRange.minVariantPrice.amount,
-      maxPrice: product.priceRange.maxVariantPrice?.amount || product.priceRange.minVariantPrice.amount,
-      category: product.productType || '',
-      colors: colorsOption?.values || [],
-      sizes: sizesOption?.values || [],
-      isLive: true
-    };
-  });
+  const products = res.data.products.edges
+    .map((edge: any) => {
+      const product = edge.node;
+      const colorsOption = product.options?.find((o: any) => o.name.toLowerCase() === 'color');
+      const sizesOption = product.options?.find((o: any) => o.name.toLowerCase() === 'size');
+      const images = product.images?.edges?.map((e: any) => e.node.url) || [];
+      return {
+        id: product.id,
+        title: product.title,
+        handle: product.handle,
+        image: images[0] || "/images/placeholder.png",
+        secondaryImage: images[1] || null,
+        images,
+        price: product.priceRange.minVariantPrice.amount,
+        maxPrice: product.priceRange.maxVariantPrice?.amount || product.priceRange.minVariantPrice.amount,
+        category: product.productType || '',
+        colors: colorsOption?.values || [],
+        sizes: sizesOption?.values || [],
+        isLive: true
+      };
+    })
+    .filter((p: any) => !HIDDEN_PRODUCT_HANDLES.has(p.handle));
 
   if (products.length === 0) {
     console.warn("Fetched 0 products. Full Response Body:", JSON.stringify(res, null, 2));
@@ -256,18 +262,20 @@ export async function getCollectionByHandle(handle: string) {
     handle: collection.handle,
     description: collection.description,
     image: collection.image?.url || "/images/placeholder.png",
-    products: collection.products.edges.map((edge: any) => {
-      const product = edge.node;
-      const images = product.images?.edges?.map((e: any) => e.node.url) || [];
-      return {
-        id: product.id,
-        title: product.title,
-        handle: product.handle,
-        image: images[0] || "/images/placeholder.png",
-        secondaryImage: images[1] || null,
-        price: product.priceRange.minVariantPrice.amount,
-      };
-    }),
+    products: collection.products.edges
+      .map((edge: any) => {
+        const product = edge.node;
+        const images = product.images?.edges?.map((e: any) => e.node.url) || [];
+        return {
+          id: product.id,
+          title: product.title,
+          handle: product.handle,
+          image: images[0] || "/images/placeholder.png",
+          secondaryImage: images[1] || null,
+          price: product.priceRange.minVariantPrice.amount,
+        };
+      })
+      .filter((p: any) => !HIDDEN_PRODUCT_HANDLES.has(p.handle)),
   };
 }
 
@@ -379,6 +387,11 @@ export const GET_PRODUCT_DETAILS_QUERY = `
 `;
 
 export async function getProduct(handle: string) {
+  if (HIDDEN_PRODUCT_HANDLES.has(handle)) {
+    console.warn(`Product is hidden: ${handle}`);
+    return null;
+  }
+
   const res = await shopifyFetch<any>({
     query: GET_PRODUCT_DETAILS_QUERY,
     variables: { handle },
